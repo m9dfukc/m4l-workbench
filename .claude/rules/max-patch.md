@@ -23,9 +23,11 @@ belongs in GenExpr or TypeScript, not in patch cords.
 ## Never guess objects, ports or attributes
 
 - Check names, inlet/outlet counts and attribute types against, in this order:
-  `reference/reference-live-objects.amxd` (hand-built ground truth for `live.*` box JSON),
-  the local refpages `/Applications/Max.app/Contents/Resources/C74/docs/refpages/**/*.maxref.xml`,
-  then the vendored references in `reference/`.
+  real Max-saved boxes via `m4l-boxref <class>` (`cd tools && UV_CACHE_DIR=../.uv-cache uv run
+  m4l-boxref --keys -n 3 live.dial`: searches Max's help patches, packages, Live's resources
+  and the Factory Packs), the device's own saved `.amxd`, the local refpages
+  `/Applications/Max.app/Contents/Resources/C74/docs/refpages/**/*.maxref.xml`, then the vendored
+  references in `reference/`.
 - A box declared with the wrong number of ports **loses its cords when the patch opens**.
 - Known hallucinations: there is no `numbox` (→ `flonum`/`number`), no `times~` (→ `*~`), no Pd
   objects (`osc~`, `in~`, `out~`), `poly~` needs a patcher name before the voice count.

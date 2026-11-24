@@ -35,8 +35,8 @@ are **ports of Native Instruments Reaktor ensembles**; others are original desig
 
 ## Decisions (user, 2026-11-24)
 
-- **Repo:** this directory, local git on `main`. GitHub remote planned as
-  **`m9dfukc/m4l-workbench`**, public, MIT — created only on the user's explicit command.
+- **Repo:** this directory, public on GitHub as **`m9dfukc/m4l-workbench`** (remote `origin`,
+  `git@github.com:m9dfukc/m4l-workbench.git`, branch `main`, MIT; first push 2026-11-24).
 - **Monorepo:** one folder per device under `devices/<name>/`; no submodules.
 - **Third-party Reaktor material stays local:** `.ens` files and screenshots live in
   `devices/<name>/reference/reaktor/` (gitignored, provenance + SHA-256 in the committed
@@ -127,8 +127,8 @@ Only upgrade a marker with a reference to the test/source.
 | `docs/handoffs/` | Session handoffs — local only, gitignored; newest is current, never delete |
 | `tools/check.sh <device>` | Offline check chain: gencheck (Max 9.1.5 + 9.2.0, strict) → regenerate `.gendsp` → TS build → maxdiff parse of every patch. Must pass before every `live-test` handover and commit |
 | `tools/setup-git.sh` | Sets the maxdiff textconv drivers in `.git/config` (run once per clone) |
-| `tools/` (uv project) | `m4l-analyze` (health check, Welch-PSD distance, `--null`), py2max for test patches; `tools/vendor/` = pinned gencheck + maxdiff (`VENDOR.md`) |
-| `reference/` | `m4l-production-guidelines.md`, `patch-code-standard.md` (Ableton), `m4l.md` (compact `live.*` reference), later `reference-live-objects.amxd` |
+| `tools/` (uv project) | `m4l-analyze` (health check, Welch-PSD distance, `--null`), `m4l-boxref <class>` (real Max-saved box JSON from the local Max/Live installation — ground truth for patch JSON), py2max for test patches; `tools/vendor/` = pinned gencheck + maxdiff (`VENDOR.md`) |
+| `reference/` | `m4l-production-guidelines.md`, `patch-code-standard.md` (Ableton), `m4l.md` (compact `live.*` reference); README explains `m4l-boxref` |
 | `build/` | gen~ C++ exports, host-test binaries — gitignored |
 | `testlog/` | Test logs of the `live-test` skill — local only, gitignored |
 | `dist/` | Frozen release builds — local only, gitignored |

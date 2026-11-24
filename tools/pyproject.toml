@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 m4l-analyze = "m4l_tools.analyze:main"
+m4l-boxref = "m4l_tools.boxref:main"
 
 [build-system]
 requires = ["hatchling"]

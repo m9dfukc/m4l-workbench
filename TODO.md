@@ -21,10 +21,6 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 - [ ] Install the max-gen-helper plugin in Claude Code (decided 2026-11-24; skill
       `gen-pitfalls` + a guard hook that asks before Max files outside the repo are changed):
       `/plugin marketplace add mforhm/max-gen-helper`, then `/plugin install max-gen-helper@mforhm`.
-- [ ] Build `reference/reference-live-objects.amxd` by hand: a copy of Live's *Max Instrument*
-      template with one each of `live.dial`, `live.numbox`, `live.toggle`, `live.menu`,
-      `live.text`, `live.gain~` (sensible names/ranges), saved **unfrozen**. Ground truth for all
-      `live.*` box JSON.
 - [ ] Limiter on the test track/master for listening tests.
 - [ ] Read Cycling '74's "Gen Code Export Licensing FAQ" (the research agent got HTTP 403) before
       any exported gen~ C++ is committed or published.
@@ -70,3 +66,6 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
   textconv, vendored gencheck/maxdiff/references (`tools/vendor/VENDOR.md`), uv tools project
   (`m4l-analyze`), `tools/check.sh` (verified on a throwaway device). Research notes on the
   toolchain, Reaktor and porting, Max port targets, and the Aliasing Synth sources.
+- 2026-11-24: `m4l-boxref` replaces the hand-built reference device: it finds real Max-saved
+  boxes (e.g. 5 239 `live.dial`, 1 304 `live.menu`, 539 `gen~`, 227 `poly~`, some saved by Max
+  9.2.0) in ~7 300 patch files of the local Max/Live installation [measured].
