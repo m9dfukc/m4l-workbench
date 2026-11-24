@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+
+# Local-only material (never commit)
+/Max for Live mit Claude bauen.md
+/_tmp/
+/docs/handoffs/
+/dist/
+/testlog/
+
+# Third-party Reaktor material: copyrighted by its authors, kept locally as port
+# reference only. The README.md next to it (provenance + checksums) is committed.
+/devices/*/reference/reaktor/*
+!/devices/*/reference/reaktor/README.md
+
+# Reference renders and recordings (WAVs are large and partly third-party)
+*.wav
+*.aif
+*.aiff
+/devices/*/reference/renders/
+
+# Local-only tools: the Reaktor file parser (user, 2026-11-24: code never goes public;
+# its findings go to devices/*/docs/)
+/tools/local/
+
+# Build output: gen~ C++ exports, host-test binaries, renders of our own tests.
+# Exported gen~ C++ stays out of git until Cycling '74's code-export licence is checked.
+/build/
+
+# Frozen devices never go into git (Ableton practice); releases attach them
+*-frozen.amxd
+
+# Python / Node
+.venv/
+.uv-cache/
+__pycache__/
+*.pyc
+node_modules/
+.pnpm-store/
+
+# Claude Code local settings
+.claude/settings.local.json

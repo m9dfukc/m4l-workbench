@@ -1,0 +1,12 @@
+# Max patches: readable diffs through Ableton's maxdiff (textconv drivers are set up by
+# tools/setup-git.sh, because git config is not versioned).
+*.maxpat   diff=maxpat
+*.maxhelp  diff=maxpat
+*.amxd     diff=amxd
+*.als      diff=als
+
+# Generated from gen/*.genexpr by gencheck --write-gendsp; review the .genexpr instead.
+*.gendsp   linguist-generated=true
+
+# Vendored third-party code
+tools/vendor/** linguist-vendored=true

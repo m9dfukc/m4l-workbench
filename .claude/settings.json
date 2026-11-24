@@ -1,0 +1,73 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git add *)",
+      "Bash(git restore --staged *)",
+      "Bash(git commit*)",
+      "Bash(gh auth status*)",
+      "Bash(gh repo view*)",
+      "Bash(gh release view*)",
+      "Bash(gh release list*)",
+      "Bash(uv run *)",
+      "Bash(uv add *)",
+      "Bash(uv sync*)",
+      "Bash(pnpm install*)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm build*)",
+      "Bash(pnpm test*)",
+      "Bash(tools/check.sh *)",
+      "Skill(grill-me)",
+      "Skill(grilling)",
+      "Skill(handoff)",
+      "Skill(research)",
+      "Skill(live-test)",
+      "Skill(reaktor-port)",
+      "Skill(m4l-release)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git tag*)",
+      "Bash(gh repo create*)",
+      "Bash(gh release create*)",
+      "Bash(afplay *)",
+      "Bash(open *)",
+      "Bash(osascript *)"
+    ],
+    "deny": [
+      "Edit(devices/*/reference/reaktor/*.ens)",
+      "Write(devices/*/reference/reaktor/*.ens)",
+      "Edit(devices/*/reference/reaktor/screenshots/**)",
+      "Write(devices/*/reference/reaktor/screenshots/**)"
+    ]
+  },
+  "sandbox": {
+    "autoAllowBashIfSandboxed": true,
+    "filesystem": {
+      "denyWrite": [
+        "./devices/aliasing/reference/reaktor"
+      ]
+    },
+    "excludedCommands": [
+      "git *",
+      "gh *"
+    ],
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "uploads.github.com",
+        "*.githubusercontent.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "astral.sh",
+        "registry.npmjs.org"
+      ]
+    }
+  }
+}
