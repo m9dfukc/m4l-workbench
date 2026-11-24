@@ -16,9 +16,12 @@
 //   --set NAME=V       set a gen Param at t = 0 (repeatable)
 //   --at T NAME=V      set a gen Param at time T seconds (block boundary; repeatable)
 //   --gate T0:T1       in1 (MIDI gate) = 1 from T0 to T1 seconds (repeatable)
-//   --sync T           one-sample impulse on in2 at T seconds (repeatable)
+//   --sync T           one-sample impulse on in2 (Sync button) at T seconds (repeatable)
+//   --note T           one-sample impulse on in3 (note-on) at T seconds (repeatable)
+//   --transport BPM    Live's transport runs from t = 0 at BPM (4/4): in4 = bar ramp, and the
+//                      Params playing = 1, spb = samples per beat are set at t = 0
 //   --table OUT.f32    dump the 5 x 1024 table (voice-major float32) at the end
-//   --heads OUT.f32    dump the 5 x 3 head buffer (voice-major float32) at the end
+//   --heads OUT.f32    dump the 10 x 5 display buffer (channel-major float32) at the end
 //   --params           list the gen Params and exit
 
 #include <cmath>
@@ -42,7 +45,7 @@ struct HostBuffer {
 
 namespace aliasing {
 HostBuffer atab(1024, 5);
-HostBuffer aheads(5, 3);
+HostBuffer aheads(5, 10);
 }  // namespace aliasing
 
 #include "aliasing.cpp"
@@ -107,7 +110,8 @@ int main(int argc, char **argv) {
 	std::vector<std::string> sets;
 	std::vector<std::pair<double, std::string>> ats;
 	std::vector<std::pair<double, double>> gates;
-	std::vector<double> syncs;
+	std::vector<double> syncs, notes;
+	double bpm = 0;
 	bool list = false;
 
 	for (int i = 1; i < argc; ++i) {
@@ -124,6 +128,8 @@ int main(int argc, char **argv) {
 			gates.push_back({std::atof(g.c_str()), std::atof(g.c_str() + c + 1)});
 		}
 		else if (a == "--sync") syncs.push_back(std::atof(next()));
+		else if (a == "--note") notes.push_back(std::atof(next()));
+		else if (a == "--transport") bpm = std::atof(next());
 		else if (a == "--table") table = next();
 		else if (a == "--heads") heads = next();
 		else if (a == "--params") list = true;
@@ -144,12 +150,18 @@ int main(int argc, char **argv) {
 	if (!out) die("no output file (render OUT.wav ...)");
 
 	std::vector<ParamChange> changes;
+	if (bpm > 0) {
+		parse_assign(s, "playing=1", 0, changes);
+		parse_assign(s, "spb=" + std::to_string(sr * 60.0 / bpm), 0, changes);
+	}
 	for (auto &a : sets) parse_assign(s, a, 0, changes);
 	for (auto &t : ats) parse_assign(s, t.second, long(t.first * sr), changes);
 
 	long frames = long(seconds * sr);
-	std::vector<t_sample> in1(vs), in2(vs), o1(vs), o2(vs);
-	t_sample *ins[2] = {in1.data(), in2.data()};
+	std::vector<t_sample> in1(vs), in2(vs), in3(vs), in4(vs), o1(vs), o2(vs);
+	t_sample *ins[4] = {in1.data(), in2.data(), in3.data(), in4.data()};
+	const int nin = int(aliasing::num_inputs());
+	if (nin != 4) die("the export has " + std::to_string(nin) + " inputs, expected 4");
 	t_sample *outs[2] = {o1.data(), o2.data()};
 	std::vector<float> inter;
 	inter.reserve(size_t(frames) * 2);
@@ -162,11 +174,14 @@ int main(int argc, char **argv) {
 			long fr = pos + k;
 			double g = 0;
 			for (auto &gt : gates) if (fr >= long(gt.first * sr) && fr < long(gt.second * sr)) g = 1;
-			double y = 0;
+			double y = 0, nt = 0;
 			for (double t : syncs) if (fr == long(t * sr)) y = 1;
-			in1[k] = g; in2[k] = y;
+			for (double t : notes) if (fr == long(t * sr)) nt = 1;
+			// bar ramp of phasor~ 1.0.0 @lock 1 (4 beats per bar)
+			double bar = bpm > 0 ? std::fmod(double(fr) * bpm / (60.0 * 4.0 * sr), 1.0) : 0.0;
+			in1[k] = g; in2[k] = y; in3[k] = nt; in4[k] = bar;
 		}
-		int err = aliasing::perform(s, ins, 2, outs, 2, n);
+		int err = aliasing::perform(s, ins, 4, outs, 2, n);
 		if (err) die("perform returned error " + std::to_string(err));
 		for (long k = 0; k < n; ++k) { inter.push_back(float(o1[k])); inter.push_back(float(o2[k])); }
 	}
