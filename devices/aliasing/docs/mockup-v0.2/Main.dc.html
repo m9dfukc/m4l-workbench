@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aliasing face v0.2</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#888}a:hover{color:#aaa}
+.al-btn{all:unset;box-sizing:border-box;cursor:pointer;touch-action:none;display:block}
+.al-btn:focus-visible{outline:1px solid #8fa6b6;outline-offset:1px}
+</style>
+</helmet>
+<div style="width: 968px; height: 169px; box-sizing: border-box; padding: 6px 8px; display: flex; gap: 8px; font-family: Inter, 'Ableton Sans', system-ui, sans-serif; font-size: 9px; background: {{c.bg}}; color: {{c.text}}; user-select: none; overflow: hidden">
+  <div style="width: 292px; display: flex; flex-direction: column; gap: 5px">
+    <sc-for list="{{rows}}" as="row" hint-placeholder-count="2">
+      <div style="height: 76px; display: flex; gap: 6px; align-items: stretch; border-bottom: 1px solid {{c.rule}}">
+        <div style="width: 54px; display: flex; flex-direction: column; gap: 4px; padding-top: 2px">
+          <div style="display: flex; align-items: center; gap: 4px">
+            <span style="width: 6px; height: 6px; border-radius: 3px; background: {{row.accent}}"></span>
+            <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{c.text}}">{{row.title}}</span>
+          </div>
+          <div style="display: flex; height: 14px; flex-shrink: 0; border-radius: 7px; border: 1px solid {{c.track}}; overflow: hidden">
+            <button class="al-btn" type="button" aria-label="Free rate" onClick="{{row.setFree}}" style="flex: 1; text-align: center; line-height: 12px; font-size: 8px; background: {{row.freeBg}}; color: {{row.freeFg}}">Hz</button>
+            <button class="al-btn" type="button" aria-label="Synced rate" onClick="{{row.setSync}}" style="flex: 1; text-align: center; line-height: 12px; font-size: 8px; background: {{row.syncBg}}; color: {{row.syncFg}}">Sync</button>
+          </div>
+          <sc-if value="{{row.isSync}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; align-items: center; gap: 3px; flex-shrink: 0">
+              <span style="font-size: 8px; color: {{c.label}}">Mult</span>
+              <button class="al-btn" type="button" aria-label="Rate multiplier" onPointerDown="{{row.mult.down}}" onPointerMove="{{row.mult.move}}" onPointerUp="{{row.mult.up}}" onDoubleClick="{{row.mult.dbl}}" style="flex: 1; height: 14px; border-radius: 3px; background: {{c.field}}; text-align: center; line-height: 14px; font-size: 9px; color: {{c.text}}; cursor: ns-resize">{{row.mult.text}}</button>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display: flex; gap: 2px; align-items: flex-start; padding-top: 4px">
+          <sc-for list="{{row.dials}}" as="d" hint-placeholder-count="3">
+            <div style="width: 40px; display: flex; flex-direction: column; align-items: center; gap: 1px">
+              <div style="color: {{c.label}}; font-size: 9px; height: 11px">{{d.label}}</div>
+              <button class="al-btn" type="button" aria-label="{{d.label}}" onPointerDown="{{d.down}}" onPointerMove="{{d.move}}" onPointerUp="{{d.up}}" onDoubleClick="{{d.dbl}}" style="width: 32px; height: 32px; cursor: ns-resize">
+                <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+                  <path d="{{d.track}}" stroke="{{c.track}}" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+                  <path d="{{d.arc}}" stroke="{{d.color}}" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+                  <line x1="16" y1="16" x2="{{d.nx}}" y2="{{d.ny}}" stroke="{{d.color}}" stroke-width="1.5" stroke-linecap="round"></line>
+                </svg>
+              </button>
+              <div style="font-size: 9px; color: {{c.text}}; height: 11px">{{d.text}}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; padding-top: 4px">
+          <div style="color: {{c.label}}; font-size: 9px">Shape</div>
+          <div style="display: flex; height: 18px; border-radius: 9px; border: 1px solid {{c.track}}; overflow: hidden">
+            <sc-for list="{{row.shapes}}" as="sh" hint-placeholder-count="3">
+              <button class="al-btn" type="button" aria-label="{{sh.label}}" onClick="{{sh.pick}}" style="flex: 1; display: flex; align-items: center; justify-content: center; background: {{sh.bg}}">
+                <svg width="22" height="12" viewBox="0 0 22 12" aria-hidden="true"><path d="{{sh.icon}}" stroke="{{sh.fg}}" stroke-width="1.4" fill="none" stroke-linejoin="round"></path></svg>
+              </button>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 4px">
+            <sc-for list="{{row.pills}}" as="pl" hint-placeholder-count="1">
+              <button class="al-btn" type="button" aria-label="{{pl.label}}" onClick="{{pl.toggle}}" style="flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; height: 14px; padding: 0 4px; border-radius: 7px; border: 1px solid {{pl.border}}; background: {{pl.bg}}; color: {{pl.fg}}; text-align: center; line-height: 12px; font-size: 8px">{{pl.text}}</button>
+            </sc-for>
+          </div>
+          <div style="height: 10px; color: {{c.label}}; font-size: 8px; line-height: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{row.hint}}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="width: 328px; height: 157px; box-sizing: border-box; border-radius: 4px; background: {{c.disp}}; padding: 3px 4px; display: flex; flex-direction: column; gap: 2px">
+    <div style="height: 12px; display: flex; align-items: center; gap: 6px; font-size: 8px; color: {{c.label}}">
+      <span style="font-weight: 600; letter-spacing: 0.08em">{{dispTitle}}</span>
+      <span style="flex: 1">{{dispInfo}}</span>
+      <sc-if value="{{showViewIcons}}" hint-placeholder-val="{{true}}">
+        <button class="al-btn" type="button" aria-label="Line view" onClick="{{setLine}}" style="width: 14px; height: 11px; display: flex; align-items: center; justify-content: center; border-radius: 2px; background: {{lineBg}}">
+          <svg width="10" height="8" viewBox="0 0 10 8" aria-hidden="true"><path d="M0 1.5 H10 M0 4 H10 M0 6.5 H10" stroke="{{lineFg}}" stroke-width="1"></path></svg>
+        </button>
+        <button class="al-btn" type="button" aria-label="2D view" onClick="{{set2d}}" style="width: 14px; height: 11px; display: flex; align-items: center; justify-content: center; border-radius: 2px; background: {{twoBg}}">
+          <svg width="10" height="8" viewBox="0 0 10 8" aria-hidden="true"><path d="M0 0 H3 V3 H0 Z M4 0 H6 V3 H4 Z M7 0 H10 V3 H7 Z M0 5 H2 V8 H0 Z M3 5 H7 V8 H3 Z M8 5 H10 V8 H8 Z" fill="{{twoFg}}"></path></svg>
+        </button>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{showTable}}" hint-placeholder-val="{{true}}">
+      <div style="height: 120px; display: flex; flex-direction: column">
+        <sc-for list="{{lanes}}" as="ln" hint-placeholder-count="5">
+          <div onPointerDown="{{ln.down}}" onPointerMove="{{ln.move}}" onPointerUp="{{ln.up}}" onDoubleClick="{{ln.dbl}}" style="position: relative; height: 24px; cursor: crosshair; touch-action: none; border-top: 1px solid {{ln.rule}}; background: {{ln.grad}}">
+            <svg width="320" height="23" viewBox="0 0 320 23" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+              <path d="{{ln.d}}" stroke="{{c.voice}}" stroke-opacity="{{glowOpacity}}" stroke-width="{{glowWidth}}" fill="none" stroke-linejoin="round"></path>
+              <path d="{{ln.d}}" stroke="{{c.voice}}" stroke-width="{{lineWidth}}" fill="none" stroke-linejoin="round"></path>
+              <line x1="{{ln.wx}}" y1="0" x2="{{ln.wx}}" y2="23" stroke="{{ln.wColor}}" stroke-opacity="0.35" stroke-width="1"></line>
+              <circle cx="{{ln.wx}}" cy="{{ln.wy}}" r="2.6" fill="{{ln.wColor}}"></circle>
+              <line x1="{{ln.rx}}" y1="0" x2="{{ln.rx}}" y2="23" stroke="{{c.read}}" stroke-opacity="0.35" stroke-width="1"></line>
+              <circle cx="{{ln.rx}}" cy="{{ln.ry}}" r="3" fill="none" stroke="{{c.read}}" stroke-width="1.3"></circle>
+            </svg>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showCurve}}" hint-placeholder-val="{{false}}">
+      <div onPointerDown="{{curve.down}}" onPointerMove="{{curve.move}}" onPointerUp="{{curve.up}}" onDoubleClick="{{curve.dbl}}" style="height: 137px; position: relative; cursor: grab; touch-action: none">
+        <svg width="320" height="137" viewBox="0 0 320 137" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+          <rect x="{{curve.band.x}}" y="0" width="{{curve.band.w}}" height="125" fill="{{curve.band.fill}}" fill-opacity="0.09"></rect>
+          <path d="{{curve.grid}}" stroke="{{c.rule}}" stroke-width="1" fill="none"></path>
+          <path d="{{curve.zero}}" stroke="{{c.track}}" stroke-width="1" fill="none"></path>
+          <path d="{{curve.voices}}" stroke="{{c.voice}}" stroke-opacity="0.28" stroke-width="1" fill="none"></path>
+          <path d="{{curve.fill}}" fill="{{c.write}}" fill-opacity="0.07" stroke="none"></path>
+          <path d="{{curve.d}}" stroke="{{c.write}}" stroke-opacity="{{glowOpacity}}" stroke-width="{{glowWidth}}" fill="none"></path>
+          <path d="{{curve.d}}" stroke="{{c.write}}" stroke-width="{{lineWidth}}" fill="none"></path>
+          <line x1="{{curve.band.x}}" y1="0" x2="{{curve.band.x}}" y2="125" stroke="{{curve.band.fill}}" stroke-opacity="0.6" stroke-width="1"></line>
+          <line x1="{{curve.band.x2}}" y1="0" x2="{{curve.band.x2}}" y2="125" stroke="{{curve.band.fill}}" stroke-opacity="0.6" stroke-width="1"></line>
+          <rect x="{{curve.band.gx1}}" y="2" width="6" height="12" rx="2" fill="{{c.disp}}" stroke="{{curve.band.fill}}" stroke-width="1.2"></rect>
+          <rect x="{{curve.band.gx2}}" y="2" width="6" height="12" rx="2" fill="{{c.disp}}" stroke="{{curve.band.fill}}" stroke-width="1.2"></rect>
+          <circle cx="{{curve.ctr.x}}" cy="{{curve.ctr.y}}" r="5" fill="{{c.disp}}" stroke="{{c.write}}" stroke-width="1.5"></circle>
+          <rect x="{{curve.rs.x0}}" y="{{curve.rs.y0}}" width="9" height="9" rx="1" fill="{{c.disp}}" stroke="{{c.read}}" stroke-width="1.4"></rect>
+          <text x="{{curve.band.lx}}" y="24" font-size="8" fill="{{c.label}}">{{curve.band.label}}</text>
+          <text x="{{curve.rs.tx}}" y="{{curve.rs.ty}}" font-size="8" fill="{{c.label}}">R</text>
+          <text x="2" y="135" font-size="7" fill="{{c.label}}">20</text>
+          <text x="96" y="135" font-size="7" fill="{{c.label}}">200</text>
+          <text x="198" y="135" font-size="7" fill="{{c.label}}">2k</text>
+          <text x="300" y="135" font-size="7" fill="{{c.label}}">20k</text>
+        </svg>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showTable}}" hint-placeholder-val="{{true}}">
+    <div style="height: 3px; position: relative; background: {{c.rule}}; border-radius: 1px">
+      <div style="position: absolute; left: 0; top: 0; height: 3px; width: {{sizePct}}%; background: {{c.label}}; border-radius: 1px"></div>
+    </div>
+    <button class="al-btn" type="button" aria-label="Size" onPointerDown="{{sizeBar.down}}" onPointerMove="{{sizeBar.move}}" onPointerUp="{{sizeBar.up}}" onDoubleClick="{{sizeBar.dbl}}" style="position: relative; height: 11px; border-radius: 2px; background: {{c.field}}; cursor: ew-resize">
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{sizePct}}%; background: {{c.sizeFill}}; border-radius: 2px"></div>
+      <div style="position: absolute; left: 4px; top: 0; line-height: 11px; font-size: 8px; color: {{c.text}}">Size</div>
+      <div style="position: absolute; right: 4px; top: 0; line-height: 11px; font-size: 8px; color: {{c.text}}">{{sizeText}}</div>
+    </button>
+    </sc-if>
+  </div>
+  <div style="width: 316px; display: flex; flex-direction: column; gap: 6px">
+    <div style="display: flex; height: 16px; border-radius: 8px; border: 1px solid {{c.track}}; overflow: hidden">
+      <sc-for list="{{pages}}" as="pg" hint-placeholder-count="4">
+        <button class="al-btn" type="button" onClick="{{pg.pick}}" style="flex: 1; text-align: center; line-height: 14px; font-size: 9px; font-weight: 500; letter-spacing: 0.04em; background: {{pg.bg}}; color: {{pg.fg}}">{{pg.label}}</button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{isLfo}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; gap: 10px">
+        <sc-for list="{{lfos}}" as="lf" hint-placeholder-count="2">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+            <div style="display: flex; align-items: center; gap: 6px">
+              <span style="font-size: 9px; font-weight: 600; letter-spacing: 0.06em">{{lf.title}}</span>
+              <div style="flex: 1"></div>
+              <div style="display: flex; width: 58px; height: 13px; border-radius: 7px; border: 1px solid {{c.track}}; overflow: hidden">
+                <button class="al-btn" type="button" onClick="{{lf.setFree}}" style="flex: 1; text-align: center; line-height: 11px; font-size: 8px; background: {{lf.freeBg}}; color: {{lf.freeFg}}">Hz</button>
+                <button class="al-btn" type="button" onClick="{{lf.setSync}}" style="flex: 1; text-align: center; line-height: 11px; font-size: 8px; background: {{lf.syncBg}}; color: {{lf.syncFg}}">Sync</button>
+              </div>
+            </div>
+            <div style="display: flex; height: 16px; border-radius: 8px; border: 1px solid {{c.track}}; overflow: hidden">
+              <sc-for list="{{lf.shapes}}" as="sh" hint-placeholder-count="6">
+                <button class="al-btn" type="button" aria-label="{{sh.label}}" onClick="{{sh.pick}}" style="flex: 1; display: flex; align-items: center; justify-content: center; background: {{sh.bg}}">
+                  <svg width="16" height="10" viewBox="0 0 22 12" aria-hidden="true"><path d="{{sh.icon}}" stroke="{{sh.fg}}" stroke-width="1.6" fill="none" stroke-linejoin="round"></path></svg>
+                </button>
+              </sc-for>
+            </div>
+            <div style="display: flex; justify-content: space-between">
+              <sc-for list="{{lf.dials}}" as="d" hint-placeholder-count="3">
+                <div style="width: 46px; display: flex; flex-direction: column; align-items: center; gap: 1px">
+                  <div style="color: {{c.label}}; font-size: 9px; height: 11px">{{d.label}}</div>
+                  <button class="al-btn" type="button" aria-label="{{d.label}}" onPointerDown="{{d.down}}" onPointerMove="{{d.move}}" onPointerUp="{{d.up}}" onDoubleClick="{{d.dbl}}" style="width: 30px; height: 30px; cursor: ns-resize">
+                    <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+                      <path d="{{d.track}}" stroke="{{c.track}}" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+                      <path d="{{d.arc}}" stroke="{{d.color}}" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+                      <line x1="16" y1="16" x2="{{d.nx}}" y2="{{d.ny}}" stroke="{{d.color}}" stroke-width="1.5" stroke-linecap="round"></line>
+                    </svg>
+                  </button>
+                  <div style="font-size: 9px; height: 11px">{{d.text}}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px">
+              <span style="color: {{c.label}}; font-size: 8px">Retrig</span>
+              <div style="flex: 1; display: flex; height: 13px; border-radius: 7px; border: 1px solid {{c.track}}; overflow: hidden">
+                <sc-for list="{{lf.retrig}}" as="rt" hint-placeholder-count="3">
+                  <button class="al-btn" type="button" onClick="{{rt.pick}}" style="flex: 1; text-align: center; line-height: 11px; font-size: 8px; background: {{rt.bg}}; color: {{rt.fg}}">{{rt.label}}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isMod}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 2px">
+        <div style="display: flex; gap: 6px; font-size: 8px; color: {{c.label}}; padding-left: 18px">
+          <span style="width: 76px">Source</span><span style="width: 10px"></span><span style="width: 92px">Target</span><span>Depth</span>
+        </div>
+        <sc-for list="{{slots}}" as="sl" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 6px; height: 22px">
+            <span style="width: 12px; height: 12px; border-radius: 6px; border: 1px solid {{c.track}}; text-align: center; line-height: 12px; font-size: 8px; color: {{c.label}}">{{sl.n}}</span>
+            <button class="al-btn" type="button" aria-label="Mod source" onClick="{{sl.nextSrc}}" style="width: 76px; height: 18px; border-radius: 3px; background: {{c.field}}; padding: 0 6px; display: flex; align-items: center; justify-content: space-between; font-size: 9px; color: {{sl.srcFg}}">
+              <span>{{sl.src}}</span>
+              <svg width="7" height="5" viewBox="0 0 7 5" aria-hidden="true"><path d="M0 0 L3.5 4 L7 0" fill="{{c.label}}"></path></svg>
+            </button>
+            <svg width="10" height="8" viewBox="0 0 10 8" aria-hidden="true"><path d="M0 4 H8 M5 1 L8 4 L5 7" stroke="{{c.label}}" stroke-width="1" fill="none"></path></svg>
+            <button class="al-btn" type="button" aria-label="Mod target" onClick="{{sl.nextTgt}}" style="width: 92px; height: 18px; border-radius: 3px; background: {{c.field}}; padding: 0 6px; display: flex; align-items: center; justify-content: space-between; font-size: 9px; color: {{sl.tgtFg}}">
+              <span>{{sl.tgt}}</span>
+              <svg width="7" height="5" viewBox="0 0 7 5" aria-hidden="true"><path d="M0 0 L3.5 4 L7 0" fill="{{c.label}}"></path></svg>
+            </button>
+            <button class="al-btn" type="button" aria-label="Mod depth" onPointerDown="{{sl.depth.down}}" onPointerMove="{{sl.depth.move}}" onPointerUp="{{sl.depth.up}}" onDoubleClick="{{sl.depth.dbl}}" style="position: relative; flex: 1; height: 14px; border-radius: 2px; background: {{c.field}}; cursor: ew-resize">
+              <div style="position: absolute; top: 0; bottom: 0; left: {{sl.depth.left}}%; width: {{sl.depth.width}}%; background: {{sl.depth.color}}; opacity: 0.75; border-radius: 2px"></div>
+              <div style="position: absolute; top: -1px; bottom: -1px; left: 50%; width: 1px; background: {{c.label}}"></div>
+              <div style="position: absolute; right: 4px; top: 0; line-height: 14px; font-size: 8px; color: {{c.text}}">{{sl.depth.text}}</div>
+            </button>
+          </div>
+        </sc-for>
+        <div style="font-size: 8px; color: {{c.label}}; padding-left: 18px">Slots 1–2 default to LFO 1 → Write Pitch and LFO 2 → Read Pitch, depth 0.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isTone}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <sc-for list="{{toneRows}}" as="tr" hint-placeholder-count="2">
+          <div style="display: flex; align-items: flex-start">
+            <sc-for list="{{tr.stages}}" as="sg" hint-placeholder-count="2">
+              <div style="display: flex; align-items: flex-start">
+                <sc-if value="{{sg.arrow}}" hint-placeholder-val="{{false}}">
+                  <svg width="12" height="58" viewBox="0 0 12 58" aria-hidden="true"><path d="M2 33 H9 M6 30 L9 33 L6 36" stroke="{{c.label}}" stroke-width="1" fill="none"></path></svg>
+                </sc-if>
+                <div style="display: flex; flex-direction: column; gap: 1px">
+                  <div style="font-size: 8px; font-weight: 600; letter-spacing: 0.08em; color: {{c.label}}; padding: 0 3px 1px; border-bottom: 1px solid {{c.track}}">{{sg.title}}</div>
+                  <div style="display: flex; align-items: flex-start">
+                    <sc-for list="{{sg.dials}}" as="d" hint-placeholder-count="3">
+                      <div style="width: 36px; display: flex; flex-direction: column; align-items: center">
+                        <div style="color: {{c.label}}; font-size: 8px; height: 11px">{{d.label}}</div>
+                        <button class="al-btn" type="button" aria-label="{{d.label}}" onPointerDown="{{d.down}}" onPointerMove="{{d.move}}" onPointerUp="{{d.up}}" onDoubleClick="{{d.dbl}}" style="width: 26px; height: 26px; cursor: ns-resize">
+                          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+                            <path d="{{d.track}}" stroke="{{c.track}}" stroke-width="3" fill="none" stroke-linecap="round"></path>
+                            <path d="{{d.arc}}" stroke="{{d.color}}" stroke-width="3" fill="none" stroke-linecap="round"></path>
+                            <line x1="16" y1="16" x2="{{d.nx}}" y2="{{d.ny}}" stroke="{{d.color}}" stroke-width="1.8" stroke-linecap="round"></line>
+                          </svg>
+                        </button>
+                        <div style="font-size: 8px; height: 10px">{{d.text}}</div>
+                      </div>
+                    </sc-for>
+                    <div style="display: flex; flex-direction: column; gap: 4px; padding: 6px 0 0 3px">
+                      <sc-for list="{{sg.segs}}" as="sq" hint-placeholder-count="0">
+                        <div style="display: flex; width: {{sq.w}}px; height: 13px; border-radius: 7px; border: 1px solid {{c.track}}; overflow: hidden">
+                          <sc-for list="{{sq.items}}" as="it" hint-placeholder-count="2">
+                            <button class="al-btn" type="button" onClick="{{it.pick}}" style="flex: 1; text-align: center; line-height: 11px; font-size: 8px; background: {{it.bg}}; color: {{it.fg}}">{{it.label}}</button>
+                          </sc-for>
+                        </div>
+                      </sc-for>
+                      <sc-for list="{{sg.pills}}" as="pl" hint-placeholder-count="0">
+                        <button class="al-btn" type="button" aria-label="{{pl.label}}" onClick="{{pl.toggle}}" style="height: 13px; padding: 0 7px; border-radius: 7px; border: 1px solid {{pl.border}}; background: {{pl.bg}}; color: {{pl.fg}}; line-height: 11px; font-size: 8px; text-align: center">{{pl.text}}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isOut}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; gap: 10px">
+        <div style="width: 118px; display: flex; flex-direction: column; gap: 4px">
+          <div style="color: {{c.label}}; font-size: 8px">Gate</div>
+          <div style="display: flex; height: 16px; border-radius: 8px; border: 1px solid {{c.track}}; overflow: hidden">
+            <sc-for list="{{gateSeg}}" as="sg" hint-placeholder-count="2">
+              <button class="al-btn" type="button" onClick="{{sg.pick}}" style="flex: 1; text-align: center; line-height: 14px; font-size: 9px; background: {{sg.bg}}; color: {{sg.fg}}">{{sg.label}}</button>
+            </sc-for>
+          </div>
+          <div style="color: {{c.label}}; font-size: 8px; padding-top: 3px">Resync (bars)</div>
+          <div style="display: flex; height: 16px; border-radius: 8px; border: 1px solid {{c.track}}; overflow: hidden">
+            <sc-for list="{{resyncSeg}}" as="sg" hint-placeholder-count="5">
+              <button class="al-btn" type="button" onClick="{{sg.pick}}" style="flex: 1; text-align: center; line-height: 14px; font-size: 9px; background: {{sg.bg}}; color: {{sg.fg}}">{{sg.label}}</button>
+            </sc-for>
+          </div>
+          <button class="al-btn" type="button" aria-label="Sync now" onClick="{{syncNow}}" style="margin-top: 4px; height: 16px; border-radius: 8px; border: 1px solid {{c.track}}; text-align: center; line-height: 14px; font-size: 9px; color: {{c.text}}">Sync now</button>
+        </div>
+        <div style="display: flex; gap: 2px; align-items: flex-start">
+          <sc-for list="{{outDials}}" as="d" hint-placeholder-count="3">
+            <div style="width: 44px; display: flex; flex-direction: column; align-items: center; gap: 1px">
+              <div style="color: {{c.label}}; font-size: 9px; height: 11px">{{d.label}}</div>
+              <button class="al-btn" type="button" aria-label="{{d.label}}" onPointerDown="{{d.down}}" onPointerMove="{{d.move}}" onPointerUp="{{d.up}}" onDoubleClick="{{d.dbl}}" style="width: 32px; height: 32px; cursor: ns-resize">
+                <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+                  <path d="{{d.track}}" stroke="{{c.track}}" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+                  <path d="{{d.arc}}" stroke="{{d.color}}" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+                  <line x1="16" y1="16" x2="{{d.nx}}" y2="{{d.ny}}" stroke="{{d.color}}" stroke-width="1.5" stroke-linecap="round"></line>
+                </svg>
+              </button>
+              <div style="font-size: 9px; height: 11px">{{d.text}}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex: 1"></div>
+        <div style="display: flex; gap: 2px; align-items: flex-end; height: 128px">
+          <div style="position: relative; width: 5px; height: 120px; background: {{c.field}}; border-radius: 1px">
+            <div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{meterL}}%; background: {{c.meter}}; border-radius: 1px"></div>
+          </div>
+          <div style="position: relative; width: 5px; height: 120px; background: {{c.field}}; border-radius: 1px">
+            <div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{meterR}}%; background: {{c.meter}}; border-radius: 1px"></div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Graphite&quot;,&quot;Sand&quot;,&quot;Ice&quot;],&quot;default&quot;:&quot;Graphite&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dark&quot;,&quot;Light&quot;],&quot;default&quot;:&quot;Dark&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;Look&quot;},&quot;lineWeight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.75,&quot;max&quot;:2,&quot;step&quot;:0.25,&quot;default&quot;:1,&quot;section&quot;:&quot;Look&quot;},&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;Behaviour&quot;},&quot;$preview&quot;:{&quot;width&quot;:968,&quot;height&quot;:169}}">
+const CELLS = 1024, NV = 5;
+const PAL = {
+  Graphite: { Dark: { write: '#e4e4e4', read: '#8fa6b6' }, Light: { write: '#242424', read: '#41627a' } },
+  Sand:     { Dark: { write: '#e3cda4', read: '#a89a86' }, Light: { write: '#6e5226', read: '#6a5f50' } },
+  Ice:      { Dark: { write: '#cfe5ee', read: '#7fa7b6' }, Light: { write: '#1f5568', read: '#4f7584' } }
+};
+const THEME = {
+  Dark:  { bg: '#262626', disp: '#151515', text: '#c9c9c9', label: '#969696', track: '#424242', rule: '#2e2e2e', field: '#1b1b1b', voice: '#a3a3a3', sel: '#d6d6d6', selFg: '#1b1b1b', sizeFill: '#3a3a3a', meter: '#9a9a9a' },
+  Light: { bg: '#d4d4d4', disp: '#ececec', text: '#1e1e1e', label: '#4d4d4d', track: '#9e9e9e', rule: '#c9c9c9', field: '#e6e6e6', voice: '#555555', sel: '#2a2a2a', selFg: '#efefef', sizeFill: '#bdbdbd', meter: '#555555' }
+};
+const DIVS = ['8 bars','4 bars','2 bars','1 bar','1/2','1/2D','1/2T','1/4','1/4D','1/4T','1/8','1/8D','1/8T','1/16','1/16D','1/16T','1/32','1/32T','1/64'];
+const DIVBEATS = [32,16,8,4,2,3,4/3,1,1.5,2/3,0.5,0.75,1/3,0.25,0.375,1/6,0.125,1/12,0.0625];
+const SRC = ['None','LFO 1','LFO 2','Drift','Velocity','Mod Wheel'];
+const TGT = ['None','Write Pitch','Read Pitch','Size','Write Sym','Read Spread','Band Center','Band Width','Res Freq','Width','Output'];
+const ICON = {
+  ramp: 'M1 11 L21 1 L21 11', tri: 'M1 11 L11 1 L21 11', read: 'M1 11 L7 5 L13 9 L21 1',
+  sine: 'M1 6 C4 -2 8 -2 11 6 C14 14 18 14 21 6', saw: 'M1 11 L21 1 L21 11', sq: 'M1 11 V1 H11 V11 H21 V1',
+  sh: 'M1 8 H5 V3 H9 V10 H13 V5 H17 V9 H21', rnd: 'M1 8 C4 2 6 3 8 6 C10 10 13 11 15 6 C17 2 19 4 21 5'
+};
+const DEF = {
+  w_pitch: [-64, 64, 0, 'Pitch'], w_fine: [-1, 1, 0.07, 'Fine'], w_div: [0, 18, 13, 'Rate'], w_mult: [1, 64, 1, 'Mult'], w_sym: [-1, 1, 0, 'Sym'],
+  r_pitch: [-64, 64, 0, 'Pitch'], r_fine: [-1, 1, 0, 'Fine'], r_div: [0, 18, 13, 'Rate'], r_mult: [1, 64, 1, 'Mult'], r_spread: [0, 6, 0.2, 'Spread'],
+  l1_rate: [0, 1, 0.35, 'Rate'], l1_div: [0, 18, 7, 'Rate'], l1_phase: [0, 360, 0, 'Phase'], l1_spread: [0, 1, 0.5, 'Spread'],
+  l2_rate: [0, 1, 0.25, 'Rate'], l2_div: [0, 18, 3, 'Rate'], l2_phase: [0, 360, 90, 'Phase'], l2_spread: [0, 1, 0.5, 'Spread'],
+  drive: [0, 24, 0, 'Drive'], b_center: [0, 1, 0.55, 'Center'], b_width: [0, 1, 1, 'Width'], b_res: [0, 1, 0.2, 'Res'], fm: [0, 1, 0, 'FM'], b_spread: [0, 1, 0.25, 'Spread'],
+  c_freq: [0, 1, 0.35, 'Freq'], c_fb: [-0.95, 0.95, 0.5, 'Fdbk'], c_mix: [0, 1, 0, 'Mix'],
+  transpose: [-12, 12, 0, 'Transp'], width: [0, 2, 1, 'Width'], output: [-36, 0, -6, 'Output'],
+  m1_depth: [-1, 1, 0, 'Depth'], m2_depth: [-1, 1, 0, 'Depth'], m3_depth: [-1, 1, 0, 'Depth'], m4_depth: [-1, 1, 0, 'Depth'],
+  size: [0.001, 1, 1, 'Size']
+};
+const INT_KEYS = { w_div: 1, r_div: 1, w_mult: 1, r_mult: 1, l1_div: 1, l2_div: 1, transpose: 1 };
+const BIPOLAR = { w_pitch: 1, w_fine: 1, w_sym: 1, r_pitch: 1, r_fine: 1, c_fb: 1, transpose: 1 };
+
+function freqOf(n) { return 20 * Math.pow(1000, n); }               // 0..1 -> 20 Hz .. 20 kHz
+function fmtHz(f) { return f >= 1000 ? (f / 1000).toFixed(f >= 10000 ? 0 : 1) + 'k' : Math.round(f) + ''; }
+function lfoHz(n) { return 0.01 * Math.pow(2000, n); }              // 0..1 -> 0.01 .. 20 Hz
+function pt(a, r) { const t = a * Math.PI / 180; return [16 + r * Math.sin(t), 16 - r * Math.cos(t)]; }
+function arc(a0, a1, r) {
+  if (Math.abs(a1 - a0) < 0.5) return '';
+  const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+  const p0 = pt(lo, r), p1 = pt(hi, r);
+  return 'M' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + (hi - lo > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2);
+}
+const TRACK = arc(-135, 135, 12);
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const p = {};
+    Object.keys(DEF).forEach((k) => { p[k] = DEF[k][2]; });
+    Object.assign(p, {
+      w_mode: 0, r_mode: 0, w_shape: 0, r_shape: 0, w_active: 1, r_smooth: 0, r_dir: 0,
+      l1_mode: 0, l2_mode: 1, l1_shape: 0, l2_shape: 5, l1_retrig: 0, l2_retrig: 2,
+      m1_src: 1, m1_tgt: 1, m2_src: 2, m2_tgt: 2, m3_src: 0, m3_tgt: 0, m4_src: 0, m4_tgt: 0,
+      b_slope: 1, b_mode: 0, clip: 1, c_track: 1, gate: 0, resync: 0, view: 0, page: 0
+    });
+    this.state = { p: p, t: 0 };
+    this.rows = [];
+    for (let v = 0; v < NV; v++) { const r = new Float32Array(CELLS); for (let i = 0; i < CELLS; i++) r[i] = i / CELLS; this.rows.push(r); }
+    this.ph = []; for (let v = 0; v < NV; v++) this.ph.push({ w: v * 0.13, r: v * 0.29, lw: 0, lr: 0 });
+    this.drag = null; this.draw = null; this.curveDrag = null;
+    this.meter = [0, 0]; this.clock = 0;
+  }
+  componentDidMount() { this.timer = setInterval(() => this.tick(), 50); }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  set(k, v) { this.setState((s) => { const p = Object.assign({}, s.p); p[k] = v; return { p: p }; }); }
+
+  pointerHz(which, p) {
+    if (p[which + '_mode']) return p[which + '_mult'] * 2 / DIVBEATS[p[which + '_div']] * Math.pow(2, p[which + '_fine'] / 12);
+    return 261.63 * Math.pow(2, (p[which + '_pitch'] + p[which + '_fine'] + p.transpose) / 12);
+  }
+  lfoVal(k, t, v, p) {
+    const hz = p['l' + k + '_mode'] ? 2 / DIVBEATS[p['l' + k + '_div']] : lfoHz(p['l' + k + '_rate']);
+    const ph = (t * hz * (1 + p['l' + k + '_spread'] * 0.3 * (v - 2) / 2) + p['l' + k + '_phase'] / 360) % 1;
+    const sh = p['l' + k + '_shape'];
+    if (sh === 0) return Math.sin(2 * Math.PI * ph);
+    if (sh === 1) return 1 - 4 * Math.abs(ph - 0.5);
+    if (sh === 2) return 2 * ph - 1;
+    if (sh === 3) return ph < 0.5 ? 1 : -1;
+    const n = Math.floor(t * hz + v * 7.3); const r = Math.sin(n * 12.9898) * 43758.5453;
+    return 2 * (r - Math.floor(r)) - 1;
+  }
+  modSum(tgtIdx, t, v, p) {
+    let m = 0;
+    for (let s = 1; s <= 4; s++) {
+      if (p['m' + s + '_tgt'] !== tgtIdx || !p['m' + s + '_src']) continue;
+      const src = p['m' + s + '_src'];
+      const val = src === 1 ? this.lfoVal(1, t, v, p) : src === 2 ? this.lfoVal(2, t, v, p) : src === 3 ? Math.sin(t * 0.37 + v * 1.7) : 0.6;
+      m += val * p['m' + s + '_depth'];
+    }
+    return m;
+  }
+
+  tick() {
+    if (!(this.props.animate ?? true)) return;
+    const p = this.state.p;
+    const t = (this.clock += 0.05);
+    const span = Math.max(1, Math.round(p.size * CELLS));
+    const fw0 = this.pointerHz('w', p), fr0 = this.pointerHz('r', p);
+    let peak = 0;
+    for (let v = 0; v < NV; v++) {
+      const st = this.ph[v];
+      const spreadSt = p.r_spread * ((v + 0.5) / NV - 0.5);
+      const fw = fw0 * Math.pow(2, this.modSum(1, t, v, p) * 2);
+      const fr = fr0 * Math.pow(2, (spreadSt + this.modSum(2, t, v, p) * 24) / 12);
+      const dw = 0.03 * (1 + v * 0.002);               // slowed-down view: write speed fixed
+      const dr = dw * fr / fw;
+      const steps = 240;
+      const row = this.rows[v];
+      const a = Math.min(Math.max(0.5 + 0.5 * p.w_sym, 0.001), 0.999);
+      for (let i = 0; i < steps; i++) {
+        st.w = (st.w + dw / steps) % 1; st.r = (st.r + dr / steps) % 1;
+        let rd = st.r;
+        if (p.r_shape) { const sym = p.r_dir ? 0.5 : 1; rd = st.r < sym ? st.r / sym : (1 - st.r) / Math.max(1 - sym, 1e-6); }
+        let xw = st.w;
+        if (p.w_shape === 1) xw = st.w < a ? st.w / a : (1 - st.w) / (1 - a);
+        if (p.w_shape === 2) xw = rd;
+        if (p.w_active) row[Math.min(span - 1, Math.floor(xw * span))] = rd;
+        st.rd = rd; st.xw = xw;
+      }
+      peak = Math.max(peak, Math.abs(2 * row[Math.min(span - 1, Math.floor(st.rd * span))] - 1));
+    }
+    const lvl = Math.pow(10, p.output / 20) * (p.gate ? 0.4 : 1) * peak;
+    this.meter = [Math.min(100, 100 * lvl * (0.85 + 0.15 * Math.random())), Math.min(100, 100 * lvl * (0.85 + 0.15 * Math.random()) * (p.width > 0 ? 1 : 0.95))];
+    this.setState((s) => ({ t: s.t + 1 }));
+  }
+
+  dial(key, color, opts) {
+    const d = DEF[key], p = this.state.p, min = d[0], max = d[1];
+    const val = p[key], n = (val - min) / (max - min);
+    const a = -135 + 270 * n;
+    const bip = BIPOLAR[key];
+    const nn = pt(a, 8.5);
+    const text = (opts && opts.fmt) ? opts.fmt(val) : (Math.abs(val) >= 10 ? Math.round(val) + '' : val.toFixed(2));
+    return {
+      label: (opts && opts.label) || d[3], text: text, color: color,
+      track: TRACK, arc: bip ? arc(0, a, 12) : arc(-135, a, 12), nx: nn[0].toFixed(2), ny: nn[1].toFixed(2),
+      down: (e) => { e.currentTarget.setPointerCapture(e.pointerId); this.drag = { key: key, y: e.clientY, v: val }; },
+      move: (e) => {
+        if (!this.drag || this.drag.key !== key) return;
+        const dy = (this.drag.y - e.clientY) * (e.shiftKey ? 0.15 : 1);
+        let v = this.drag.v + dy / 110 * (max - min);
+        v = Math.min(max, Math.max(min, v));
+        if (INT_KEYS[key]) v = Math.round(v);
+        this.set(key, v);
+      },
+      up: () => { this.drag = null; },
+      dbl: () => this.set(key, d[2])
+    };
+  }
+  hbar(key, color) {
+    const d = DEF[key], p = this.state.p, val = p[key];
+    const left = val < 0 ? 50 + 50 * val : 50, width = Math.abs(val) * 50;
+    return {
+      left: left.toFixed(1), width: width.toFixed(1), color: color, text: (val >= 0 ? '+' : '') + Math.round(val * 100) + '%',
+      down: (e) => { e.currentTarget.setPointerCapture(e.pointerId); this.drag = { key: key, x: e.clientX, v: val, w: e.currentTarget.getBoundingClientRect().width }; },
+      move: (e) => {
+        if (!this.drag || this.drag.key !== key) return;
+        const v = Math.min(1, Math.max(-1, this.drag.v + (e.clientX - this.drag.x) / this.drag.w * 2 * (e.shiftKey ? 0.15 : 1)));
+        this.set(key, v);
+      },
+      up: () => { this.drag = null; }, dbl: () => this.set(key, 0)
+    };
+  }
+  seg(key, labels, c) {
+    const p = this.state.p;
+    return labels.map((lb, i) => ({ label: lb, bg: p[key] === i ? c.sel : 'transparent', fg: p[key] === i ? c.selFg : c.text, pick: () => this.set(key, i) }));
+  }
+  shapes(key, list, c) {
+    const p = this.state.p;
+    return list.map((s, i) => ({ label: s[0], icon: ICON[s[1]], bg: p[key] === i ? c.sel : 'transparent', fg: p[key] === i ? c.selFg : c.label, pick: () => this.set(key, i) }));
+  }
+  pill(key, text, c, accent, label) {
+    const on = !!this.state.p[key];
+    return { label: label || text, text: text, bg: on ? accent : 'transparent', fg: on ? c.selFg : c.label, border: on ? accent : c.track, toggle: () => this.set(key, on ? 0 : 1) };
+  }
+  modeSeg(prefix, c) {
+    const s = this.state.p[prefix + '_mode'];
+    return {
+      isSync: !!s, freeBg: s ? 'transparent' : c.sel, freeFg: s ? c.label : c.selFg, syncBg: s ? c.sel : 'transparent', syncFg: s ? c.selFg : c.label,
+      setFree: () => this.set(prefix + '_mode', 0), setSync: () => this.set(prefix + '_mode', 1)
+    };
+  }
+
+  lane(v, c, span) {
+    const p = this.state.p, row = this.rows[v], st = this.ph[v];
+    const W = 320, H = 23;
+    let d = '';
+    if (!p.view) {
+      for (let x = 0; x < W; x++) {
+        const i0 = Math.floor(x / W * span), i1 = Math.max(i0 + 1, Math.floor((x + 1) / W * span));
+        let lo = 1, hi = 0;
+        for (let i = i0; i < i1 && i < CELLS; i++) { const q = row[i]; if (q < lo) lo = q; if (q > hi) hi = q; }
+        const yh = (1.5 + (1 - hi) * (H - 3)).toFixed(1), yl = (1.5 + (1 - lo) * (H - 3)).toFixed(1);
+        d += (x ? 'L' : 'M') + x + ' ' + yh + (yh !== yl ? ' L' + x + ' ' + yl : '') + ' ';
+      }
+    }
+    let grad = 'transparent';
+    if (p.view) {
+      const cols = 64, rgb = THEME[this.props.theme ?? 'Dark'] === THEME.Light ? '40,40,40' : '200,200,200';
+      const stops = [];
+      for (let k = 0; k < cols; k++) {
+        const q = row[Math.min(CELLS - 1, Math.floor((k + 0.5) / cols * span))];
+        const a = (0.06 + 0.8 * q).toFixed(2);
+        stops.push('rgba(' + rgb + ',' + a + ') ' + (k / cols * 100).toFixed(3) + '% ' + ((k + 1) / cols * 100).toFixed(3) + '%');
+      }
+      grad = 'linear-gradient(90deg,' + stops.join(',') + ')';
+    }
+    const wx = ((st.xw || 0) * W).toFixed(1), rx = ((st.r || 0) * W).toFixed(1);
+    const yOf = (pos) => (1.5 + (1 - row[Math.min(span - 1, Math.floor(pos * span))]) * (H - 3)).toFixed(1);
+    const ev = (e) => { const r = e.currentTarget.getBoundingClientRect(); return [Math.min(0.9999, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height))]; };
+    const paint = (x0, y0, x1, y1, all) => {
+      const c0 = Math.floor(x0 * span), c1 = Math.floor(x1 * span);
+      const n = Math.max(1, Math.abs(c1 - c0));
+      const voices = all ? [0, 1, 2, 3, 4] : [v];
+      for (let k = 0; k <= n; k++) {
+        const ci = c0 + Math.round((c1 - c0) * k / n), y = y0 + (y1 - y0) * k / n;
+        voices.forEach((vv) => { this.rows[vv][ci] = y; });
+      }
+    };
+    return {
+      d: d, grad: grad, isLine: !p.view, rule: v ? c.rule : 'transparent',
+      wx: wx, wy: p.view ? 11.5 : yOf(st.xw || 0), rx: rx, ry: p.view ? 11.5 : yOf(st.r || 0),
+      wColor: p.w_active ? c.write : c.track,
+      down: (e) => {
+        if (e.detail > 1) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const q = ev(e);
+        this.draw = { v: v, x0: q[0], y0: q[1], lx: q[0], ly: q[1], all: e.shiftKey, line: e.altKey };
+        paint(q[0], q[1], q[0], q[1], e.shiftKey); this.forceUpdate();
+      },
+      move: (e) => {
+        if (!this.draw || this.draw.v !== v) return;
+        const q = ev(e);
+        if (this.draw.line) paint(this.draw.x0, this.draw.y0, q[0], q[1], this.draw.all);
+        else paint(this.draw.lx, this.draw.ly, q[0], q[1], this.draw.all);
+        this.draw.lx = q[0]; this.draw.ly = q[1]; this.forceUpdate();
+      },
+      up: () => { this.draw = null; },
+      dbl: (e) => { const vs = e.shiftKey ? [0, 1, 2, 3, 4] : [v]; vs.forEach((vv) => { for (let i = 0; i < CELLS; i++) this.rows[vv][i] = i / CELLS; }); this.forceUpdate(); }
+    };
+  }
+
+  curveModel(c) {
+    const p = this.state.p, W = 320, H = 125;
+    const xOf = (f) => Math.log(f / 20) / Math.log(1000) * W;
+    const fOfX = (x) => 20 * Math.pow(1000, Math.min(1, Math.max(0, x / W)));
+    const yOf = (db) => 4 + (18 - db) / 54 * (H - 4);
+    const oct = 0.2 + p.b_width * 9.8, cF = freqOf(p.b_center);
+    const rF = p.c_track ? Math.min(5000, Math.max(20, this.pointerHz('r', p))) : 20 * Math.pow(250, p.c_freq);
+    const Q = 0.707 + p.b_res * 9;
+    const two = (x, q) => 1 / Math.sqrt(Math.pow(1 - x * x, 2) + Math.pow(x / q, 2));
+    const resp = (f, off) => {
+      const ctr = cF * Math.pow(2, off), lo = ctr / Math.pow(2, oct / 2), hi = ctr * Math.pow(2, oct / 2);
+      const h = f / lo, l = f / hi, n = p.b_slope ? 2 : 1;
+      const pass = Math.pow(h * h * two(h, Q) * two(l, Q), n), pass0 = Math.pow(h * h * two(h, 0.707) * two(l, 0.707), n);
+      let a = p.b_mode ? Math.max(1e-3, 1 - Math.min(1, pass0)) * Math.max(1, pass / Math.max(pass0, 1e-6)) : pass;
+      const g = p.c_fb;
+      const comb = (1 - Math.abs(g)) / Math.sqrt(1 - 2 * g * Math.cos(2 * Math.PI * f / rF) + g * g);
+      a *= (1 - p.c_mix) + p.c_mix * comb;
+      return Math.max(-36, Math.min(18, 20 * Math.log10(Math.max(1e-4, a))));
+    };
+    let d = '', voices = '';
+    for (let x = 0; x <= W; x += 2) d += (x ? 'L' : 'M') + x + ' ' + yOf(resp(fOfX(x), 0)).toFixed(1) + ' ';
+    const fill = d + 'L' + W + ' ' + H + ' L0 ' + H + ' Z';
+    for (let v = 0; v < NV; v++) {
+      const off = (v - 2) * (p.b_spread * 0.5 + p.fm * 0.3) + this.modSum(6, this.clock, v, p) * 1.5;
+      for (let x = 0; x <= W; x += 4) voices += (x ? 'L' : 'M') + x + ' ' + yOf(resp(fOfX(x), off)).toFixed(1) + ' ';
+    }
+    let grid = '';
+    [100, 1000, 10000].forEach((f) => { const x = xOf(f).toFixed(1); grid += 'M' + x + ' 0 V' + H + ' '; });
+    [-24, -12, 12].forEach((db) => { const y = yOf(db).toFixed(1); grid += 'M0 ' + y + ' H' + W + ' '; });
+    const zero = 'M0 ' + yOf(0).toFixed(1) + ' H' + W;
+    const xLo = Math.max(0, xOf(cF / Math.pow(2, oct / 2))), xHi = Math.min(W, xOf(cF * Math.pow(2, oct / 2)));
+    const resY = (r) => yOf(2 + r * 14);
+    const ctrX = xOf(cF), ctrY = resY(p.b_res);
+    const rsX = xOf(rF), rsY = 8 + (1 - (p.c_fb + 0.95) / 1.9) * (H - 16);
+    const band = {
+      x: xLo.toFixed(1), x2: xHi.toFixed(1), w: Math.max(0, xHi - xLo).toFixed(1),
+      gx1: (xLo - 3).toFixed(1), gx2: (xHi - 3).toFixed(1), fill: p.b_mode ? c.read : c.write,
+      lx: (Math.min(Math.max(xLo + 4, 2), W - 60)).toFixed(1), label: p.b_mode ? 'REJECT' : (p.b_width >= 0.995 ? 'OPEN' : 'PASS')
+    };
+    const loc = (e) => { const r = e.currentTarget.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * 137]; };
+    const resOfY = (y) => Math.min(1, Math.max(0, ((18 - (y - 4) / (H - 4) * 54) - 2) / 14));
+    return {
+      d: d, fill: fill, voices: voices, grid: grid, zero: zero, band: band,
+      ctr: { x: ctrX.toFixed(1), y: ctrY.toFixed(1) },
+      rs: { x0: (rsX - 4.5).toFixed(1), y0: (rsY - 4.5).toFixed(1), tx: (rsX + 7).toFixed(1), ty: (rsY + 3).toFixed(1) },
+      down: (e) => {
+        if (e.detail > 1) return;
+        const m = loc(e);
+        let what = null;
+        if (Math.hypot(rsX - m[0], rsY - m[1]) < 10) what = 'rs';
+        else if (Math.hypot(ctrX - m[0], ctrY - m[1]) < 10) what = 'body';
+        else if (Math.abs(m[0] - xLo) < 6 && xLo > 1) what = 'edge';
+        else if (Math.abs(m[0] - xHi) < 6 && xHi < W - 1) what = 'edge';
+        else if (m[0] > xLo && m[0] < xHi) what = 'body';
+        if (!what) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        this.curveDrag = { what: what, x: m[0], c0: p.b_center };
+      },
+      move: (e) => {
+        if (!this.curveDrag) return;
+        const m = loc(e), np = Object.assign({}, this.state.p), dr = this.curveDrag;
+        if (dr.what === 'body') { np.b_center = Math.min(1, Math.max(0, dr.c0 + (m[0] - dr.x) / W)); np.b_res = resOfY(m[1]); }
+        if (dr.what === 'edge') { const o = 2 * Math.abs(Math.log2(fOfX(m[0]) / freqOf(np.b_center))); np.b_width = Math.min(1, Math.max(0, (o - 0.2) / 9.8)); }
+        if (dr.what === 'rs') { np.c_track = 0; np.c_freq = Math.min(1, Math.max(0, Math.log(fOfX(m[0]) / 20) / Math.log(250))); np.c_fb = Math.min(0.95, Math.max(-0.95, 0.95 - (m[1] - 8) / (H - 16) * 1.9)); if (!np.c_mix) np.c_mix = 0.5; }
+        this.setState({ p: np });
+      },
+      up: () => { this.curveDrag = null; },
+      dbl: (e) => { const m = loc(e); if (m[0] > xLo && m[0] < xHi) this.set('b_mode', p.b_mode ? 0 : 1); }
+    };
+  }
+
+  renderVals() {
+    const theme = this.props.theme ?? 'Dark', pal = PAL[this.props.palette ?? 'Graphite'][theme];
+    const c = Object.assign({}, THEME[theme], { write: pal.write, read: pal.read });
+    const p = this.state.p;
+    const span = Math.max(1, Math.round(p.size * CELLS));
+    const lw = this.props.lineWeight ?? 1, glow = this.props.glow ?? true;
+    const st = (v) => (v >= 0 ? '+' : '') + (Math.abs(v) >= 10 ? Math.round(v) : v.toFixed(2));
+    const semi = (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' st';
+    const div = (v) => DIVS[Math.round(v)];
+
+    const wMode = this.modeSeg('w', c), rMode = this.modeSeg('r', c);
+    const wDials = [p.w_mode ? this.dial('w_div', c.write, { fmt: div }) : this.dial('w_pitch', c.write, { fmt: semi }), this.dial('w_fine', c.write, { fmt: st, label: p.w_mode ? 'Detune' : 'Fine' }), this.dial('w_sym', c.write, { fmt: st })];
+    const rDials = [p.r_mode ? this.dial('r_div', c.read, { fmt: div }) : this.dial('r_pitch', c.read, { fmt: semi }), this.dial('r_fine', c.read, { fmt: st, label: p.r_mode ? 'Detune' : 'Fine' }), this.dial('r_spread', c.read, { fmt: (v) => v.toFixed(2) + ' st' })];
+    const hz = (w) => { const f = this.pointerHz(w, p); return f >= 1000 ? (f / 1000).toFixed(2) + ' kHz' : f.toFixed(f < 10 ? 2 : 1) + ' Hz'; };
+    const rows = [
+      Object.assign({ title: 'WRITE', accent: c.write, dials: wDials, mult: this.dial('w_mult', c.write, { fmt: (v) => '×' + Math.round(v) }),
+        shapes: this.shapes('w_shape', [['Ramp', 'ramp'], ['Triangle', 'tri'], ['Same as read', 'read']], c),
+        pills: [this.pill('w_active', 'Active', c, c.write)], hint: '= ' + hz('w') }, wMode),
+      Object.assign({ title: 'READ', accent: c.read, dials: rDials, mult: this.dial('r_mult', c.read, { fmt: (v) => '×' + Math.round(v) }),
+        shapes: this.shapes('r_shape', [['Ramp', 'ramp'], ['Triangle', 'tri']], c),
+        pills: [this.pill('r_smooth', 'Smooth', c, c.read), this.pill('r_dir', p.r_dir ? '↔ Both' : '→ One', c, c.read, 'Direction')], hint: '= ' + hz('r') }, rMode)
+    ];
+
+    const pages = ['LFO', 'Mod', 'Tone', 'Out'].map((lb, i) => ({ label: lb, bg: p.page === i ? c.sel : 'transparent', fg: p.page === i ? c.selFg : c.text, pick: () => this.set('page', i) }));
+    const lfoShapes = [['Sine', 'sine'], ['Triangle', 'tri'], ['Saw', 'saw'], ['Square', 'sq'], ['Sample and hold', 'sh'], ['Smooth random', 'rnd']];
+    const lfos = [1, 2].map((k) => Object.assign({
+      title: 'LFO ' + k,
+      shapes: this.shapes('l' + k + '_shape', lfoShapes, c),
+      dials: [p['l' + k + '_mode'] ? this.dial('l' + k + '_div', c.text, { fmt: div }) : this.dial('l' + k + '_rate', c.text, { fmt: (v) => { const f = lfoHz(v); return (f < 1 ? f.toFixed(2) : f.toFixed(1)) + ' Hz'; } }),
+        this.dial('l' + k + '_phase', c.text, { fmt: (v) => Math.round(v) + '°' }), this.dial('l' + k + '_spread', c.text, { fmt: (v) => Math.round(v * 100) + '%' })],
+      retrig: this.seg('l' + k + '_retrig', ['Off', 'Note', 'Bar'], c)
+    }, this.modeSeg('l' + k, c)));
+
+    const slots = [1, 2, 3, 4].map((s) => {
+      const src = p['m' + s + '_src'], tgt = p['m' + s + '_tgt'];
+      const col = tgt === 1 || tgt === 4 ? c.write : tgt === 2 || tgt === 5 ? c.read : c.text;
+      return {
+        n: s, src: SRC[src], tgt: TGT[tgt], srcFg: src ? c.text : c.label, tgtFg: tgt ? c.text : c.label,
+        nextSrc: (e) => this.set('m' + s + '_src', (src + (e.shiftKey ? SRC.length - 1 : 1)) % SRC.length),
+        nextTgt: (e) => this.set('m' + s + '_tgt', (tgt + (e.shiftKey ? TGT.length - 1 : 1)) % TGT.length),
+        depth: this.hbar('m' + s + '_depth', col)
+      };
+    });
+
+    const pct = (v) => Math.round(v * 100) + '%';
+    const segs = (key, labels, w) => ({ w: w, items: this.seg(key, labels, c) });
+    const toneRows = [
+      { stages: [
+        { arrow: false, title: 'DRIVE', dials: [this.dial('drive', c.text, { fmt: (v) => Math.round(v) + ' dB' })], segs: [], pills: [] },
+        { arrow: true, title: 'BAND', dials: [
+            this.dial('b_center', c.write, { fmt: (v) => fmtHz(freqOf(v)) }),
+            this.dial('b_width', c.write, { fmt: (v) => v >= 0.995 ? 'Open' : (0.2 + v * 9.8).toFixed(1) + ' oct' }),
+            this.dial('b_res', c.write, { fmt: pct }), this.dial('fm', c.write, { fmt: pct }), this.dial('b_spread', c.write, { fmt: pct })],
+          segs: [segs('b_mode', ['Pass', 'Reject'], 62), segs('b_slope', ['12', '24 dB'], 62)], pills: [] }
+      ] },
+      { stages: [
+        { arrow: true, title: 'RESONATOR', dials: [
+            this.dial('c_freq', c.read, { fmt: (v) => p.c_track ? 'Track' : fmtHz(20 * Math.pow(250, v)) }),
+            this.dial('c_fb', c.read, { fmt: (v) => (v > 0.02 ? 'Peak ' : v < -0.02 ? 'Notch ' : '') + Math.round(Math.abs(v) * 100) + '%' }),
+            this.dial('c_mix', c.read, { fmt: pct })],
+          segs: [], pills: [this.pill('c_track', 'Track Read', c, c.read)] },
+        { arrow: true, title: 'OUT', dials: [], segs: [], pills: [this.pill('clip', 'Clip', c, c.sel)] }
+      ] }
+    ];
+
+    const outDials = [this.dial('transpose', c.text, { fmt: semi }), this.dial('width', c.text, { fmt: (v) => Math.round(v * 100) + '%' }), this.dial('output', c.text, { fmt: (v) => Math.round(v) + ' dB' })];
+
+    const lanes = [];
+    for (let v = 0; v < NV; v++) lanes.push(this.lane(v, c, span));
+
+    const sizeBar = {
+      down: (e) => { e.currentTarget.setPointerCapture(e.pointerId); this.drag = { key: 'size' }; sizeBar.move(e); },
+      move: (e) => { if (!this.drag || this.drag.key !== 'size') return; const r = e.currentTarget.getBoundingClientRect(); this.set('size', Math.min(1, Math.max(0.001, (e.clientX - r.left) / r.width))); },
+      up: () => { this.drag = null; }, dbl: () => this.set('size', 1)
+    };
+
+    const isTone = p.page === 2;
+    return {
+      c: c, rows: rows, pages: pages, lfos: lfos, slots: slots, toneRows: toneRows, outDials: outDials,
+      gateSeg: this.seg('gate', ['Drone', 'MIDI'], c), resyncSeg: this.seg('resync', ['Off', '1', '2', '4', '8'], c),
+      syncNow: () => { this.ph.forEach((s) => { s.w = 0; s.r = 0; }); },
+      isLfo: p.page === 0, isMod: p.page === 1, isTone: isTone, isOut: p.page === 3,
+      showTable: !isTone, showCurve: isTone, showViewIcons: !isTone, curve: this.curveModel(c),
+      dispTitle: isTone ? 'TONE' : 'TABLE',
+      dispInfo: isTone ? 'drag band · edges = width · dbl-click = Pass/Reject · R' : (span + ' of 1024 cells' + (p.view ? ' · 2D' : '') + ' · draw with the mouse'),
+      lanes: lanes, lineWidth: lw, glowWidth: glow ? lw * 4 : 0, glowOpacity: glow ? 0.14 : 0,
+      lineBg: p.view ? 'transparent' : c.sel, lineFg: p.view ? c.label : c.selFg, twoBg: p.view ? c.sel : 'transparent', twoFg: p.view ? c.selFg : c.label,
+      setLine: () => this.set('view', 0), set2d: () => this.set('view', 1),
+      sizeBar: sizeBar, sizePct: (p.size * 100).toFixed(1), sizeText: Math.round(p.size * 100) + '%',
+      meterL: this.meter[0].toFixed(0), meterR: this.meter[1].toFixed(0)
+    };
+  }
+}
+</script>
+</body>
+</html>

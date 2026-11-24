@@ -1,0 +1,18 @@
+{
+  // Node tests of the pure modules. No Max typings here: a pure module that uses a Max
+  // global fails this check.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["test/**/*.ts", "src/*_model.ts"]
+}

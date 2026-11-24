@@ -4,12 +4,10 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 
 ## Next
 
-- [ ] **aliasing:** true-to-scale HTML mock-up of the GUI (169 px height, ~800–850 px, display in
-      the centre, paged right area) for the user's review — `devices/aliasing/docs/port-decisions.md` §3.
 - [ ] **aliasing v0.1 core:** GenExpr voice loop (`gen/aliasing.genexpr`, 5 voices, `Buffer`
       `---atab` 5×1024, pointers, Sync/Activate/MIDI gate, Size, Smooth, pan, safety stage),
       host test from exported C++, TS toolchain (esbuild + `tsc --noEmit`) for the `v8ui`
-      display, shell `Aliasing.amxd`; then `live-test`. Decisions: `port-decisions.md`.
+      display, shell `Aliasing.amxd` (layout: `gui.md`); then `live-test`. Decisions: `port-decisions.md`.
 - [ ] **aliasing (user, Reaktor):** captures C4 (Audio Table properties) and C6 (Ramp Osc mode)
       from `devices/aliasing/docs/captures.md`; renders R1a, R1d, R7a–e from `renders.md`.
 
@@ -51,6 +49,10 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 
 ## Done
 
+- 2026-11-24: aliasing GUI approved: interactive 1:1 HTML mock-up (834 × 169 px, dark/light,
+  pages Mod/Tone/Out, display Line/2D/off) reviewed by the user; voice lines changed to a grey
+  ramp on request. Layout, element → Max object map and presentation rects in
+  `devices/aliasing/docs/gui.md` (open GUI checks G1–G7 there).
 - 2026-11-24: aliasing port prepared: local read-only `.ens` parser (`tools/local/`, decodes the
   full module tree 326/326, wiring, ranges, snapshots, table data; type-ID table from structure +
   screenshots, no test instruments needed), `devices/aliasing/docs/` `inventory.md`,

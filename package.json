@@ -1,0 +1,18 @@
+{
+  "name": "m4l-workbench",
+  "private": true,
+  "license": "MIT",
+  "description": "TypeScript layer of the m4l-workbench devices (v8 / v8ui scripts)",
+  "type": "module",
+  "scripts": {
+    "typecheck:aliasing": "tsc -p devices/aliasing/js/tsconfig.json && tsc -p devices/aliasing/js/tsconfig.test.json",
+    "test:aliasing": "node --test \"devices/aliasing/js/test/*.test.ts\"",
+    "build:aliasing": "pnpm run --silent typecheck:aliasing && pnpm run --silent test:aliasing && node tools/js-build.mjs aliasing"
+  },
+  "devDependencies": {
+    "@types/maxmsp": "1.0.16",
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

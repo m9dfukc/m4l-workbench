@@ -1,0 +1,18 @@
+{
+  // Type-check only (esbuild bundles, tools/js-build.mjs). Max-facing entries + pure modules,
+  // with the Max JS API typings and no Node typings (Node's Buffer clashes with Max's Buffer).
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2020"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["maxmsp"]
+  },
+  "include": ["src/**/*.ts"]
+}

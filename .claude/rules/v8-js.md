@@ -30,6 +30,9 @@ audio-rate work** — `v8`/`js` run in Max's low-priority thread and jitter.
   `anything`, custom names); `fn.local = 1` hides one. After bundling they must be global:
   whether handlers attached via `globalThis.<name> = fn` are found by v8 is [open] — test it
   once in Max before relying on it; otherwise keep top-level `function` declarations.
+- Never name a handler after a message the box handles itself (`size`, `open`, `read`,
+  `hidden`, `presentation_rect`, …): v8ui swallows `size <float>` with "missing arguments for
+  message size" (aliasing B1). `tools/js-build.mjs` rejects the names in its `RESERVED` list.
 - Code that must run in stock Live (Max 9.1.5) must not rely on 9.2-only v8 APIs (timers,
   `fetch`, `MaxFFT`); use `Task` for scheduling.
 - Declare `inlets`/`outlets` (and `autowatch = 1` during development) at top level.

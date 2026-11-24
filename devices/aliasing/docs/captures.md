@@ -48,7 +48,7 @@ Goes to `inventory.md` §4.
 Why: the "S" module shapes the filter resonance input; the rest is completeness. Goes to
 `inventory.md` §2.
 
-## C4 — Audio Tables (both: AT view › line view and › 2D view)
+## C4 — Audio Tables (both: AT view › line view and › 2D view) — **done 2026-11-24**, results in `table-behaviour.md` §6
 
 - [ ] *Properties*, all pages (Function, Table/View, any "Connect"): **X units**
       (Index / [0…1] / ms / ticks), X/Y size, Min/Max, **interpolation** (off / X / Y / XY),
@@ -68,7 +68,7 @@ Highest-impact open item. Goes to `inventory.md` §5 and `port-decisions.md`.
 
 Why: reproduces the "sync" gestures the snapshot names refer to ("re-activate to sync").
 
-## C6 — Oscillator and filter properties
+## C6 — Oscillator and filter properties — **oscillators done 2026-11-24** (Ramp Osc: Anti-Aliased Sync), `table-behaviour.md` §6
 
 - [ ] **Ramp Osc** (write osc and read › Osc): *Properties* — mode (Standard / Anti-aliased /
       Hi-Res or whatever R6 shows for this R5 module).

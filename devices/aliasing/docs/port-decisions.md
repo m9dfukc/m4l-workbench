@@ -92,7 +92,9 @@ Non-automatable, saved with the set: **Display** on/off, display mode (Line/2D),
   Spread), **Tone** (Notch + filter), **Out** (Width, Output, Transpose, Smooth).
 - Colours follow Live's theme (light/dark), with two fixed accent colours for **Write** and
   **Read**, used everywhere (dial rings, display markers).
-- **Next step before building the shell:** a true-to-scale HTML mock-up for review.
+- **Layout approved (2026-11-24):** `gui.md` holds the final face (834 × 169 px), the element →
+  Max object map and the differences from this section (e.g. Smooth moved to the read row,
+  monochrome voice lines).
 
 ## 4. Presets and logic (Q12, Q19)
 
