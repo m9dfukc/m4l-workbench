@@ -332,3 +332,15 @@ Web:
 - P. Kirn, "Making Max for Live devices work on Push and Push 3 standalone", CDM, 2023: https://cdm.link/making-max-for-live-devices-work-on-push-and-push-3-standalone/
 - Forum (user report): https://cycling74.com/forums/jweb-and-max-for-live-no-scrolling-on-windows
 - Ableton help "Push (standalone) Max for Live Device compatibility" (HTTP 403 to the fetcher, not read): https://help.ableton.com/hc/articles/8506527153308
+
+## Results (added 2026-11-25)
+
+- **G-UI1, partly [measured: `devices/aliasing/test/smoke/run_smoke.sh`, standalone Max 9.2.1,
+  2026-11-25]:** jspainter scripts run on Max's **legacy JS engine** (SpiderMonkey-style stack;
+  `let`, arrow functions, template strings, classes rejected; `const` accepted), not v8. So
+  painters must be ES5. On `live.dial` in 9.2.1: `max.getcolor`, `mgraphics.parentpaint`,
+  `box.attrname_forstylemap`, `_parameter_range` exist; `jspainterautomation` can be set;
+  `isautomated` / `ismodulated` / `ismacroassigned` read 0. Live and the bundled 9.1.5 are still
+  [open] (aliasing test t3).
+- G-UI5 (Blob storage) and G-SY1/G-SY2 (tempo sources) are still [open]; aliasing v0.2 uses a
+  `dict` Blob parameter, `plugsync~` for state/tempo and `phasor~ 1.0.0 @lock 1` for bars.

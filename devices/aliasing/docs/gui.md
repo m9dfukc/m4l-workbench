@@ -1,4 +1,7 @@
-# aliasing — GUI layout
+# aliasing — GUI layout (v0.1)
+
+> **Superseded for v0.2** by `redesign-t1.md` (R8–R19, approved mock-up `mockup-v0.2/`) and
+> `v0.2-build.md` (as built). Kept as the record of the v0.1 face.
 
 The device face approved by the user on 2026-11-24 after review of an interactive HTML mock-up
 (review canvas: https://claude.ai/artifact/X3E1185X9a8xbtu3jddGRq, private). Basis:

@@ -149,15 +149,20 @@ Only upgrade a marker with a reference to the test/source.
   screenshots or anything private beyond the username.
 - Tool CLIs: English help texts, arguments instead of hard-coded paths.
 
-## Status (2026-11-24)
+## Status (2026-11-25)
 
-- Repo set up; no device code yet. Next: build the `aliasing` port in a new session, starting
-  with the `reaktor-port` skill (inventory → reference renders → DSP).
+- `aliasing` **v0.2** built (unattended session 2026-11-25): DSP, painted face, display, shell;
+  offline chain, host test, smoke test in standalone Max 9.2.1 all pass. **Not yet loaded in Live**
+  (next: test t3, `devices/aliasing/docs/v0.2-build.md` §6) and its decisions A1–A33 are to be
+  reviewed with the user. Local commits only (a3f0466 v0.1b, 002b2da DSP, f725478 face, …).
+- Standalone Max is **9.2.1** (Live uses it); jspainter scripts run on Max's legacy JS engine:
+  painters must be ES5 (`tools/js-build.mjs` builds `<device>_paint_*.ts` with target es5).
+- Unattended standalone-Max runs: `tools/gen-export.sh`, `devices/aliasing/test/smoke/run_smoke.sh`
+  (NonRealTime driver, restores the driver, reads `Max 9/Logs/Max.log`). Devices' console errors in
+  Live land in `~/Library/Application Support/Cycling '74/Max 9/Logs/MaxPlugLib.log`.
 - Research (2026-11-24) in `docs/research/notes/`: `m4l-toolchain-dependencies-*`,
-  `reaktor-fundamentals-and-porting-*`, `max-port-targets-gen-rnbo-*`, `aliasing-synth-sources-*`.
-- Offline chain verified on a throwaway device: gencheck (both Max versions), `.gendsp`
-  generation, maxdiff on Live's instrument template [measured, 2026-11-24]. Nothing has run in
-  Max or Live yet.
+  `reaktor-fundamentals-and-porting-*`, `max-port-targets-gen-rnbo-*`, `aliasing-synth-sources-*`,
+  `m4l-custom-ui-and-sync-*`, `live-auto-filter-*`.
 
 ## Skills and rules (project-local, `.claude/`)
 

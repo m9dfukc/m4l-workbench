@@ -2,8 +2,8 @@
 
 Max for Live instrument **inspired by** the Reaktor User Library ensemble **aliasing Synth** by
 **Dietrich Pank** (2008-09-18, UL version 1.0, Reaktor 5): the same mechanism, our own DSP,
-GUI and presets — not an emulation. Status: **design decided, no device files yet**
-(`docs/port-decisions.md`).
+GUI and presets — not an emulation. Status: **v0.2 built, not yet tested in Live**
+(`docs/v0.2-build.md`; decisions `docs/port-decisions.md`, `docs/redesign-t1.md`).
 
 ## The original
 
@@ -32,16 +32,18 @@ redistribute. This device is an own implementation of the mechanism with full cr
 `.ens`, its snapshots and its stored table contents are not used in or shipped with the device.
 Telling/asking the author before a public release is planned (nice to have).
 
-## Planned layout
+## Layout
 
 ```
 devices/aliasing/
 ├── Aliasing.amxd          # unfrozen shell (Max Instrument)
 ├── aliasing.gendsp        # generated from gen/aliasing.genexpr (one gen~, 5-voice loop)
-├── aliasing_*.js          # bundled from js/src/*.ts (v8ui display, presets)
-├── presets/               # own presets as JSON
+├── aliasing_*.js          # bundled from js/src/*.ts (v8ui display, v8 pages, jspainter painters)
+├── presets/               # own presets as JSON (v0.3)
 ├── gen/                   # GenExpr sources
-├── js/src/                # TypeScript for v8, if needed
+├── js/src/                # TypeScript (display, pages, painters in ES5) + js/test/
+├── scripts/               # bootstrap_shell.py (shell generator), check_shell.py, table_sim.py
+├── test/                  # host/ (gen~ export test), smoke/ (standalone Max), preview/, probe-ui/
 ├── docs/                  # inventory, signal flow, port decisions, deviations from the original
 └── reference/
     ├── reaktor/           # local only: original .ens + screenshots

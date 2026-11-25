@@ -4,18 +4,22 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 
 ## Next
 
-- [ ] **aliasing v0.1 core:** GenExpr voice loop (`gen/aliasing.genexpr`, 5 voices, `Buffer`
-      `---atab` 5×1024, pointers, Sync/Activate/MIDI gate, Size, Smooth, pan, safety stage),
-      host test from exported C++, TS toolchain (esbuild + `tsc --noEmit`) for the `v8ui`
-      display, shell `Aliasing.amxd` (layout: `gui.md`); then `live-test`. Decisions: `port-decisions.md`.
-- [ ] **aliasing (user, Reaktor):** captures C4 (Audio Table properties) and C6 (Ramp Osc mode)
-      from `devices/aliasing/docs/captures.md`; renders R1a, R1d, R7a–e from `renders.md`.
+- [ ] **aliasing t3 (user, in Live):** first load of v0.2 — checklist in
+      `devices/aliasing/docs/v0.2-build.md` §6 (two rounds: Live with Max 9.2.1, then bundled 9.1.5;
+      folds in the probe test t2). Afterwards read Live's Log.txt **and**
+      `~/Library/Application Support/Cycling '74/Max 9/Logs/MaxPlugLib.log`.
+- [ ] **aliasing review (user + Claude):** go through the decisions A1–A33 in
+      `devices/aliasing/docs/v0.2-build.md` §1 (made autonomously on 2026-11-25).
+- [ ] aliasing v0.3: own presets (JSON + menu), `live.banks` for Push, CPU reading; remove the
+      debug "ready" posts (A33) before a release.
+- [ ] **aliasing (user, Reaktor):** optional simple-settings recording (R23: write ramp hi,
+      In-Pitch 73, read −29.5, Size 0.08, LFOs off) to check Tri/Par Symm `W` and the anti-aliased
+      ramp against `scripts/table_sim.py`; renders R1a, R1d, R7a–e from `renders.md`.
 
 ## User setup (hands-on, once)
 
 - [x] Point Live at the standalone Max: done — Live 12.4.16 logs `Max: Version 9.2.1
-      (b6a40ee953d)` since 2026-11-24 16:52 [measured: Live `Log.txt`]. Note: standalone Max is
-      now **9.2.1** (CLAUDE.md still says 9.2.0).
+      (b6a40ee953d)` since 2026-11-24 16:52 [measured: Live `Log.txt`]. Standalone Max is **9.2.1**.
 - [x] max-gen-helper plugin installed (skill `max-gen-helper:gen-pitfalls` available, 2026-11-24).
 - [x] Limiter on the test track/master for listening tests (user, 2026-11-24).
 - [ ] Read Cycling '74's "Gen Code Export Licensing FAQ" (the research agent got HTTP 403) before
@@ -35,20 +39,31 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 
 | # | Check | Why |
 |---|---|---|
-| 1 | Live on Max 9.2 after the switch — any problems? (Log line `Max: Version`) | development target |
+| 1 | Live on Max 9.2 after the switch — any problems? (Log line `Max: Version`) — **answered:** v0.1 ran in Live with Max 9.2.1 (t1, testlog 2026-11-24) | development target |
 | 2 | Does M4L in Live find `.gendsp`/`.js` next to the `.amxd`, and does a rewritten `.gendsp` hot-reload there (9.1.5 and 9.2), also inside 5 `poly~` instances? | the whole code-first loop |
 | 3 | `@autoexport 1`: does gen~ re-export C++ when the `.gendsp` changes on disk, or only on edits in Max? What does the export folder contain? | host-test harness |
-| 4 | Can standalone Max be launched from the command line with a test patch and run unattended (no dialogs), and does `; dsp setdriver NonRealTime` work by name? | scripted renders |
-| 5 | Do `post()` lines of a device appear in Live's `Log.txt`, or only errors? | console without copy/paste |
+| 4 | Can standalone Max be launched from the command line with a test patch and run unattended (no dialogs), and does `; dsp setdriver NonRealTime` work by name? — **answered (yes/yes):** `tools/gen-export.sh`, `devices/aliasing/test/smoke/run_smoke.sh` (2026-11-25, Max 9.2.1; the driver is restored by name) | scripted renders |
+| 5 | Do `post()` lines of a device appear in Live's `Log.txt`, or only errors? — partly: console errors of devices in Live go to `Max 9/Logs/MaxPlugLib.log` (t1); standalone Max's `Max.log` holds `post()` lines too (2026-11-25); `post()` in Live [open] (t3: the "v0.2 ready" lines) | console without copy/paste |
 | 6 | GenExpr: same-sample `poke`→`peek` order honoured (check exported C++); `poke` with fractional index; `peek` linear + wrap across the seam | table semantics |
 | 7 | Do `Data`/`History` survive a sample-rate change or device reload in Live 12? | voice state |
 | 8 | Live parameter resolution for very small speed changes (automation, MIDI map) — need coarse + fine controls? | "finest moves in speed" |
-| 9 | v8: are handlers attached via `globalThis` called? (only when the TS layer comes) | TS build choice |
+| 9 | v8: are handlers attached via `globalThis` called? (only when the TS layer comes) — not needed: js-build keeps top-level `function` handlers | TS build choice |
+| 12 | jspainter engine and painted `live.*` in Live (Max 9.2.1 and bundled 9.1.5): paint, theme repaint, dots, map modes — standalone 9.2.1 runs jspainter on the **legacy (ES5) engine** [measured: smoke 2026-11-25] | aliasing v0.2 face |
 | 10 | Does freezing include `require`d `.genexpr` files; does the frozen device run in a fresh set on stock Live 9.1.5? | release gate |
 | 11 | Does a py2max-generated `.amxd` load in Live? (only if a generated shell is ever wanted) | generated shells |
 
 ## Done
 
+- 2026-11-25 (unattended session, decisions A1–A33 for review in `devices/aliasing/docs/v0.2-build.md`):
+  aliasing **v0.1b** (P1/P2: Write Pitch −64…130, init state at fs/3 + 4 Hz; commit a3f0466) and
+  **v0.2** built: DSP (Drone/MIDI gate, tempo-synced pointers with note values, multiplier,
+  detune and Resync, 2 LFOs, 4 mod slots, Drive → Band → Resonator → Clip, Tri ±, AA ramp; host
+  test 39/39), face (6 ES5 jspainter painters, new v8ui display with lanes, zoom, drawing, table
+  storage, tone curve with handles; page switcher), shell regenerated (968 px, 67 parameters),
+  `scripts/check_shell.py`, Node vm tests, smoke test in standalone Max 9.2.1 (no errors, audio
+  rendered) and a canvas preview. t2 (probe) not run, folded into t3.
+- 2026-11-24: aliasing v0.1 built and tested in Live (t1), bug B1 fixed, redesign decided
+  (R1–R24, approved mock-up), probe device for t2.
 - 2026-11-24: aliasing GUI approved: interactive 1:1 HTML mock-up (834 × 169 px, dark/light,
   pages Mod/Tone/Out, display Line/2D/off) reviewed by the user; voice lines changed to a grey
   ramp on request. Layout, element → Max object map and presentation rects in
