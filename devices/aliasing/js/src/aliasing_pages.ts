@@ -1,35 +1,68 @@
-// aliasing_pages: shows one page (Mod / Tone / Out) of the paged area of the Aliasing device.
-// Bundled by tools/js-build.mjs into devices/aliasing/aliasing_pages.js (never edit that file).
-// Paged objects carry a scripting name with a page prefix (mod_, tone_, out_); this sets their
-// `hidden` attribute. Spec: devices/aliasing/docs/gui.md section 5. Pure logic: pages_model.ts.
+// aliasing_pages: shows one page (LFO / Mod / Tone / Out) of the Aliasing device and the Free/Sync
+// variants of the pointer rows and LFOs (R8, R11, R12), and greys out the resonator Freq while
+// Track is on. Bundled by tools/js-build.mjs into devices/aliasing/aliasing_pages.js.
+// Rules: pages_model.ts (scripting-name prefixes set by scripts/bootstrap_shell.py).
 //
-// Messages in: an int (0 Mod, 1 Tone, 2 Out) from the Page live.tab; bang re-applies.
+// Messages in: page n | wmode n | rmode n | l1mode n | l2mode n | track n | bang (re-apply all).
 
-import { clampPage, visibilityFor } from "./pages_model.ts";
+import { activeFor, clampPage, initialState, visibilityFor } from "./pages_model.ts";
 
 inlets = 1;
 outlets = 0;
 
-let current = 0;
+const state = initialState();
+let trackValue = 1;
 
-function apply(page: number): void {
-	current = clampPage(page);
+let announced = false;
+
+function apply(): void {
 	let obj = patcher.firstobject;
+	let touched = 0;
 	while (obj) {
-		const vis = visibilityFor(obj.varname, current);
+		const name = obj.varname;
+		const vis = visibilityFor(name, state);
 		if (vis !== null && Boolean(obj.hidden) === vis) obj.hidden = !vis; // only touch on change
+		if (vis !== null) touched++;
+		const act = activeFor(name, trackValue);
+		if (act !== null) obj.message("active", act ? 1 : 0);
 		obj = obj.nextobject;
+	}
+	if (!announced) {
+		announced = true;
+		post(`aliasing_pages: v0.2 ready, ${touched} paged objects\n`);
 	}
 }
 
-function msg_int(page: number): void {
-	apply(page);
+function page(v: number): void {
+	state.page = clampPage(Number(v));
+	apply();
 }
 
-function msg_float(page: number): void {
-	apply(page);
+function wmode(v: number): void {
+	state.wmode = Number(v) || 0;
+	apply();
+}
+
+function rmode(v: number): void {
+	state.rmode = Number(v) || 0;
+	apply();
+}
+
+function l1mode(v: number): void {
+	state.l1mode = Number(v) || 0;
+	apply();
+}
+
+function l2mode(v: number): void {
+	state.l2mode = Number(v) || 0;
+	apply();
+}
+
+function track(v: number): void {
+	trackValue = Number(v) || 0;
+	apply();
 }
 
 function bang(): void {
-	apply(current);
+	apply();
 }

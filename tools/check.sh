@@ -7,6 +7,7 @@
 #      (files under gen/lib/ are require() libraries and get no .gendsp)
 #   3. TypeScript layer, if the device has one (js/src/ + a "build:<name>" script)
 #   4. every .amxd/.maxpat of the device must parse with maxdiff; prints a short summary
+#   5. device checks: every devices/<name>/scripts/check_*.py (python3, exit 0 = pass)
 set -euo pipefail
 
 usage() {
@@ -110,6 +111,17 @@ else
     else
       echo "$(basename "$p"): maxdiff failed"; printf '%s\n' "$out" | tail -5; FAIL=1
     fi
+  done
+fi
+
+# --- 5: device checks -------------------------------------------------------------
+step "device checks"
+CHECKS=("$DIR"/scripts/check_*.py)
+if [ ${#CHECKS[@]} -eq 0 ]; then
+  echo "none"
+else
+  for c in "${CHECKS[@]}"; do
+    python3 -B "$c" || FAIL=1
   done
 fi
 

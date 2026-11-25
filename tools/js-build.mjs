@@ -11,6 +11,11 @@
 // top-level `function NAME(` in the bundle (Max calls handlers by message name; whether
 // handlers attached via globalThis are found is an open check, so they are not used).
 // Type checking (tsc --noEmit) and the Node tests run before this, from package.json.
+//
+// Painters: entries named <device>_paint_*.ts are jspainter scripts (@jspainterfile on live.*
+// objects). Which JS engine runs them in Live is not known for every Max version, so they are built
+// with target es5: esbuild then fails on any syntax newer than ES5 (let/const, arrows, classes,
+// template strings ...), which keeps the painters loadable by the legacy engine too.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,19 +60,28 @@ for (const file of entries) {
 	const header =
 		`// GENERATED from devices/${device}/js/src/${file} by tools/js-build.mjs - do not edit.\n` +
 		`// Edit the TypeScript source and run tools/check.sh ${device}.`;
-	const result = await build({
+	const painter = name.startsWith(`${device}_paint_`);
+	let result;
+	try {
+		result = await build({
 		entryPoints: [entry],
 		bundle: true,
 		format: "cjs",
 		platform: "neutral",
-		target: "es2020",
+		target: painter ? "es5" : "es2020",
 		treeShaking: false,
 		charset: "ascii",
 		legalComments: "none",
 		banner: { js: header },
 		write: false,
-		logLevel: "warning",
-	});
+		logLevel: "silent",
+		});
+	} catch (e) {
+		console.error(`js-build: ${name}.ts failed to build${painter ? " as ES5 (painter)" : ""}:`);
+		for (const m of e.errors ?? []) console.error(`  ${m.location?.file}:${m.location?.line}: ${m.text}`);
+		failed = true;
+		continue;
+	}
 	// Drop esbuild's "use strict" (added for ESM input): Max scripts assign jsthis globals such
 	// as `inlets = 1` at top level and are written as sloppy-mode scripts.
 	const code = result.outputFiles[0].text.replace(/^"use strict";\n/m, "");

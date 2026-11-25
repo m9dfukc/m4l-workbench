@@ -1,38 +1,24 @@
-// Pure display logic for aliasing_display (v8ui): geometry, colours, decimation, gestures.
-// No Max globals here, so it runs and is tested in Node (js/test/display_model.test.ts).
-// Spec: devices/aliasing/docs/gui.md section 4.
+// Pure display logic for aliasing_display (v8ui): geometry, decimation, the fs fraction hint,
+// the tone curve and the mouse gestures. No Max globals here, so it runs and is tested in Node
+// (js/test/display_model.test.ts). Spec: docs/redesign-t1.md R9-R11, R19; the approved mock-up;
+// docs/v0.2-build.md section 4.
 
 export const CELLS = 1024;
 export const VOICES = 5;
-export const COLUMNS_2D = 100;
+export const COLUMNS_2D = 64;
 export const SIZE_MIN = 0.001;
 
-export type RGBA = [number, number, number, number];
-
-export function hexToRgba(hex: string, alpha = 1): RGBA {
-	const h = hex.replace(/^#/, "");
-	if (!/^[0-9a-fA-F]{6}$/.test(h)) throw new Error(`bad colour ${hex}`);
-	const n = parseInt(h, 16);
-	return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, alpha];
-}
-
-export function withAlpha(c: RGBA, alpha: number): RGBA {
-	return [c[0], c[1], c[2], alpha];
-}
-
-/** Write and read accents (gui.md section 2). */
-export const WRITE_COLOR = hexToRgba("#ff5c8a");
-export const READ_COLOR = hexToRgba("#3cc6f0");
-/** Voice lines / cells: monochrome grey ramp, voice 1 brightest (user, 2026-11-24). */
-export const VOICE_COLORS: RGBA[] = ["#f2f2f2", "#cfcfcf", "#aaaaaa", "#868686", "#666666"].map((h) =>
-	hexToRgba(h),
-);
-/** Display background (dark theme default; the patch may send another one). */
-export const DEFAULT_BG = hexToRgba("#181818");
-
-export function clamp(x: number, lo: number, hi: number): number {
-	return x < lo ? lo : x > hi ? hi : x;
-}
+/** Display box 328 x 157 (shell). The Size live.slider is overlaid at y 144..155. */
+export const W = 328;
+export const H = 157;
+export const PAD = 4;
+export const HEADER_Y = 3;
+export const HEADER_H = 12;
+export const LANE_TOP = 17;
+export const LANE_H = 24;
+export const OVERVIEW_Y = 140;
+export const CURVE_TOP = 17;
+export const CURVE_H = 125;
 
 export interface Rect {
 	x: number;
@@ -41,35 +27,50 @@ export interface Rect {
 	h: number;
 }
 
-/** Header band for label and legend at the top; the curves use the rest. */
-export const HEADER = 14;
-export const FOOTER = 5;
-
-export function plotRect(w: number, h: number): Rect {
-	return { x: 0, y: HEADER, w, h: Math.max(1, h - HEADER - FOOTER) };
+export function clamp(x: number, lo: number, hi: number): number {
+	return x < lo ? lo : x > hi ? hi : x;
 }
 
-/** Table value 0..1 -> y in the plot (1 at the top). */
-export function valueToY(v: number, plot: Rect): number {
-	return plot.y + (1 - clamp(v, 0, 1)) * plot.h;
+export function laneRect(v: number, w = W): Rect {
+	return { x: PAD, y: LANE_TOP + v * LANE_H, w: w - 2 * PAD, h: LANE_H };
 }
 
-/** Head position 0..1 of the row -> x. */
-export function posToX(pos: number, plot: Rect): number {
-	return plot.x + clamp(pos, 0, 1) * plot.w;
+/** The Line / 2D icons in the header, right-aligned. */
+export function iconRects(w = W): { line: Rect; twoD: Rect } {
+	return {
+		line: { x: w - PAD - 30, y: HEADER_Y, w: 14, h: 11 },
+		twoD: { x: w - PAD - 14, y: HEADER_Y, w: 14, h: 11 },
+	};
 }
 
-/** Head position 0..1 -> table cell index. */
-export function headCell(pos: number, cells = CELLS): number {
-	return Math.min(cells - 1, Math.max(0, Math.floor(pos * cells)));
+export function inRect(x: number, y: number, r: Rect): boolean {
+	return x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 }
 
-/**
- * Min/max envelope of a row per pixel column, so jagged table content stays visible when 1024
- * cells are drawn into ~300 px.
- */
-export function decimateMinMax(row: ArrayLike<number>, cols: number): { min: number[]; max: number[] } {
-	const n = row.length;
+/** Active cells of a voice for an effective Size (0.001..1). */
+export function spanCells(size: number): number {
+	return Math.max(1, Math.round(clamp(size, SIZE_MIN, 1) * CELLS));
+}
+
+/** Table value 0..1 -> y in a lane (1 at the top, 1.5 px margins). */
+export function laneY(value: number, lane: Rect): number {
+	return lane.y + 1.5 + (1 - clamp(value, 0, 1)) * (lane.h - 4);
+}
+
+/** Head position (0..1 of the whole row) -> x in a lane zoomed to the span. */
+export function headX(head: number, size: number, lane: Rect): number {
+	return lane.x + clamp(head / clamp(size, SIZE_MIN, 1), 0, 1) * lane.w;
+}
+
+/** Cell under a head position, inside the span. */
+export function headCell(head: number, size: number): number {
+	const span = spanCells(size);
+	return clamp(Math.floor(clamp(head, 0, 1) * CELLS), 0, span - 1);
+}
+
+/** Min/max envelope of the first `span` cells of a row per pixel column. */
+export function decimateMinMax(row: ArrayLike<number>, span: number, cols: number): { min: number[]; max: number[] } {
+	const n = Math.min(span, row.length);
 	const min: number[] = [];
 	const max: number[] = [];
 	for (let c = 0; c < cols; c++) {
@@ -89,79 +90,253 @@ export function decimateMinMax(row: ArrayLike<number>, cols: number): { min: num
 	return { min, max };
 }
 
-/** Value at the centre cell of each of `cols` columns (2D mode). */
-export function sampleColumns(row: ArrayLike<number>, cols: number): number[] {
+/** Value at the centre cell of each of `cols` columns over the span (2D view). */
+export function sampleColumns(row: ArrayLike<number>, span: number, cols: number): number[] {
 	const out: number[] = [];
+	const n = Math.min(span, row.length);
 	for (let c = 0; c < cols; c++) {
-		const i = Math.min(row.length - 1, Math.floor(((c + 0.5) * row.length) / cols));
+		const i = Math.min(n - 1, Math.floor(((c + 0.5) * n) / cols));
 		out.push(i >= 0 ? row[i] : 0);
 	}
 	return out;
 }
 
-/** 2D cell opacity: 0.06 + 0.94 * value (gui.md section 4). */
+/** 2D cell opacity (mock-up: 0.06 + 0.8 * value). */
 export function cellAlpha(v: number): number {
-	return 0.06 + 0.94 * clamp(v, 0, 1);
+	return 0.06 + 0.8 * clamp(v, 0, 1);
 }
 
-export function sizeEdgeX(size: number, w: number): number {
-	return clamp(size, SIZE_MIN, 1) * w;
-}
+// ---- frequency texts -------------------------------------------------------------------------
 
-export function sizeFromX(x: number, w: number): number {
-	return clamp(x / Math.max(1, w), SIZE_MIN, 1);
+export function fmtHz(f: number): string {
+	if (!Number.isFinite(f)) return "-";
+	if (f >= 1000) return `${(f / 1000).toFixed(2)} kHz`;
+	if (f >= 100) return `${Math.round(f)} Hz`;
+	if (f >= 10) return `${f.toFixed(1)} Hz`;
+	return `${f.toFixed(2)} Hz`;
 }
-
-export const HANDLE_TOLERANCE = 6;
-export const CLICK_SLOP = 3;
 
 /**
- * Mouse gesture on the display. A press near the Size edge drags Size; a press elsewhere that
- * is released without moving more than CLICK_SLOP px toggles Line/2D.
+ * The write pattern depends on how close f / fs is to a simple fraction (table-behaviour.md §6).
+ * Returns the nearest P/Q (Q <= 8) and the drift f - fs * P/Q, or null below fs/16 or when the
+ * drift is larger than maxBeat.
  */
-export class Gesture {
-	private x0 = 0;
-	private y0 = 0;
-	private dragging = false;
-	private moved = false;
-	private active = false;
-
-	/** Press. Returns true when it grabbed the Size edge. */
-	down(x: number, y: number, size: number, w: number): boolean {
-		this.x0 = x;
-		this.y0 = y;
-		this.active = true;
-		this.moved = false;
-		this.dragging = Math.abs(x - sizeEdgeX(size, w)) <= HANDLE_TOLERANCE;
-		return this.dragging;
+export function fsFraction(f: number, fs: number, maxBeat = 200): { p: number; q: number; beat: number } | null {
+	if (!(fs > 0) || !(f >= fs / 16)) return null;
+	const r = f / fs;
+	let best: { p: number; q: number; beat: number } | null = null;
+	for (let q = 1; q <= 8; q++) {
+		const p = Math.round(r * q);
+		if (p < 1) continue;
+		const beat = f - (fs * p) / q;
+		if (!best || Math.abs(beat) < Math.abs(best.beat) - 1e-9) best = { p, q, beat };
 	}
-
-	/** Move with the button held. Returns the new Size while dragging the edge, else null. */
-	move(x: number, y: number, w: number): number | null {
-		if (!this.active) return null;
-		if (Math.abs(x - this.x0) > CLICK_SLOP || Math.abs(y - this.y0) > CLICK_SLOP) this.moved = true;
-		return this.dragging ? sizeFromX(x, w) : null;
-	}
-
-	/** Release. Returns "toggle" for a click that should switch the display mode. */
-	up(): "toggle" | null {
-		const wasClick = this.active && !this.dragging && !this.moved;
-		this.active = false;
-		this.dragging = false;
-		return wasClick ? "toggle" : null;
-	}
+	if (!best || Math.abs(best.beat) > maxBeat) return null;
+	const g = gcd(best.p, best.q);
+	return { p: best.p / g, q: best.q / g, beat: best.beat };
 }
 
-/** Parse `bgcolor r g b [a]` arguments (0..1 floats) into a colour, or null when invalid. */
-export function parseRgba(args: number[]): RGBA | null {
-	if (args.length < 3 || args.slice(0, 4).some((v) => typeof v !== "number" || !Number.isFinite(v))) return null;
-	return [clamp(args[0], 0, 1), clamp(args[1], 0, 1), clamp(args[2], 0, 1), clamp(args.length > 3 ? args[3] : 1, 0, 1)];
+function gcd(a: number, b: number): number {
+	return b ? gcd(b, a % b) : a;
+}
+
+export function fmtFraction(fr: { p: number; q: number; beat: number }): string {
+	const head = fr.q === 1 ? (fr.p === 1 ? "fs" : `${fr.p}fs`) : fr.p === 1 ? `fs/${fr.q}` : `${fr.p}fs/${fr.q}`;
+	const b = fr.beat;
+	return `${head} ${b >= 0 ? "+" : "-"}${Math.abs(b) < 10 ? Math.abs(b).toFixed(1) : Math.round(Math.abs(b))} Hz`;
+}
+
+/** Header info of the table pages. */
+export function tableInfo(spanOfVoice1: number, fw: number, fr: number, fs: number): string {
+	const frac = fsFraction(fw, fs);
+	const w = `W ${fmtHz(fw)}${frac ? ` = ${fmtFraction(frac)}` : ""}`;
+	return `${spanOfVoice1} cells · ${w} · R ${fmtHz(fr)}`;
+}
+
+// ---- tone curve (R19) -------------------------------------------------------------------------
+
+export const F_MIN = 20;
+export const F_MAX = 20000;
+
+export function xOfF(f: number, rect: Rect): number {
+	return rect.x + (Math.log(clamp(f, 1, 1e6) / F_MIN) / Math.log(F_MAX / F_MIN)) * rect.w;
+}
+
+export function fOfX(x: number, rect: Rect): number {
+	return F_MIN * Math.pow(F_MAX / F_MIN, clamp((x - rect.x) / rect.w, 0, 1));
+}
+
+/** dB range of the curve: +18 at the top, -36 at the bottom. */
+export function yOfDb(db: number, rect: Rect): number {
+	return rect.y + 4 + ((18 - clamp(db, -36, 18)) / 54) * (rect.h - 4);
+}
+
+export function dbOfY(y: number, rect: Rect): number {
+	return 18 - ((y - rect.y - 4) / (rect.h - 4)) * 54;
+}
+
+/** Res 0..100 % <-> the y of the centre handle (2 dB .. 16 dB, as in the mock-up). */
+export function yOfRes(res: number, rect: Rect): number {
+	return yOfDb(2 + clamp(res, 0, 100) * 0.14, rect);
+}
+
+export function resOfY(y: number, rect: Rect): number {
+	return clamp((dbOfY(y, rect) - 2) / 0.14, 0, 100);
+}
+
+/** Feedback -95..95 % <-> y of the resonator handle (up = peaks). */
+export function yOfFb(fb: number, rect: Rect): number {
+	return rect.y + 8 + (1 - (clamp(fb, -95, 95) + 95) / 190) * (rect.h - 16);
+}
+
+export function fbOfY(y: number, rect: Rect): number {
+	return clamp(95 - ((y - rect.y - 8) / (rect.h - 16)) * 190, -95, 95);
+}
+
+export interface Tone {
+	center: number; // Hz
+	width: number; // octaves 0.2..10
+	res: number; // %
+	slope24: boolean;
+	reject: boolean;
+	rsFreq: number; // Hz (effective)
+	rsFb: number; // %
+	rsMix: number; // %
+}
+
+type C = [number, number];
+const cmul = (a: C, b: C): C => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
+const cdiv = (a: C, b: C): C => {
+	const d = b[0] * b[0] + b[1] * b[1] || 1e-30;
+	return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d];
+};
+const cadd = (a: C, b: C): C => [a[0] + b[0], a[1] + b[1]];
+
+/** Analog 2-pole low/high-pass at fc with quality q, evaluated at f. */
+function sec(f: number, fc: number, q: number, high: boolean): C {
+	const s: C = [0, f / fc];
+	const den: C = [1 - (f / fc) * (f / fc), f / fc / q];
+	return cdiv(high ? cmul(s, s) : [1, 0], den);
+}
+
+/** SVF damping as in the GenExpr: resonant stage Q from Res. */
+export function resQ(res: number, slope24: boolean): number {
+	const r = clamp(res, 0, 100) / 100;
+	return slope24 ? 1.3066 * Math.pow(18 / 1.3066, r) : 0.7071 * Math.pow(18 / 0.7071, r);
+}
+
+/** Magnitude in dB of Band (+ Resonator) at f, following the GenExpr's structure. */
+export function toneDb(f: number, t: Tone, fs = 48000): number {
+	const nyq = 0.45 * fs;
+	const lo = clamp(t.center * Math.pow(2, -0.5 * t.width), 10, nyq);
+	const hi = clamp(t.center * Math.pow(2, 0.5 * t.width), 10, nyq);
+	const qr = resQ(t.res, t.slope24);
+	const edge = (fc: number, high: boolean): C =>
+		t.slope24 ? cmul(sec(f, fc, 0.5412, high), sec(f, fc, qr, high)) : sec(f, fc, qr, high);
+	let h: C = t.reject ? cadd(edge(lo, false), edge(hi, true)) : cmul(edge(lo, true), edge(hi, false));
+	if (t.rsMix > 0) {
+		const g = clamp(t.rsFb, -95, 95) / 100;
+		const d = 1 / clamp(t.rsFreq, 20, 5000); // seconds
+		const ph = -2 * Math.PI * f * d;
+		const comb = cdiv([Math.sqrt(1 - g * g), 0], [1 - g * Math.cos(ph), -g * Math.sin(ph)]);
+		const m = t.rsMix / 100;
+		h = cmul(h, cadd([1 - m, 0], [m * comb[0], m * comb[1]]));
+	}
+	return 20 * Math.log10(Math.max(1e-5, Math.hypot(h[0], h[1])));
+}
+
+/** Band edges in Hz (clamped like the DSP). */
+export function bandEdges(t: Tone, fs = 48000): { lo: number; hi: number } {
+	const nyq = 0.45 * fs;
+	return {
+		lo: clamp(t.center * Math.pow(2, -0.5 * t.width), 10, nyq),
+		hi: clamp(t.center * Math.pow(2, 0.5 * t.width), 10, nyq),
+	};
+}
+
+export type CurveHit = "rs" | "body" | "edge" | null;
+
+/** What a press at (x, y) grabs on the tone curve. */
+export function hitCurve(x: number, y: number, t: Tone, rect: Rect, fs = 48000): CurveHit {
+	const e = bandEdges(t, fs);
+	const xl = xOfF(e.lo, rect);
+	const xh = xOfF(e.hi, rect);
+	const xr = xOfF(t.rsFreq, rect);
+	const yr = yOfFb(t.rsFb, rect);
+	const xc = xOfF(t.center, rect);
+	const yc = yOfRes(t.res, rect);
+	if (Math.hypot(xr - x, yr - y) < 10) return "rs";
+	if (Math.hypot(xc - x, yc - y) < 10) return "body";
+	if (Math.abs(x - xl) < 6 && xl > rect.x + 1) return "edge";
+	if (Math.abs(x - xh) < 6 && xh < rect.x + rect.w - 1) return "edge";
+	if (x > xl && x < xh) return "body";
+	return null;
+}
+
+/** Band width (octaves) from dragging an edge to x. */
+export function widthFromEdge(x: number, center: number, rect: Rect): number {
+	return clamp(2 * Math.abs(Math.log2(fOfX(x, rect) / center)), 0.2, 10);
+}
+
+// ---- drawing into the table (R10) ----------------------------------------------------------------
+
+/** Lane and value under (x, y), or null outside the lanes. */
+export function laneHit(x: number, y: number, w = W): { voice: number; xn: number; value: number } | null {
+	if (y < LANE_TOP || y >= LANE_TOP + VOICES * LANE_H) return null;
+	const voice = clamp(Math.floor((y - LANE_TOP) / LANE_H), 0, VOICES - 1);
+	const lane = laneRect(voice, w);
+	if (x < lane.x - 2 || x > lane.x + lane.w + 2) return null;
+	return {
+		voice,
+		xn: clamp((x - lane.x) / lane.w, 0, 0.99999),
+		value: clamp(1 - (y - lane.y - 1.5) / (lane.h - 4), 0, 1),
+	};
+}
+
+/** Cell values of a straight segment from (x0, v0) to (x1, v1) (x normalised to the span). */
+export function segmentCells(x0: number, v0: number, x1: number, v1: number, span: number): { start: number; values: number[] } {
+	const c0 = clamp(Math.floor(x0 * span), 0, span - 1);
+	const c1 = clamp(Math.floor(x1 * span), 0, span - 1);
+	const start = Math.min(c0, c1);
+	const end = Math.max(c0, c1);
+	const values: number[] = [];
+	for (let c = start; c <= end; c++) {
+		const t = c1 === c0 ? 1 : (c - c0) / (c1 - c0);
+		values.push(clamp(v0 + (v1 - v0) * t, 0, 1));
+	}
+	return { start, values };
+}
+
+export function identityRow(): number[] {
+	const r: number[] = [];
+	for (let i = 0; i < CELLS; i++) r.push(i / CELLS);
+	return r;
+}
+
+/** Table rows from a stored blob ({table: 5120 floats}); null when it does not hold a full table. */
+export function rowsFromStored(table: unknown): number[][] | null {
+	if (!Array.isArray(table) || table.length !== VOICES * CELLS) return null;
+	const rows: number[][] = [];
+	for (let v = 0; v < VOICES; v++) {
+		const row: number[] = [];
+		for (let i = 0; i < CELLS; i++) {
+			const x = Number(table[v * CELLS + i]);
+			if (!Number.isFinite(x)) return null;
+			row.push(clamp(x, 0, 1));
+		}
+		rows.push(row);
+	}
+	return rows;
 }
 
 /** Bring a peeked buffer channel to exactly `n` finite values (missing buffer -> zeros). */
-export function normalizeRow(values: ArrayLike<number> | null | undefined, n: number): number[] {
+export function normalizeRow(values: ArrayLike<number> | number | null | undefined, n: number): number[] {
 	const out = new Array<number>(n).fill(0);
-	if (!values) return out;
+	if (values === null || values === undefined) return out;
+	if (typeof values === "number") {
+		out[0] = Number.isFinite(values) ? values : 0;
+		return out;
+	}
 	for (let i = 0; i < n && i < values.length; i++) {
 		const v = Number(values[i]);
 		out[i] = Number.isFinite(v) ? v : 0;
