@@ -17,6 +17,10 @@ says so.
 
 ## 1. Before the handover
 
+- **Optional Live automation:** `node tools/live/harness.mjs status`. If it says **on**, run the
+  `live-harness` skill first (load, console, parameters, silent take) and hand over only what
+  it cannot answer (listening, A/B, looks, the bundled-Max round, CPU, freeze); name the items
+  the run already answered. If it says **off**, everything below as usual.
 - **Know what the test is for** and what the user should check. One question per test where
   possible ("does it compile with audio on", "does voice stealing click", "A/B snapshot 3 vs.
   Reaktor render"). If the current state cannot answer it, say so instead of handing it over.

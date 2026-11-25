@@ -45,13 +45,30 @@ are **ports of Native Instruments Reaktor ensembles**; others are original desig
   Live's bundled Max only before a release.
 - **Roles:** the **user operates Max and Live**: loads devices, listens, reads the Max
   console and reports back. Claude builds, runs the offline checks and keeps the test logs.
-  Claude does not drive Max/Live via computer use or MCP. An MCP inspector may come later, on
-  the user's request, and only in a separate sandbox device.
+  Claude does not drive Max/Live via computer use or MCP, apart from the two exceptions below.
+  An MCP inspector may come later, on the user's request, and only in a separate sandbox device
+  (re-evaluated 2026-11-25: still no Max MCP; `docs/research/notes/live-automation-mcp-2026-11-25.md`).
 - **Exception, standalone Max for unattended tests (user, 2026-11-24, round 2):** Claude may
   launch standalone Max from the command line with a **test patch from this repo** that renders
   with the NonRealTime driver (no sound) or exports gen~ C++, then quits itself. Conditions:
   never Live, never the user's own patches, and only after the user confirmed that no Max with
   unsaved work is open (Max reuses a running instance). Restore the audio driver afterwards.
+- **Exception, Live test harness (user, 2026-11-25, spike) — optional, only while switched on:**
+  the Live automation is **off by default** (fresh clone, no `tools/live/local.json`); the user
+  switches it with `node tools/live/harness.mjs on|off`, `status` shows it, and the scripts refuse
+  to touch Live while it is off. Off = every Live test is a `live-test` handover, as before.
+  While on, Claude may run the pinned
+  `eladefrati/ableton-live-test-harness` (AbletonOSC fork as a Remote Script, setup in
+  `tools/live/README.md`, skill `live-harness`) and our checks in `tools/live/`: relaunch Live on the harness's empty
+  Set (Main at −inf dB), load a device of this repo from Places, set parameters, record it
+  silently, read Live's `Log.txt` and `MaxPlugLib.log`. Conditions: ask the user whether Live is
+  free (relaunch **discards unsaved work**) before the first relaunch of a session and whenever
+  `doctor.js` says the open Set was not started by the harness; never the user's own Sets or
+  templates; recordings only from the device track's Post FX with that track at −inf and the
+  recording track's monitoring Off (the checks enforce it); no real mouse clicks
+  (`device-ui.js`) and no window captures unless the user asks; the harness stays at the pinned
+  commit until a new one has been read. Listening, A/B against Reaktor, the bundled-Max round
+  and the freeze stay with the user.
 - **Live's log** may be read (read-only) after a user test to collect Max errors.
 - **Reaktor file parsing** is allowed (user, 2026-11-24): a read-only parser for `.ens`/`.ism`
   lives **only locally** in `tools/local/` (gitignored, never committed or published — NI has
@@ -112,8 +129,8 @@ Only upgrade a marker with a reference to the test/source.
   up. Development builds end their DSP with a safety stage (`fixnan`/`fixdenorm` + `clip`) —
   see `.claude/rules/gen.md`.
 - **Never play audio** on the user's machine (`afplay` etc.) and never drive Live or the
-  user's Max session; the user does that. The only exception is the unattended standalone-Max
-  test run under the conditions in "Decisions".
+  user's Max session; the user does that. The only exceptions are the unattended standalone-Max
+  test run and the Live test harness, under the conditions in "Decisions".
 - Do not touch `devices/*/reference/reaktor/` contents (read-only references), the user's Live
   projects, or anything under `~/Music/Ableton` / `~/Documents/Max 9` unless asked.
 
@@ -131,6 +148,7 @@ Only upgrade a marker with a reference to the test/source.
 | `docs/reviews/` | Reports of the `fresh-review` skill — local only, gitignored |
 | `tools/check.sh <device>` | Offline check chain: gencheck (Max 9.1.5 + 9.2.0, strict) → regenerate `.gendsp` → TS build → maxdiff parse of every patch. Must pass before every `live-test` handover and commit |
 | `tools/setup-git.sh` | Sets the maxdiff textconv drivers in `.git/config` (run once per clone) |
+| `tools/live/` | **Optional** Live automation (spike, 2026-11-25; off by default): `harness.mjs` = status / install / on / off / run (doctor, relaunch, quit, roundtrip); `check-instrument.mjs` = load an instrument from Places, console from both logs, parameters against the `.amxd`, silent take + health (output `build/<device>/live/`); `README.md` = install + spike checks L1–L6; `local.json` = the switch (gitignored) |
 | `tools/` (uv project) | `m4l-analyze` (health check, Welch-PSD distance, `--null`), `m4l-boxref <class>` (real Max-saved box JSON from the local Max/Live installation — ground truth for patch JSON), py2max for test patches; `tools/vendor/` = pinned gencheck + maxdiff (`VENDOR.md`) |
 | `reference/` | `m4l-production-guidelines.md`, `patch-code-standard.md` (Ableton), `m4l.md` (compact `live.*` reference); README explains `m4l-boxref` |
 | `build/` | gen~ C++ exports, host-test binaries — gitignored |
@@ -175,6 +193,9 @@ Only upgrade a marker with a reference to the test/source.
   signal-flow doc, layer mapping, module-by-module port with offline tests, A/B comparison.
 - `live-test` (own): hand a test state to the user (what to load, what to listen for, what to
   report), then write the test log from the user's report. Use it for everything that runs in Max/Live.
+- `live-harness` (own): the optional Live automation — status/on/off/install, relaunch Live on an
+  empty test Set, `check-instrument.mjs` (load, console, parameters, silent take), quit; runs
+  before a `live-test` handover only while switched on.
 - `m4l-release` (own): freeze, test in a fresh set, tag and GitHub release.
 - `fresh-review` (own): read-only reviewers without this conversation check a document through
   lenses (trace, code, risk, reader) against the project standard; this session consolidates

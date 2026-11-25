@@ -41,3 +41,6 @@ node_modules/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Optional Live automation: the local on/off switch (tools/live/harness.mjs)
+/tools/live/local.json

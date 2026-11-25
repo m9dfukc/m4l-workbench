@@ -8,6 +8,13 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
       `devices/aliasing/docs/v0.2-build.md` §6 (two rounds: Live with Max 9.2.1, then bundled 9.1.5;
       folds in the probe test t2). Afterwards read Live's Log.txt **and**
       `~/Library/Application Support/Cycling '74/Max 9/Logs/MaxPlugLib.log`.
+- [ ] **Live harness spike, rest (Claude + user):** L1, L3 done; first run on aliasing v0.3 (9b1d5d7)
+      **PASS** in 19 s (testlog `t4-auto`: load, console, 173 parameters, silent take). Open: L2 on a
+      real console error, L4 Main meter watched once by the user, L5 against a matched standalone
+      render, L6 next normal Live start without a recovery dialog (user). The automation is **optional** (switch
+      `node tools/live/harness.mjs on|off`, off on a fresh clone), codified as skill
+      `live-harness`, hooked into `live-test` §1; `harness.mjs install` automates setup steps
+      1, 2 and 5. Untested: `install` on a machine without the harness (only `--dry-run` here).
 - [x] **aliasing:** the 9 `live.text` toggles showed "val1"/"val2" in Live; fixed 2026-11-25 by
       `automation`/`automationon` labels (generator + `check_shell.py` rule), Live now shows Off/On and
       1-Way/2-Way [measured: testlog `t4-auto-2`].
@@ -27,6 +34,11 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
       (b6a40ee953d)` since 2026-11-24 16:52 [measured: Live `Log.txt`]. Standalone Max is **9.2.1**.
 - [x] max-gen-helper plugin installed (skill `max-gen-helper:gen-pitfalls` available, 2026-11-24).
 - [x] Limiter on the test track/master for listening tests (user, 2026-11-24).
+- [x] **Live test harness** set up 2026-11-25 (`tools/live/README.md` steps 1–6): clone at
+      `ad756c1e` next to the repo, Remote Script link (absolute) in `~/Documents/Ableton/User
+      Library`, Accessibility for the inner "Claude Code" app, Places entry for `devices/aliasing`;
+      relaunch 4.8 s, doctor ok (32-bit float, 48 kHz), `record-roundtrip.js` PASS [measured: run
+      output 2026-11-25].
 - [ ] Read Cycling '74's "Gen Code Export Licensing FAQ" (the research agent got HTTP 403) before
       any exported gen~ C++ is committed or published.
 
@@ -48,7 +60,7 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 | 2 | Does M4L in Live find `.gendsp`/`.js` next to the `.amxd`, and does a rewritten `.gendsp` hot-reload there (9.1.5 and 9.2), also inside 5 `poly~` instances? | the whole code-first loop |
 | 3 | `@autoexport 1`: does gen~ re-export C++ when the `.gendsp` changes on disk, or only on edits in Max? What does the export folder contain? | host-test harness |
 | 4 | Can standalone Max be launched from the command line with a test patch and run unattended (no dialogs), and does `; dsp setdriver NonRealTime` work by name? — **answered (yes/yes):** `tools/gen-export.sh`, `devices/aliasing/test/smoke/run_smoke.sh` (2026-11-25, Max 9.2.1; the driver is restored by name) | scripted renders |
-| 5 | Do `post()` lines of a device appear in Live's `Log.txt`, or only errors? — partly: console errors of devices in Live go to `Max 9/Logs/MaxPlugLib.log` (t1); standalone Max's `Max.log` holds `post()` lines too (2026-11-25); `post()` in Live [open] (t3: the "v0.2 ready" lines) | console without copy/paste |
+| 5 | Do `post()` lines of a device appear in Live's `Log.txt`, or only errors? — partly: console errors of devices in Live go to `Max 9/Logs/MaxPlugLib.log` (t1); standalone Max's `Max.log` holds `post()` lines too (2026-11-25); `post()` in Live [open] (t3: the "v0.2 ready" lines) — **answered for MaxPlugLib.log:** in Live the device's `post()` lines appear there at level `info` ("aliasing_display: v0.2 ready" at 14:40:39 and 15:03:50) [measured: `MaxPlugLib.log` read 2026-11-25]; `tools/live/check-instrument.mjs` reads both logs | console without copy/paste |
 | 6 | GenExpr: same-sample `poke`→`peek` order honoured (check exported C++); `poke` with fractional index; `peek` linear + wrap across the seam | table semantics |
 | 7 | Do `Data`/`History` survive a sample-rate change or device reload in Live 12? | voice state |
 | 8 | Live parameter resolution for very small speed changes (automation, MIDI map) — need coarse + fine controls? | "finest moves in speed" |
@@ -59,6 +71,12 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 
 ## Done
 
+- 2026-11-25: Max MCP and Ableton MCPs re-evaluated (`docs/research/notes/live-automation-mcp-2026-11-25.md`):
+  no Max MCP; for Live the test harness eladefrati/ableton-live-test-harness (pinned `ad756c1e`,
+  source read). Built as an **optional** Live automation: `CLAUDE.md` exception "Live test harness"
+  (only while switched on), skill `live-harness` (hooked into `live-test`), `tools/live/`
+  (`harness.mjs` status/install/on/off/run, `check-instrument.mjs`, README with install and spike
+  checks L1–L6). Set up and run on aliasing v0.3 the same day (testlog `t4-auto`, `t4-auto-2`).
 - 2026-11-25: Google's Elephant-Goldfish Model evaluated, not installed; own skill
   `fresh-review` (+ read-only agent `fresh-reviewer`, reports in `docs/reviews/`, local) built
   instead.

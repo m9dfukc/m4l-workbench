@@ -24,12 +24,18 @@ devices/<name>/        one device: <Name>.amxd + generated .gendsp/.js (flat), g
 reference/             shared ground truth (hand-built reference device, external references)
 docs/research/notes/   research reports with sources
 tools/                 Python (uv) analysis tools and the offline check chain
+tools/live/            optional Live automation (install, on/off, in-Live checks)
 ```
 
 ## Requirements
 
 Max 9.2+, Ableton Live 12 Suite (Max for Live), Node.js + pnpm, Python via
 [uv](https://docs.astral.sh/uv/). Details: `docs/research/notes/m4l-toolchain-dependencies-2026-11-24.md`.
+
+Optional, off by default: **Live automation** — Claude loads a device in Live, reads the Max
+console, checks its parameters and records it silently, through
+[ableton-live-test-harness](https://github.com/eladefrati/ableton-live-test-harness). Install and
+on/off switch: [`tools/live/README.md`](tools/live/README.md).
 
 ## Credits
 
