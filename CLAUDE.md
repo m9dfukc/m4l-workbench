@@ -171,13 +171,20 @@ Only upgrade a marker with a reference to the test/source.
 - Before any commit: `git status --short` shows no WAVs, frozen devices, `.ens` files,
   screenshots or anything private beyond the username.
 - Tool CLIs: English help texts, arguments instead of hard-coded paths.
+- **Shell stays at the repo root** (avoids permission prompts). max-gen-helper's guard hook
+  (`guard_user_files.py`, PreToolUse) asks the user whenever a command that writes files names a
+  Max file (`.amxd .maxpat .gendsp .genexpr .gen …`, "codebox") outside the session's *current*
+  cwd or in a place it cannot resolve. So: no bare `cd` into a subfolder (use `(cd x && …)` or
+  absolute paths), Max-file paths written literally rather than via `$VAR`, Max files edited
+  with Edit/Write. Auto mode approves everything else here; a hook `ask` overrides it
+  [measured: session transcripts 2026-11-25, 5 of 5 Python prompts came from this hook].
 
 ## Status (2026-11-25)
 
-- `aliasing` **v0.2** built (unattended session 2026-11-25): DSP, painted face, display, shell;
-  offline chain, host test, smoke test in standalone Max 9.2.1 all pass. **Not yet loaded in Live**
-  (next: test t3, `devices/aliasing/docs/v0.2-build.md` §6) and its decisions A1–A33 are to be
-  reviewed with the user. Local commits only (a3f0466 v0.1b, 002b2da DSP, f725478 face, …).
+- `aliasing` **v0.3** built (2026-11-25) from the design agreed with the user after test t3
+  (`devices/aliasing/docs/v0.3-design.md`, D1–D32): offline chain, host test and smoke test in
+  standalone Max 9.2.1 pass; shell written; local commit 9b1d5d7. **Next: test t4 in Live** (§6 there).
+  Earlier local commits a3f0466 v0.1b, 002b2da DSP, f725478 face, …
 - Standalone Max is **9.2.1** (Live uses it); jspainter scripts run on Max's legacy JS engine:
   painters must be ES5 (`tools/js-build.mjs` builds `<device>_paint_*.ts` with target es5).
 - Unattended standalone-Max runs: `tools/gen-export.sh`, `devices/aliasing/test/smoke/run_smoke.sh`

@@ -4,10 +4,8 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 
 ## Next
 
-- [ ] **aliasing t3 (user, in Live):** first load of v0.2 — checklist in
-      `devices/aliasing/docs/v0.2-build.md` §6 (two rounds: Live with Max 9.2.1, then bundled 9.1.5;
-      folds in the probe test t2). Afterwards read Live's Log.txt **and**
-      `~/Library/Application Support/Cycling '74/Max 9/Logs/MaxPlugLib.log`.
+- [ ] **aliasing t4 (user, in Live):** first load of v0.3 (handed over 2026-11-25, state = commit 9b1d5d7) — checklist in `v0.3-design.md` §6 (includes the still
+      open t3 items: bundled Max 9.1.5 round, table storage, hot reload).
 - [ ] **Live harness spike, rest (Claude + user):** L1, L3 done; first run on aliasing v0.3 (9b1d5d7)
       **PASS** in 19 s (testlog `t4-auto`: load, console, 173 parameters, silent take). Open: L2 on a
       real console error, L4 Main meter watched once by the user, L5 against a matched standalone
@@ -20,10 +18,10 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
       1-Way/2-Way [measured: testlog `t4-auto-2`].
 - [ ] **aliasing (user decision):** `outputmode` Mouse Up on the toggle-mode `live.text` boxes (Ableton
       checklist: matches Live's native buttons; changes when a click fires).
-- [ ] **aliasing review (user + Claude):** go through the decisions A1–A33 in
-      `devices/aliasing/docs/v0.2-build.md` §1 (made autonomously on 2026-11-25).
-- [ ] aliasing v0.3: own presets (JSON + menu), `live.banks` for Push, CPU reading; remove the
-      debug "ready" posts (A33) before a release.
+- [ ] **aliasing review (user + Claude):** the v0.2 decisions A1–A33 (`docs/v0.2-build.md` §1) that
+      v0.3 did not replace, and the mock-up's own decisions (`docs/mockup-v0.3/layout.md` §4–§5).
+- [ ] aliasing v0.4: own presets (JSON + menu) incl. the v0.2 init sound (D1), `live.banks` for Push,
+      CPU reading; remove the debug "ready" posts (A33) before a release.
 - [ ] **aliasing (user, Reaktor):** optional simple-settings recording (R23: write ramp hi,
       In-Pitch 73, read −29.5, Size 0.08, LFOs off) to check Tri/Par Symm `W` and the anti-aliased
       ramp against `scripts/table_sim.py`; renders R1a, R1d, R7a–e from `renders.md`.
@@ -77,6 +75,15 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
   (only while switched on), skill `live-harness` (hooked into `live-test`), `tools/live/`
   (`harness.mjs` status/install/on/off/run, `check-instrument.mjs`, README with install and spike
   checks L1–L6). Set up and run on aliasing v0.3 the same day (testlog `t4-auto`, `t4-auto-2`).
+- 2026-11-25 (with the user): t3 report logged (v0.2 in Live 12.4.16 / Max 9.2.1, critique + 3
+  screenshots, `testlog/aliasing/2026-11-25.md`); grilling rounds 1–3 → v0.3 design D1–D30
+  (`devices/aliasing/docs/v0.3-design.md`); v0.3 built offline: DSP (8 write shapes, Freeze/Write/
+  Clean, 9 × 12 mod matrix with Voice/Neighbour/Read Osc/Env, section switches, color limiter, follower
+  outlet), display (zoom to Size with per-voice edges, filled band), painters (2 × 4 icon grid, matrix
+  cells, title switches, v0.3 palette), pages (Sym labels, greying, panel colours from live.colors),
+  mock-up v0.3 (Design canvas v17 + `docs/mockup-v0.3/`), shell generator + checker v0.3, canvas
+  preview. Shell written to the device folder after the user approved the face, committed as 9b1d5d7.
+
 - 2026-11-25: Google's Elephant-Goldfish Model evaluated, not installed; own skill
   `fresh-review` (+ read-only agent `fresh-reviewer`, reports in `docs/reviews/`, local) built
   instead.
