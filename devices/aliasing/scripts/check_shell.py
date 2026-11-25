@@ -116,6 +116,13 @@ def main(argv: list[str]) -> int:
                 errors.append(f"live.text {vo.get('parameter_longname')}: Live would show val1/val2 (set automation/automationon)")
             elif vo.get("parameter_enum") and vo["parameter_enum"] != labels:
                 errors.append(f"live.text {vo.get('parameter_longname')}: automation labels {labels} differ from parameter_enum {vo['parameter_enum']}")
+    # live.tab lays out (and hit-tests) num_lines rows only with multiline on; with multiline 0 it is
+    # one row whatever the painter draws (m4l-boxref live.tab; t4, Write Shape grid felt like a slider)
+    for b in boxes.values():
+        if b["maxclass"] == "live.tab":
+            rows = max(b.get("num_lines_presentation", 1), b.get("num_lines_patching", 1))
+            if rows > 1 and b.get("multiline", 1) == 0:
+                errors.append(f"live.tab {b.get('varname')}: {rows} rows with multiline 0 (Max lays it out as one row)")
 
     # gen~ Params and inlets
     src = (DEVICE / "gen" / "aliasing.genexpr").read_text()

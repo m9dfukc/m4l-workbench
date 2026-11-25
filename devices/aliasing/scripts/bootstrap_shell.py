@@ -223,8 +223,12 @@ def controls() -> list[Ctl]:
         c.append(Ctl("live.dial", var, rect, vo, gen, accent=accent, **kw))
 
     def tab(var, rect, vo, gen, rows=1, **kw):
+        # multiline 0 makes live.tab ignore num_lines (one row of hit areas); every Max-saved live.tab
+        # with num_lines >= 2 leaves multiline at its default 1 [measured: m4l-boxref live.tab, 399 boxes;
+        # t4: the 2 x 4 Write Shape grid behaved like a slider in Live]
         c.append(Ctl("live.tab", var, rect, vo, gen,
-                     extra={"num_lines_patching": rows, "num_lines_presentation": rows, "multiline": 0}, **kw))
+                     extra={"num_lines_patching": rows, "num_lines_presentation": rows,
+                            "multiline": 1 if rows > 1 else 0}, **kw))
 
     def pill(var, rect, vo, gen, text, texton=None, **kw):
         c.append(Ctl("live.text", var, rect, vo, gen, extra={"mode": 1, "text": text, "texton": texton or text}, **kw))

@@ -358,7 +358,8 @@ function paint() {
   var labels = info.labels || ["0", "1"];
   var n = labels.length;
   var sel = Math.round(value());
-  var rows = Math.max(1, Math.min(n, Math.round(attrNum("num_lines_presentation", 1))));
+  var lines = attrNum("multiline", 1) !== 0 ? attrNum("num_lines_presentation", 1) : 1;
+  var rows = Math.max(1, Math.min(n, Math.round(lines)));
   var cols = Math.ceil(n / rows);
   var segw = (w - 1) / cols;
   var segh = (h - 1) / rows;
