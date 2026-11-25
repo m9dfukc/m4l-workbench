@@ -65,6 +65,9 @@ are **ports of Native Instruments Reaktor ensembles**; others are original desig
   Claude Code plugin (skill `gen-pitfalls` + guard hook); scripts use the vendored gencheck.
 - **Skills:** `grill-me`/`grilling`, `handoff`, `research` kept; `live-test`, `reaktor-port`,
   `m4l-release` new; path rules for GenExpr, patches and v8 JS.
+- **Fresh-eyes reviews (user, 2026-11-25):** Google's Elephant-Goldfish Model plugin was
+  evaluated and not installed (its draft/brainstorm/bootstrap duplicate our docs, its reviewers
+  target web software); its core idea lives on as the own skill `fresh-review`.
 
 ## Architecture (every device)
 
@@ -125,6 +128,7 @@ Only upgrade a marker with a reference to the test/source.
 | `devices/aliasing/` | First device; `reference/reaktor/` = local-only Reaktor originals + screenshots |
 | `docs/research/notes/` | Research reports with all URLs. **Search here before researching anew** |
 | `docs/handoffs/` | Session handoffs — local only, gitignored; newest is current, never delete |
+| `docs/reviews/` | Reports of the `fresh-review` skill — local only, gitignored |
 | `tools/check.sh <device>` | Offline check chain: gencheck (Max 9.1.5 + 9.2.0, strict) → regenerate `.gendsp` → TS build → maxdiff parse of every patch. Must pass before every `live-test` handover and commit |
 | `tools/setup-git.sh` | Sets the maxdiff textconv drivers in `.git/config` (run once per clone) |
 | `tools/` (uv project) | `m4l-analyze` (health check, Welch-PSD distance, `--null`), `m4l-boxref <class>` (real Max-saved box JSON from the local Max/Live installation — ground truth for patch JSON), py2max for test patches; `tools/vendor/` = pinned gencheck + maxdiff (`VENDOR.md`) |
@@ -135,6 +139,7 @@ Only upgrade a marker with a reference to the test/source.
 | `_tmp/` | User's scratch space; ignored, never delete |
 | `.claude/rules/` | `gen.md`, `max-patch.md`, `v8-js.md` — load with matching files |
 | `.claude/skills/` | Project skills (see below) |
+| `.claude/agents/` | `fresh-reviewer`: read-only subagent of the `fresh-review` skill |
 
 ## Conventions
 
@@ -171,6 +176,10 @@ Only upgrade a marker with a reference to the test/source.
 - `live-test` (own): hand a test state to the user (what to load, what to listen for, what to
   report), then write the test log from the user's report. Use it for everything that runs in Max/Live.
 - `m4l-release` (own): freeze, test in a fresh set, tag and GitHub release.
+- `fresh-review` (own): read-only reviewers without this conversation check a document through
+  lenses (trace, code, risk, reader) against the project standard; this session consolidates
+  and gives its view, the user decides. Use it for decision lists Claude made, build notes
+  before a test or release, and handovers the user will execute.
 - From `mattpocock/skills` @ `5863806`: `grill-me`/`grilling` (question rounds before design
   decisions — use for every open question to the user), `handoff`, `research` (reports go to
   `docs/research/notes/`).

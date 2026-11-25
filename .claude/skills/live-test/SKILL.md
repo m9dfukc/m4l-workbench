@@ -28,7 +28,9 @@ says so.
 - **Record the state** before handing over (the log needs it later): git short SHA, whether the
   tree is dirty (`git status --short` for the device folder; save `git diff` of the device to
   `testlog/<name>/<label>.diff` if dirty), SHA-256 of the runtime files in `devices/<name>/`
-  (`.amxd`, `.gendsp`, `.js`), Max version the user will test in.
+  (`.amxd`, `.gendsp`, `.js`), Max version the user will test in. If the working tree holds
+  changes that are not part of this test (another session's work), `tools/check.sh` bakes them
+  into the runtime files: test from a commit, or say exactly what is included.
 - **Riders:** open checks in `TODO.md` ("Open checks in Max/Live") that the same session can
   answer cheaply go at the end of the handover.
 
@@ -37,14 +39,32 @@ says so.
 Tell the user, in the user's language, without making them open any file:
 
 1. what changed since the last test and what this test should answer,
-2. what to load and where: the clickable path of the `.amxd` (or the test patch), and whether
-   to reload a device that is already open (hot reload of `.gendsp`/`.js` vs. reopening),
-3. **safety first:** limiter after the device, monitor turned down, especially on first load,
-4. exactly what to do: notes/range to play, parameter settings (by their panel names), the
-   Reaktor reference to compare against if any,
-5. what to report: the full Max console (copy all, including warnings), what was heard (in
-   their own words), CPU meter reading if relevant, screenshots of anything visual,
-6. the way back if something breaks (previous tag/commit, or remove the device from the set).
+2. **which state, and where:** the commit (short SHA) and the clickable path of the `.amxd` (or
+   the test patch); if the checkout is not at that state, how to get there
+   (`git switch --detach <sha>`, back with `git switch main`); whether to reload a device that
+   is already open (hot reload of `.gendsp`/`.js` vs. reopening),
+3. **setup in a safe order:** fresh Set (or which Set), track, limiter on it (or confirm the
+   master limiter), monitor turned down, and only then the device, since many devices sound
+   at once. Then the conditions the result depends on: sample rate, Max version (confirm with
+   the `Max: Version …` line in Live's `Log.txt`), transport running or stopped, theme,
+4. **the steps, one item per line:** setting (by its panel name; for icon-only controls the
+   position, left to right) → what to hear or see → what counts as pass. Set the
+   preconditions for anything that is silent at its default (a mix at 0, a filter wide open, a
+   modulation depth at 0). Name the reference to compare against: Reaktor render, mock-up or
+   canvas preview,
+5. **what to report:** yes/no per item with a word on anything odd; the full Max console (copy
+   all, including warnings) and the lines expected there (debug "ready" lines are results
+   too); what was heard, in their own words; the CPU reading and its condition (device
+   playing, which meter); screenshots of anything visual,
+6. **several rounds** (e.g. Live's bundled Max after the standalone one): how to switch, what
+   to repeat, fresh Set or not, and switching back afterwards,
+7. **the way back:** the simplest first (delete the device or the track), then the previous
+   commit with the git command.
+
+Explain every id or abbreviation the handover uses (R-, A-ids, "P1/P2"), or leave it out. For
+a long handover, or one that is also saved in a document, run `fresh-review` with the reader
+lens on it before handing it over: the first run, on the t3 handover, found 16 gaps of the
+kinds listed above.
 
 Then stop and wait for the report.
 
@@ -86,4 +106,6 @@ conditions that matter for the conclusion.
   the original).
 - Upgrade evidence markers only as far as the observation reaches, with a reference to the log
   entry (`testlog/<name>/<date>.md, <label>`).
+- If the handover is also written in a document (e.g. a build doc's test section), add a status
+  line there: what ran, what was not reported, and where the rest moved (the next test label).
 - Commits only after the user approved the commit by name.

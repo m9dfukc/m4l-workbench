@@ -54,6 +54,9 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 
 ## Done
 
+- 2026-11-25: Google's Elephant-Goldfish Model evaluated, not installed; own skill
+  `fresh-review` (+ read-only agent `fresh-reviewer`, reports in `docs/reviews/`, local) built
+  instead.
 - 2026-11-25 (unattended session, decisions A1–A33 for review in `devices/aliasing/docs/v0.2-build.md`):
   aliasing **v0.1b** (P1/P2: Write Pitch −64…130, init state at fs/3 + 4 Hz; commit a3f0466) and
   **v0.2** built: DSP (Drone/MIDI gate, tempo-synced pointers with note values, multiplier,
