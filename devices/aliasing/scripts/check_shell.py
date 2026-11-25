@@ -106,6 +106,16 @@ def main(argv: list[str]) -> int:
             longnames.append(vo.get("parameter_longname", ""))
     for n in sorted({n for n in longnames if longnames.count(n) > 1}):
         errors.append(f"parameter long name used twice: {n}")
+    # live.text shows its values in Live by automation / automationon, not parameter_enum: without
+    # them Live shows "val1"/"val2" (Ableton checklist "Enum labels"; testlog t4-auto, 2026-11-25)
+    for b in boxes.values():
+        vo = (b.get("saved_attribute_attributes") or {}).get("valueof") or {}
+        if b["maxclass"] == "live.text" and b.get("parameter_enable"):
+            labels = [b.get("automation", "val1"), b.get("automationon", "val2")]
+            if "val1" in labels or "val2" in labels:
+                errors.append(f"live.text {vo.get('parameter_longname')}: Live would show val1/val2 (set automation/automationon)")
+            elif vo.get("parameter_enum") and vo["parameter_enum"] != labels:
+                errors.append(f"live.text {vo.get('parameter_longname')}: automation labels {labels} differ from parameter_enum {vo['parameter_enum']}")
 
     # gen~ Params and inlets
     src = (DEVICE / "gen" / "aliasing.genexpr").read_text()

@@ -8,6 +8,11 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
       `devices/aliasing/docs/v0.2-build.md` §6 (two rounds: Live with Max 9.2.1, then bundled 9.1.5;
       folds in the probe test t2). Afterwards read Live's Log.txt **and**
       `~/Library/Application Support/Cycling '74/Max 9/Logs/MaxPlugLib.log`.
+- [x] **aliasing:** the 9 `live.text` toggles showed "val1"/"val2" in Live; fixed 2026-11-25 by
+      `automation`/`automationon` labels (generator + `check_shell.py` rule), Live now shows Off/On and
+      1-Way/2-Way [measured: testlog `t4-auto-2`].
+- [ ] **aliasing (user decision):** `outputmode` Mouse Up on the toggle-mode `live.text` boxes (Ableton
+      checklist: matches Live's native buttons; changes when a click fires).
 - [ ] **aliasing review (user + Claude):** go through the decisions A1–A33 in
       `devices/aliasing/docs/v0.2-build.md` §1 (made autonomously on 2026-11-25).
 - [ ] aliasing v0.3: own presets (JSON + menu), `live.banks` for Push, CPU reading; remove the

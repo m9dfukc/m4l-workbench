@@ -651,6 +651,11 @@ def build(template: dict) -> dict:
             saa["valueof"] = ctl_.vo
             if ctl_.vo.get("parameter_info"):
                 box["annotation"] = ctl_.vo["parameter_info"]
+            # live.text: Live shows its two values with the box attributes automation /
+            # automationon ("val1"/"val2" when absent, whatever parameter_enum says) [sourced:
+            # live.text.maxref.xml "Automation Off/On Label"; measured: testlog t4-auto, 2026-11-25]
+            if ctl_.cls == "live.text" and len(ctl_.vo.get("parameter_enum", [])) == 2:
+                box["automation"], box["automationon"] = ctl_.vo["parameter_enum"]
         box["saved_attribute_attributes"] = saa
         oid = p.add(hide_rule(box))
         by_var[ctl_.var] = oid
