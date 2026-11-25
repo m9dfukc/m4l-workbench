@@ -22,6 +22,7 @@ function palette(dark) {
       text: hex("#d2d2d2"),
       label: hex("#b0b0b0"),
       track: hex("#5c5c5c"),
+      dialTrack: hex("#747474"),
       rule: hex("#2a2a2a"),
       field: hex("#262626"),
       sel: hex("#d6d6d6"),
@@ -31,7 +32,8 @@ function palette(dark) {
       read: hex("#8fb0c4"),
       disp: hex("#161616"),
       voice: hex("#a6a6a6"),
-      meter: hex("#9a9a9a")
+      meter: hex("#9a9a9a"),
+      slot: hex("#393939")
     };
   }
   return {
@@ -39,6 +41,7 @@ function palette(dark) {
     text: hex("#111111"),
     label: hex("#262626"),
     track: hex("#6e6e6e"),
+    dialTrack: hex("#5a5a5a"),
     rule: hex("#d0d0d0"),
     field: hex("#dedede"),
     sel: hex("#1f1f1f"),
@@ -48,7 +51,8 @@ function palette(dark) {
     read: hex("#2f5873"),
     disp: hex("#ececec"),
     voice: hex("#4a4a4a"),
-    meter: hex("#3c3c3c")
+    meter: hex("#3c3c3c"),
+    slot: hex("#8c8c8c")
   };
 }
 function themeIsDark(getcolor) {
@@ -68,9 +72,30 @@ function roleOf(varname) {
     if (t === "rp" || t === "sp") return "read";
     return "neutral";
   }
-  if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
-  if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
+  if (v.indexOf("w_") === 0) return "write";
+  if (v.indexOf("r_") === 0) return "read";
+  var key = v.substring(v.indexOf("_") + 1);
+  if (key.indexOf("band_") === 0) return "write";
+  if (key.indexOf("res_") === 0) return "read";
   return "neutral";
+}
+var FONT_SIZE = 9.5;
+function baselineOf(h) {
+  return Math.round(h) + 8 >> 1;
+}
+function compactValue(s, maxw, measure2) {
+  if (measure2(s) <= maxw) return s;
+  var t = s.replace(/(\d) (?=[^\d\s])/g, "$1");
+  if (measure2(t) <= maxw) return t;
+  t = t.replace(/(\.\d*?)0+(?=\D|$)/g, "$1").replace(/\.(?=\D|$)/g, "");
+  if (measure2(t) <= maxw) return t;
+  return fitText(t, maxw, measure2);
+}
+function fitName(s, maxw, measure2) {
+  if (measure2(s) <= maxw) return s;
+  var t = s.substring(0, 3);
+  if (s.length > 3 && measure2(t) <= maxw) return t;
+  return fitText(s, maxw, measure2);
 }
 function accentFor(role, p) {
   if (role === "write") return p.write;
@@ -325,7 +350,7 @@ function text(s, x, y, color, align) {
   var w = measure(s);
   var tx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
   setColor(color);
-  mgraphics.move_to(tx, y);
+  mgraphics.move_to(Math.round(tx), Math.round(y));
   mgraphics.show_text(s);
 }
 function enableAutomationDots() {
@@ -349,6 +374,7 @@ function dim(c, active, p) {
 
 // devices/aliasing/js/src/aliasing_paint_dial.ts
 enableAutomationDots();
+var NAME_OVERLAY = ["w_sym", "w_fine", "r_fine"];
 function paint() {
   var w = mgraphics.size[0];
   var h = mgraphics.size[1];
@@ -356,14 +382,25 @@ function paint() {
   var active = isActive();
   var info = paramInfo();
   var v = value();
-  var accent = dim(accentFor(roleOf(varnameOf()), p), active, p);
-  var small = w < 40;
-  var textH = small ? 10 : 11;
-  var knob = Math.min(w, h - textH);
-  var cx = w / 2;
-  var cy = knob / 2;
-  var r = knob / 2 - (small ? 3.5 : 4);
-  var lw = small ? 2.6 : 2.5;
+  var name = varnameOf();
+  var accent = dim(accentFor(roleOf(name), p), active, p);
+  var tall = h >= 44;
+  var cx = Math.round(w / 2);
+  var r;
+  var cy;
+  var valueBase;
+  var fs;
+  if (tall) {
+    r = 12.5;
+    cy = 26;
+    valueBase = 47;
+    fs = FONT_SIZE;
+  } else {
+    r = Math.max(4, Math.min(w / 2 - 3.5, (h - 10) / 2));
+    cy = r + 2;
+    valueBase = h - 1;
+    fs = 9;
+  }
   var a0 = Math.PI * 0.75;
   var sweep = Math.PI * 1.5;
   var n = normOf(v, info.lo, info.hi, info.exponent);
@@ -371,8 +408,8 @@ function paint() {
   var bipolar = !info.labels && info.lo < 0 && info.hi > 0;
   var ac = bipolar ? a0 + sweep * normOf(0, info.lo, info.hi, info.exponent) : a0;
   mgraphics.set_line_cap("round");
-  mgraphics.set_line_width(lw);
-  setColor(dim(p.track, active, p));
+  mgraphics.set_line_width(2.5);
+  setColor(dim(p.dialTrack, active, p));
   mgraphics.arc(cx, cy, r, a0, a0 + sweep);
   mgraphics.stroke();
   if (Math.abs(av - ac) > 0.01) {
@@ -381,11 +418,15 @@ function paint() {
     mgraphics.stroke();
   }
   setColor(accent);
-  mgraphics.set_line_width(small ? 1.8 : 1.5);
+  mgraphics.set_line_width(1.5);
   mgraphics.move_to(cx, cy);
   mgraphics.line_to(cx + Math.cos(av) * r * 0.71, cy + Math.sin(av) * r * 0.71);
   mgraphics.stroke();
-  font(small ? 8 : 9, false);
-  var s = fitText(formatValue(v, info.unitstyle, info.units, info.labels), w, measure);
-  text(s, cx, h - (small ? 2 : 2.5), dim(p.text, active, p), "center");
+  font(fs, false);
+  if (tall && NAME_OVERLAY.indexOf(name) < 0) {
+    var short = attrStr("_parameter_shortname");
+    if (short) text(fitName(short, w - 1, measure), cx, 10, dim(p.label, active, p), "center");
+  }
+  var s = compactValue(formatValue(v, info.unitstyle, info.units, info.labels), w - 3, measure);
+  text(s, cx, valueBase, dim(p.text, active, p), "center");
 }

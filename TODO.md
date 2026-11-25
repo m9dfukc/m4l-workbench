@@ -4,8 +4,12 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 
 ## Next
 
-- [ ] **aliasing t4 (user, in Live):** first load of v0.3 (handed over 2026-11-25, state = commit 9b1d5d7) — checklist in `v0.3-design.md` §6 (includes the still
-      open t3 items: bundled Max 9.1.5 round, table storage, hot reload).
+- [ ] **aliasing t5 (user, in Live):** v0.3b, both faces side by side (`Aliasing.amxd` hybrid,
+      `Aliasing B.amxd` option (b)) — handover 2026-11-25, `v0.3-design.md` §6b; the user picks the
+      face that stays (then delete the other shell and its generator branch). Includes the still open
+      t3/t4 items: bundled Max 9.1.5 round, table storage, hot reload. Harness pre-check PASS (t5-auto).
+- [x] aliasing t4 (v0.3, 9b1d5d7 + e0b2b59): the user looked at it in Live and sent screenshots and a
+      critique instead of the checklist → face review, D33–D44, v0.3b (2026-11-25).
 - [ ] **Live harness spike, rest (Claude + user):** L1, L3 done; first run on aliasing v0.3 (9b1d5d7)
       **PASS** in 19 s (testlog `t4-auto`: load, console, 173 parameters, silent take). Open: L2 on a
       real console error, L4 Main meter watched once by the user, L5 against a matched standalone
@@ -16,8 +20,8 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 - [x] **aliasing:** the 9 `live.text` toggles showed "val1"/"val2" in Live; fixed 2026-11-25 by
       `automation`/`automationon` labels (generator + `check_shell.py` rule), Live now shows Off/On and
       1-Way/2-Way [measured: testlog `t4-auto-2`].
-- [ ] **aliasing (user decision):** `outputmode` Mouse Up on the toggle-mode `live.text` boxes (Ableton
-      checklist: matches Live's native buttons; changes when a click fires).
+- [x] **aliasing:** `outputmode` Mouse Up on the toggle-mode `live.text` boxes (user, D38; v0.3b,
+      `check_shell.py` rule).
 - [ ] **aliasing review (user + Claude):** the v0.2 decisions A1–A33 (`docs/v0.2-build.md` §1) that
       v0.3 did not replace, and the mock-up's own decisions (`docs/mockup-v0.3/layout.md` §4–§5).
 - [ ] aliasing v0.4: own presets (JSON + menu) incl. the v0.2 init sound (D1), `live.banks` for Push,

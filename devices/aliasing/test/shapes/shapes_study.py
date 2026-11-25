@@ -1,5 +1,8 @@
 """Write/read shape study of the aliasing gen~ export (devices/aliasing/docs/shapes-study.md).
 
+Measures the v0.3 DSP (8 write shapes, rdir, Drift; aliasing.gendsp of commit 9c23f87). v0.3b
+(D34-D36) renumbered the shapes and removed rdir: run it only against an export of that older .gendsp.
+
 Renders a grid of write shapes x Sym x pitch situations x read shape x Size with the host
 renderer (devices/aliasing/test/host/render.cpp, built by run.sh next to this file), measures
 spectral features, table metrics and pairwise spectral distances, and prints the result tables

@@ -35,19 +35,21 @@ $R "$OUT/alias.wav" --seconds 2 --set wpitch=71 --set wfine=0.217 --set rpitch=-
   --heads "$OUT/alias.heads.f32" --table "$OUT/alias.table.f32"
 # 3 gate: MIDI gate mode, note held 0.5 .. 2.5 s
 $R "$OUT/gate.wav" --seconds 3.5 --set gatemode=1 --gate 0.5:2.5 --note 0.5
-# 4 stress: extremes of every section, all 8 write shapes and 3 write states, the matrix with every
-#   source incl. Voice / Neighbour / Read Osc / Env feedback, limiter extremes, section switches
-STRESS=(--set wpitch=130 --set rpitch=-64 --set wsym=-1 --set rdir=1 --set rspread=6
+# 4 stress: extremes of every section, all 5 write shapes (D34) and 3 write states, the matrix with every
+#   source incl. Voice / Neighbour / Read Osc / Env feedback (D36), limiter extremes, section switches,
+#   the write pointer synced at Sync Rate x16 (D37)
+STRESS=(--set wpitch=130 --set rpitch=-64 --set wsym=-1 --set rspread=6
         --set width=2 --set output=0 --set smoothread=1 --set aaramp=1 --set velocity=1 --set modwheel=1
-        --set mx_l1_wp=100 --set mx_l2_sz=-100 --set mx_dr_bc=100 --set mx_l1_ou=100 --set mx_vo_wp=100
-        --set mx_nb_rp=-100 --set mx_ro_sz=100 --set mx_en_bc=100 --set mx_vo_wa=-100 --set mx_ro_rb=100
-        --set mx_ve_dv=100 --set mx_mw_bw=100 --set mx_nb_sy=100 --set mx_en_rf=-100 --set mx_dr_sp=100
+        --set mx_l1_wp=100 --set mx_l2_sz=-100 --set mx_l2_bc=100 --set mx_l1_ou=100 --set mx_vo_wp=100
+        --set mx_nb_rp=-100 --set mx_ro_sz=100 --set mx_en_bc=100 --set mx_vo_wa=-100 --set mx_ro_rf=100
+        --set mx_ve_sp=100 --set mx_mw_bc=-100 --set mx_nb_sy=100 --set mx_en_rf=-100 --set mx_l2_sp=100
+        --set syncrate=8 --at 1.0 wmode=1 --at 3.4 wmode=0
         --set l1rate=20 --set l1shape=3 --set l2mode=0 --set l2rate=13 --set l2shape=4
         --set drive=24 --set bcenter=3000 --set bwidth=0.2 --set bres=100 --set bfm=100 --set bspread=100
         --set reson=1 --set rsmix=100 --set rsfb=95 --set rstrack=0 --set rsfreq=5000
         --set limgain=24 --set limsat=100 --set limcolor=100 --set limrel=1 --set limceil=0
-        --at 0.4 wshape=0 --at 0.8 wshape=3 --at 1.2 wshape=4 --at 1.6 wshape=5 --at 2.0 wshape=6
-        --at 2.4 wshape=7 --at 2.8 wshape=2 --at 1.5 rshape=1 --at 2.0 size=0.001 --at 2.0 limcolor=-100
+        --at 0.4 wshape=0 --at 0.8 wshape=3 --at 1.2 wshape=4 --at 1.6 wshape=2 --at 2.0 wshape=1
+        --at 2.4 wshape=4 --at 2.8 wshape=2 --at 1.5 rshape=1 --at 2.0 size=0.001 --at 2.0 limcolor=-100
         --at 2.0 bmode=1 --at 2.0 bslope=0 --at 2.5 wpitch=-64 --at 2.5 rpitch=64 --at 2.5 rsfb=-95
         --at 2.5 drvon=0 --at 2.5 bandon=0 --at 3.0 size=1 --at 3.0 smoothread=0 --at 3.0 aaramp=0
         --at 3.0 rsfreq=20 --at 3.0 wsym=1 --at 3.2 wactive=2 --at 3.6 wactive=0 --at 3.6 limon=0
@@ -69,6 +71,13 @@ $R "$OUT/wgate_shut.wav" --seconds 1 --set wactive=0 --set mx_ve_wa=100 --set ve
 # 7 tempo: both pointers synced at 120 BPM: write x64 / 4 on 1/16 = 128 Hz, read x1 on 1/4 = 2 Hz (D3)
 $R "$OUT/tempo.wav" --seconds 2 --transport 120 --set wmode=1 --set wnote=13 --set wmult=64 --set wden=4 \
   --set wfine=0 --set rmode=1 --set rnote=7 --set rmult=1 --set rspread=0 --heads "$OUT/tempo.heads.f32"
+# 7b Sync Rate (D37): the same at x2 -> 256 Hz / 4 Hz; Transpose +12 st must not move synced pointers
+$R "$OUT/tempo_rate.wav" --seconds 2 --transport 120 --set wmode=1 --set wnote=13 --set wmult=64 --set wden=4 \
+  --set wfine=0 --set rmode=1 --set rnote=7 --set rmult=1 --set rspread=0 --set syncrate=5 --set transpose=12 \
+  --heads "$OUT/tempo_rate.heads.f32"
+# 7c Sync Rate /16 on the write pointer, Transpose +12 st on a Hz read pointer: 8 Hz, read note 72
+$R "$OUT/tempo_slow.wav" --seconds 2 --transport 120 --set wmode=1 --set wnote=13 --set wmult=64 --set wden=4 \
+  --set wfine=0 --set rspread=0 --set syncrate=0 --set transpose=12 --heads "$OUT/tempo_slow.heads.f32"
 # 8 band: open vs narrow Pass vs narrow Reject at 1 kHz (spectral energy around the centre)
 BAND=(--set rpitch=12 --set rspread=0 --set bcenter=1000 --set bspread=0 --set bres=0)
 $R "$OUT/band_open.wav" --seconds 3 "${BAND[@]}"
@@ -95,7 +104,7 @@ $R "$OUT/res_on.wav" --seconds 2 "${ALIAS[@]}" --set reson=1 --set rsmix=100
 echo "== m4l-analyze"
 cd "$ROOT/tools"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-$ROOT/.uv-cache}"
-uv run m4l-analyze "$OUT"/{off,drone,alias,gate,stress,stress44,sync,frozen,clean,tempo,band_open,band_pass,band_reject,aa,lim_ceil,env_duck,res_on}.wav
+uv run m4l-analyze "$OUT"/{off,drone,alias,gate,stress,stress44,sync,frozen,clean,tempo,tempo_rate,band_open,band_pass,band_reject,aa,lim_ceil,env_duck,res_on}.wav
 uv run m4l-analyze --null "$OUT/stress.wav" "$OUT/stress2.wav"
 
 echo "== checks"

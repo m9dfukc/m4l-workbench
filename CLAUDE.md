@@ -148,6 +148,7 @@ Only upgrade a marker with a reference to the test/source.
 | `docs/reviews/` | Reports of the `fresh-review` skill — local only, gitignored |
 | `tools/check.sh <device>` | Offline check chain: gencheck (Max 9.1.5 + 9.2.0, strict) → regenerate `.gendsp` → TS build → maxdiff parse of every patch. Must pass before every `live-test` handover and commit |
 | `tools/setup-git.sh` | Sets the maxdiff textconv drivers in `.git/config` (run once per clone) |
+| `tools/max-workspace.sh` | park / restore / check standalone Max's Crash Recovery workspace around unattended runs (otherwise Max reopens the user's last patches) |
 | `tools/live/` | **Optional** Live automation (spike, 2026-11-25; off by default): `harness.mjs` = status / install / on / off / run (doctor, relaunch, quit, roundtrip); `check-instrument.mjs` = load an instrument from Places, console from both logs, parameters against the `.amxd`, silent take + health (output `build/<device>/live/`); `README.md` = install + spike checks L1–L6; `local.json` = the switch (gitignored) |
 | `tools/` (uv project) | `m4l-analyze` (health check, Welch-PSD distance, `--null`), `m4l-boxref <class>` (real Max-saved box JSON from the local Max/Live installation — ground truth for patch JSON), py2max for test patches; `tools/vendor/` = pinned gencheck + maxdiff (`VENDOR.md`) |
 | `reference/` | `m4l-production-guidelines.md`, `patch-code-standard.md` (Ableton), `m4l.md` (compact `live.*` reference); README explains `m4l-boxref` |
@@ -181,14 +182,19 @@ Only upgrade a marker with a reference to the test/source.
 
 ## Status (2026-11-25)
 
-- `aliasing` **v0.3** built (2026-11-25) from the design agreed with the user after test t3
-  (`devices/aliasing/docs/v0.3-design.md`, D1–D32): offline chain, host test and smoke test in
-  standalone Max 9.2.1 pass; shell written; local commit 9b1d5d7. **Next: test t4 in Live** (§6 there).
-  Earlier local commits a3f0466 v0.1b, 002b2da DSP, f725478 face, …
+- `aliasing` **v0.3b** built (2026-11-25): two faces for an A/B in Live on one DSP (D33–D44 in
+  `devices/aliasing/docs/v0.3-design.md`): `Aliasing.amxd` = hybrid, `Aliasing B.amxd` = option (b),
+  both from `scripts/bootstrap_shell.py --face hybrid|b`. Dial probe PASS (a `showname 1` dial is 48 px
+  whatever the saved rect); offline chain, host test, smoke test (standalone Max 9.2.1) and the Live
+  harness (both devices) pass. **Next: test t5 in Live** (§6b there): look and feel of both faces, the
+  user picks one. Earlier: 9c23f87 (Write Shape fix, face review), 9b1d5d7 v0.3, …
+- Standalone Max **restores its last session's patches at start** (Crash Recovery workspace):
+  every unattended run parks that file first (`tools/max-workspace.sh`, user, 2026-11-25).
 - Standalone Max is **9.2.1** (Live uses it); jspainter scripts run on Max's legacy JS engine:
   painters must be ES5 (`tools/js-build.mjs` builds `<device>_paint_*.ts` with target es5).
-- Unattended standalone-Max runs: `tools/gen-export.sh`, `devices/aliasing/test/smoke/run_smoke.sh`
-  (NonRealTime driver, restores the driver, reads `Max 9/Logs/Max.log`). Devices' console errors in
+- Unattended standalone-Max runs: `tools/gen-export.sh`, `devices/aliasing/test/smoke/run_smoke.sh
+  [hybrid|b]`, `devices/aliasing/test/dial-probe/run_dialprobe.sh` (NonRealTime driver, restores the
+  driver and Max's workspace file, reads `Max 9/Logs/Max.log`). Devices' console errors in
   Live land in `~/Library/Application Support/Cycling '74/Max 9/Logs/MaxPlugLib.log`.
 - Research (2026-11-24) in `docs/research/notes/`: `m4l-toolchain-dependencies-*`,
   `reaktor-fundamentals-and-porting-*`, `max-port-targets-gen-rnbo-*`, `aliasing-synth-sources-*`,

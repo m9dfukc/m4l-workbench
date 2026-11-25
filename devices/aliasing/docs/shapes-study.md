@@ -1,5 +1,10 @@
 # aliasing — which write and read shapes are worth having (2026-11-25)
 
+> Measured on the **v0.3 DSP** (8 write shapes, Read 1-Way/2-Way, Drift; `aliasing.gendsp` of commit
+> 9c23f87). v0.3b implemented the verdicts (D34: Ramp, Tri, Pulsar, Spike, Noise renumbered 0–4; D35:
+> Read Tri always 2-Way), so the scripts in `test/shapes/` run only against an export of that older
+> `.gendsp`; the shape indices below are v0.3's.
+
 Question (user, 2026-11-25): v0.3 has **8 write shapes** (Ramp, Tri, Tri ±, Sine, Pulse, Pulsar,
 Spike, Noise, `v0.3-design.md` §2.1), each with a Sym parameter, and **2 read shapes** (Ramp, Tri)
 with Smooth and 1-Way/2-Way. Are 8 write shapes too many? Which give clearly different results,

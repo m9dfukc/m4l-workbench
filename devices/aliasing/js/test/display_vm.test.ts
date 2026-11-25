@@ -149,6 +149,30 @@ test("paints every page and mode, before and after the buffers arrive", async ()
 	assert.ok(d.calls.includes("show_text"));
 });
 
+test("face b: 496 x 85 box, the tone curve on pages 3 and 4 (tonepages), lanes elsewhere", async () => {
+	const d = await load();
+	(d.ctx.mgraphics as { size: number[] }).size = [496, 85];
+	d.call("buffers", "atab", "aheads");
+	d.call("tonepages", 3, 4);
+	for (const page of [0, 1, 2, 3, 4, 5, 6]) {
+		d.call("page", page);
+		d.call("tick");
+		d.call("paint");
+	}
+	d.call("page", 3);
+	d.call("onclick", 200, 40, 1, 0, 0, 0, 0);
+	d.call("ondrag", 260, 40, 1);
+	d.call("page", 0);
+	d.call("onclick", 200, 17 + 13 * 2 + 5, 1, 0, 0, 0, 0);
+	d.call("ondrag", 240, 17 + 13 * 2 + 3, 0);
+	assert.ok(d.calls.includes("fill"));
+	// the Line / 2D switch stays at the right end of the header in the 496-px box (D45)
+	d.call("onclick", 496 - 4 - 14 + 6, 8, 1, 0, 0, 0, 0);
+	d.call("onclick", 496 - 4 - 30 + 6, 8, 1, 0, 0, 0, 0);
+	const modes = d.outs.filter((o) => o[1] === "mode").map((o) => o[2]); // outlet(0, "mode", n)
+	assert.deepEqual(modes, [1, 0], "2D, then Line");
+});
+
 test("drawing writes the lane and stores the table; double-click resets it", async () => {
 	const d = await load();
 	d.call("buffers", "atab", "aheads");

@@ -492,3 +492,22 @@ Read the `dialprobe` lines from `Max 9/Logs/Max.log`. Pass for the hybrid: `p_a`
 of at least 47. If it reports 36 or less, the name row does not fit and option (a) (§1) stands.
 The numbers come from standalone Max 9.2.1; Live runs the same Max, but one look at the first
 hybrid shell in Live is still needed (t5) for the text positions.
+
+**Result (2026-11-25, standalone Max 9.2.1, `test/dial-probe/run_dialprobe.sh`) — PASS:**
+
+| Dial | showname / shownumber | saved h | fontsize | `mgraphics.size` | box rect after load |
+|---|---|---|---|---|---|
+| `p_a` | 1 / 1 | 48 | 9.5 | **42 × 48** | 20 20 42 48 |
+| `p_b` | 1 / 1 | 60 | 9.5 | 42 × 48 | 90 20 42 **48** |
+| `p_c` | 0 / 1 | 45 | 9 | 42 × **36** | 160 20 42 36 |
+| `p_d` | 1 / 1 | 48 | 12 | 42 × **54** | 230 20 42 54 |
+| `p_e` | 0 / 0 | 48 | 9.5 | 42 × 28 | 300 20 42 28 |
+
+[measured: `build/aliasing/dialprobe/Max.log`, posts `dialprobe <var> size …`]. Max resets the box
+height itself (`p_b` saved 60, loads as 48): the height is a function of showname, shownumber and the
+font size, the saved rect is ignored. §1's inference (36 px with `showname 0`) is confirmed; a larger
+`fontsize` buys height (12 pt → 54). The smoke run of v0.3 had already shown it once: its probe dial
+(stock attributes, saved 96 × 92) reported 96 × 48. The probe painter is separate
+(`test/dial-probe/`), so the device's dial painter has no probe line to remove. Side finding: Max
+restores its last session's patches at start (`Crash Recovery/maxworkspace-*.txt`); the unattended
+runs now park that file (`tools/max-workspace.sh`, user, 2026-11-25).

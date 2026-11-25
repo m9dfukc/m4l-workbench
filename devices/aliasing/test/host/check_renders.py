@@ -1,4 +1,4 @@
-"""Pass/fail checks on the host renders of the aliasing gen~ export, v0.3 (see run.sh).
+"""Pass/fail checks on the host renders of the aliasing gen~ export, v0.3b (see run.sh).
 
 Usage: uv run python check_renders.py BUILD_HOST_DIR
 """
@@ -56,7 +56,7 @@ def main(argv: list[str]) -> int:
         return float(spec[(f >= lo) & (f < hi)].sum() / max(spec.sum(), 1e-30))
 
     names = ("off", "drone", "alias", "gate", "stress", "stress44", "sync", "frozen", "clean",
-             "wgate_open", "wgate_shut", "tempo", "band_open", "band_pass", "band_reject", "aa", "naive",
+             "wgate_open", "wgate_shut", "tempo", "tempo_rate", "tempo_slow", "band_open", "band_pass", "band_reject", "aa", "naive",
              "lim_off", "lim_idle", "lim_color", "drv_zero", "drv_off", "lim_ceil", "env_ref", "env_duck",
              "res_on")
     for name in names:
@@ -126,6 +126,12 @@ def main(argv: list[str]) -> int:
     check(abs(float(h[4, 0]) - 128.0) < 0.2, f"tempo: synced write = 1/16 x 64 / 4 at 120 BPM = 128 Hz ({h[4, 0]:.2f})")
     check(abs(float(h[5, 0]) - 2.0) < 0.01, f"tempo: synced read = 1/4 at 120 BPM = 2 Hz ({h[5, 0]:.3f})")
     check(abs(float(h[9, 3]) - 120.0) < 0.01, f"tempo: BPM in the display data ({h[9, 3]:.2f})")
+    h = heads("tempo_rate")
+    check(abs(float(h[4, 0]) - 256.0) < 0.4, f"sync rate: x2 doubles the synced write to 256 Hz, Transpose ignored ({h[4, 0]:.2f})")
+    check(abs(float(h[5, 0]) - 4.0) < 0.02, f"sync rate: x2 doubles the synced read to 4 Hz ({h[5, 0]:.3f})")
+    h = heads("tempo_slow")
+    check(abs(float(h[4, 0]) - 8.0) < 0.02, f"sync rate: /16 gives a synced write of 8 Hz ({h[4, 0]:.3f})")
+    check(abs(float(h[5, 2]) - 523.25) < 0.1, f"sync rate: Transpose +12 st still moves the Hz read pointer ({h[5, 2]:.2f})")
 
     xo, sr = wav("band_open")
     xp, _ = wav("band_pass")

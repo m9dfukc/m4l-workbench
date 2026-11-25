@@ -12,7 +12,10 @@ import vm from "node:vm";
 import { build } from "esbuild";
 
 import {
+	baselineOf,
+	compactValue,
 	enumLabelsFrom,
+	fitName,
 	fitText,
 	formatHz,
 	formatValue,
@@ -145,6 +148,30 @@ test("dial painter: float, Hz with exponent, bipolar, enum, inactive, both theme
 	await runPainter("aliasing_paint_dial.ts", [36, 36], cases[1][0], 632, "tone_band_center", true, false);
 });
 
+test("dial painter v0.3b: 48-px box with the name row, overlays skip the name, 36-px box without (D43)", async () => {
+	const texts = async (size: [number, number], attrs: Record<string, unknown>, v: unknown, name: string) =>
+		(await runPainter("aliasing_paint_dial.ts", size, attrs, v, name, false)).names.filter((n) => n === "show_text").length;
+	const env = { _parameter_type: 0, _parameter_range: [0.1, 100], _parameter_unitstyle: 2, _parameter_shortname: "Attack" };
+	assert.equal(await texts([34, 48], env, 0.1, "lfo_env_att"), 2, "name and value in the 48-px box");
+	assert.equal(await texts([48, 48], env, 0.1, "env_env_att"), 2);
+	const sym = { _parameter_type: 0, _parameter_range: [-1, 1], _parameter_shortname: "Sym" };
+	assert.equal(await texts([42, 48], sym, 0, "w_sym"), 1, "Sym name comes from the overlay comment (h.2)");
+	assert.equal(await texts([42, 48], { ...sym, _parameter_shortname: "Fine" }, 0, "r_fine"), 1);
+	assert.equal(await texts([40, 36], env, 0.1, "lfo_env_att"), 1, "36-px box: value only");
+});
+
+test("tab painter v0.3b: one row of 5 write-shape icons, 15-px text tabs (D34, D44)", async () => {
+	const shapes = { _parameter_type: 2, _parameter_range: ["Ramp", "Tri", "Pulsar", "Spike", "Noise"], num_lines_presentation: 1, multiline: 0 };
+	for (const sel of [0, 2, 4]) {
+		const calls = await runPainter("aliasing_paint_tab.ts", [120, 15], shapes, sel, "w_shape", sel === 2);
+		assert.equal(calls.names.filter((n) => n === "stroke").length, 6, "frame + 5 icons");
+		assert.ok(!calls.names.includes("show_text"));
+	}
+	const pages = { _parameter_type: 2, _parameter_range: ["LFO 1", "LFO 2", "Env", "Band", "Res", "Limit", "Global"] };
+	const calls = await runPainter("aliasing_paint_tab.ts", [280, 15], pages, 6, "page", true);
+	assert.equal(calls.names.filter((n) => n === "show_text").length, 7);
+});
+
 test("tab painter: icon grid, text, end and middle selections, single segment", async () => {
 	const shapes = { _parameter_type: 2, _parameter_range: ["Ramp", "Tri", "Tri ±", "Sine", "Pulse", "Pulsar", "Spike", "Noise"], num_lines_presentation: 2 };
 	for (const sel of [0, 3, 4, 7, 9, -1]) {
@@ -179,6 +206,18 @@ test("toggle, slider, menu and number painters", async () => {
 		assert.equal(calls.names.includes("show_text"), v !== 0, `depth text only when not 0 (${name} ${v})`);
 	}
 	await runPainter("aliasing_paint_cell.ts", [20, 12], {}, "garbage", "", true);
+	const cell = { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 };
+	for (const [v, dark] of [[0, true], [0, false], [-40, true], [35, false]] as [number, boolean][]) {
+		const strip = await runPainter("aliasing_paint_cell.ts", [39, 15], cell, v, "mod_l1_wp", dark);
+		assert.equal(strip.names.filter((n) => n === "show_text").length, 1, `the 15-px strip box always shows its depth (${v})`);
+		const hyb = await runPainter("aliasing_paint_cell.ts", [28, 12], cell, v, "mod_l1_wp", dark);
+		assert.equal(hyb.names.filter((n) => n === "rectangle").length, v === 0 ? 0 : 2, "quiet slot, or hairline + bar");
+	}
+	for (const v of [0, 1]) {
+		const pw = await runPainter("aliasing_paint_toggle.ts", [66, 15], { text: "Resonator", texton: "Resonator", mode: 1 }, v, "res_res_on", v === 1);
+		assert.ok(pw.names.includes("ellipse"), "15-px power switch (D43)");
+	}
+	await runPainter("aliasing_paint_menu.ts", [86, 15], { _parameter_type: 2, _parameter_range: ["Write Pitch", "Write Sym", "Write Gate"] }, 1, "mod_target", false);
 	await runPainter("aliasing_paint_slider.ts", [328, 18], { _parameter_type: 0, _parameter_range: [0.1, 100], _parameter_exponent: 2, _parameter_unitstyle: 5, _parameter_shortname: "Size" }, 10, "tbl_size", true);
 	await runPainter("aliasing_paint_slider.ts", [100, 14], { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 }, -35, "mod_m1depth", true);
 	await runPainter("aliasing_paint_slider.ts", [100, 14], { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 }, 0, "mod_m1depth", false);
@@ -235,8 +274,30 @@ test("paint_kit: ranges, roles, theme, icons, fitting", () => {
 	assert.equal(roleOf("mod_l1_wp"), "write");
 	assert.equal(roleOf("mod_vo_sp"), "read");
 	assert.equal(roleOf("mod_en_bc"), "neutral");
+	assert.equal(roleOf("band_band_center"), "write", "face b: band page");
+	assert.equal(roleOf("res_res_fb"), "read", "face b: res page");
+	assert.equal(roleOf("lim_lim_gain"), "neutral");
+	assert.equal(roleOf("row_size"), "neutral");
 	assert.equal(iconPath("Off"), null);
 	const m = (s: string) => s.length * 5;
 	assert.equal(fitText("Velocity", 100, m), "Velocity");
 	assert.ok(m(fitText("Mod Wheel long text", 40, m)) <= 40);
+});
+
+test("paint_kit v0.3b: baselines, compact values, short names (face review §1.3, D43)", () => {
+	assert.equal(baselineOf(15), 11);
+	assert.equal(baselineOf(14), 11);
+	assert.equal(baselineOf(13), 10);
+	assert.equal(baselineOf(12), 10);
+	const m = (s: string) => s.length * 5;
+	assert.equal(compactValue("0.10 ms", 40, m), "0.10 ms", "fits as is");
+	assert.equal(compactValue("0.10 ms", 30, m), "0.10ms", "gap before the unit goes first");
+	assert.equal(compactValue("0.10 ms", 25, m), "0.1ms", "then trailing zeros");
+	assert.equal(compactValue("2.00 kHz", 25, m), "2kHz");
+	assert.equal(compactValue("-0.3 dB", 30, m), "-0.3dB");
+	assert.equal(compactValue("1.05 ms", 30, m), "1.05ms", "inner zeros stay");
+	assert.ok(m(compactValue("12345.678 Hz", 20, m)) <= 20);
+	assert.equal(fitName("Release", 35, m), "Release");
+	assert.equal(fitName("Release", 30, m), "Rel");
+	assert.equal(fitName("Attack", 15, m), "Att");
 });

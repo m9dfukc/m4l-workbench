@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Smoke-test patch for standalone Max: the device's own boxes (v0.3) (from scripts/bootstrap_shell.py)
-with plugout~ replaced by sfrecord~, plus a runner that switches to the NonRealTime driver,
-records a few seconds while it pages through the face, flips modes, write shapes and states, section
-switches and a few matrix cells (Voice / Read Osc / Env feedback), restores the audio driver
-and quits Max. Written to OUTDIR/smoke.maxpat next to copies of the runtime files.
+"""Smoke-test patch for standalone Max: one face's own boxes (v0.3b: hybrid = Aliasing.amxd, b =
+Aliasing B.amxd, from scripts/bootstrap_shell.py) with plugout~ replaced by sfrecord~, plus a runner that
+switches to the NonRealTime driver, records a few seconds while it pages through the face, flips modes,
+write shapes and states, section switches, the strip target (face b) and a few matrix cells (Voice /
+Read Osc / Env feedback), restores the audio driver and quits Max. Written to OUTDIR/smoke.maxpat next to
+copies of the runtime files.
 
 Never Live, never the user's patches, no sound (NonRealTime driver). See run_smoke.sh.
 
-Usage: python3 devices/aliasing/test/smoke/make_smoke.py OUTDIR DRIVER
+Usage: python3 devices/aliasing/test/smoke/make_smoke.py OUTDIR DRIVER [hybrid|b]
        DRIVER = the audio driver to restore afterwards (e.g. "Core Audio")
 """
 
@@ -25,18 +26,19 @@ import bootstrap_shell as bs  # noqa: E402
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    if len(argv) not in (2, 3):
         print(__doc__)
         return 2
     out = Path(argv[0]).resolve()
     driver = argv[1]
+    face = argv[2] if len(argv) == 3 else "hybrid"
     out.mkdir(parents=True, exist_ok=True)
     for f in list(DEVICE.glob("aliasing*.js")) + [DEVICE / "aliasing.gendsp",
                                                     DEVICE / "test" / "probe-ui" / "probe_dial_painter.js"]:
         shutil.copy2(f, out / f.name)
 
     _, tmpl = bs.read_amxd(bs.TEMPLATE)
-    dev = bs.build(tmpl)["patcher"]
+    dev = bs.build(tmpl, face)["patcher"]
     boxes = [b for b in dev["boxes"] if b["box"]["id"] != "obj-plugout"]
     ids = {b["box"]["id"] for b in boxes}
     lines = [l for l in dev["lines"] if l["patchline"]["destination"][0] in ids]
@@ -84,15 +86,26 @@ def main(argv: list[str]) -> int:
     wire(seq, 0, open_, 0)
     wire(open_, 0, rec, 0)
     # timeline (scheduler time): page / mode flips while recording, then stop, restore, quit
-    steps = [
-        (800, "page", "2"), (1200, "w_mode", "1"), (1500, "r_mode", "1"), (1800, "page", "3"),
-        (2100, "lfo_l1mode", "1"), (2300, "page", "0"), (2600, "w_mode", "0"), (2800, "r_mode", "0"),
-        (3000, "out_gate", "1"), (3300, "out_gate", "0"), (3500, "page", "1"), (3700, "tone_res_track", "0"),
-        # v0.3: write shapes and states, section switches, feedback sources in the matrix
-        (900, "w_shape", "5"), (1300, "w_shape", "7"), (1600, "w_active", "2"), (2000, "w_active", "1"),
-        (1000, "tone_res_on", "1"), (1700, "out_lim_on", "0"), (2400, "out_lim_on", "1"), (1100, "mod_vo_wp", "50"),
-        (1400, "mod_ro_sz", "60"), (1900, "mod_en_ou", "-50"), (2200, "mod_l1_wa", "-80"), (2500, "tone_band_on", "0"),
+    common = [
+        (1200, "w_mode", "1"), (1500, "r_mode", "1"), (2600, "w_mode", "0"), (2800, "r_mode", "0"),
+        (3000, "out_gate", "1"), (3300, "out_gate", "0"),
+        # write shapes (D34) and states, feedback sources in the matrix (D36)
+        (900, "w_shape", "2"), (1300, "w_shape", "4"), (1600, "w_active", "2"), (2000, "w_active", "1"),
+        (1100, "mod_vo_wp", "50"), (1400, "mod_ro_sz", "60"), (1900, "mod_en_ou", "-50"), (2200, "mod_l1_wa", "-80"),
     ]
+    if face == "hybrid":
+        steps = common + [
+            (800, "page", "2"), (1800, "page", "3"), (2100, "lfo_l1mode", "1"), (2300, "page", "0"),
+            (3500, "page", "1"), (3700, "tone_res_track", "0"), (1000, "tone_res_on", "1"), (1700, "out_lim_on", "0"),
+            (2400, "out_lim_on", "1"), (2500, "tone_band_on", "0"), (2700, "out_syncrate", "6"),
+        ]
+    else:
+        steps = common + [
+            (800, "page", "3"), (1000, "page", "4"), (1800, "page", "6"), (2100, "lfo1_l1mode", "1"),
+            (2300, "page", "0"), (3500, "page", "5"), (3700, "res_res_track", "0"), (1050, "res_res_on", "1"),
+            (1700, "lim_lim_on", "0"), (2400, "lim_lim_on", "1"), (2500, "band_band_on", "0"),
+            (1150, "mod_target", "5"), (2250, "mod_target", "8"), (2700, "out_syncrate", "6"), (3100, "page", "2"),
+        ]
     for k, (t, var, val) in enumerate(steps):
         d = obj(f"delay {t}", x0, y0 + 120 + 30 * k, 2, ["bang"])
         m = msg(val, x0 + 120, y0 + 120 + 30 * k)

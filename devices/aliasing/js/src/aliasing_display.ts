@@ -1,4 +1,5 @@
-// aliasing_display: the display of the Aliasing device (v8ui, mgraphics), v0.3.
+// aliasing_display: the display of both Aliasing faces (v8ui, mgraphics), v0.3b (D33, D40): the
+// hybrid's 328 x 136/157 box and option (b)'s 496 x 85 box (compact lanes, display_model COMPACT_H).
 // Bundled by tools/js-build.mjs into devices/aliasing/aliasing_display.js (never edit that file).
 // Spec: docs/redesign-t1.md R9-R11, R19, the approved mock-up, docs/v0.2-build.md section 4,
 // docs/v0.3-design.md D7-D9 (lanes zoom to the Size control with each voice's modulated span as an
@@ -18,7 +19,9 @@
 // Messages in (inlet 0):
 //   buffers <table> <heads> [<dict>]  names of buffer~ ---atab, ---aheads and dict ---atable
 //                             (the patch resolves ---); the stored table is read from the dict
-//   page <0..3>               LFO, Mod, Tone, Out (from the Page live.tab)
+//   page <n>                  the face's page (from the Page live.tab)
+//   tonepages <n ...>         pages that show the tone curve (default 2 = the hybrid's Tone; face b
+//                             sends 3 4 = Band, Res)
 //   mode <0|1>                Line, 2D (from the stored Display Mode live.tab)
 //   pv <name> <value>         parameter values the display needs: size center bwidth bres bslope
 //                             bmode rsfreq rsfb rsmix rstrack bandon reson
@@ -35,7 +38,6 @@ import {
 	CELLS,
 	COLUMNS_2D,
 	HEADER_Y,
-	OVERVIEW_H,
 	PAD,
 	VOICES,
 	bandEdges,
@@ -57,6 +59,7 @@ import {
 	laneY,
 	nextZoom,
 	normalizeRow,
+	overviewHeight,
 	overviewY,
 	resOfY,
 	rowsFromStored,
@@ -85,7 +88,6 @@ mgraphics.autofill = 0;
 
 const FPS_INTERVAL_MS = 33; // <= 30 fps (port-decisions Q13)
 const NCH = 10; // aheads channels (gen/aliasing.genexpr header)
-const PAGE_TONE = 2;
 const FONT = "Ableton Sans Medium";
 const FONT_BOLD = "Ableton Sans Bold";
 
@@ -94,6 +96,7 @@ let headsBuf: Buffer | null = null;
 let rows: number[][] = Array.from({ length: VOICES }, () => identityRow());
 let heads: number[][] = Array.from({ length: NCH }, () => new Array<number>(VOICES).fill(0));
 let pageValue = 0;
+let tonePageList: number[] = [2];
 let modeValue = 0;
 const params: Record<string, number> = {
 	size: 10,
@@ -223,8 +226,19 @@ function buffers(table: string, headsName: string, dictName?: string): void {
 	mgraphics.redraw();
 }
 
+function isTone(): boolean {
+	return tonePageList.indexOf(pageValue) >= 0;
+}
+
 function page(v: number): void {
 	pageValue = Math.round(Number(v)) || 0;
+	gesture = null;
+	mgraphics.redraw();
+}
+
+function tonepages(...v: number[]): void {
+	const list = v.map((x) => Math.round(Number(x))).filter((x) => Number.isFinite(x));
+	tonePageList = list.length ? list : [2];
 	gesture = null;
 	mgraphics.redraw();
 }
@@ -277,7 +291,7 @@ function send(name: string, value: number): void {
 function onclick(x: number, y: number, _but: number, _cmd: number, shift: number, _caps: number, option: number): void {
 	const w = mgraphics.size[0];
 	const icons = iconRects(w);
-	if (pageValue !== PAGE_TONE && y < icons.line.y + icons.line.h + 2) {
+	if (!isTone() && y < icons.line.y + icons.line.h + 2) {
 		if (inRect(x, y, icons.line) && modeValue !== 0) {
 			modeValue = 0;
 			send("mode", 0);
@@ -288,7 +302,7 @@ function onclick(x: number, y: number, _but: number, _cmd: number, shift: number
 		mgraphics.redraw();
 		return;
 	}
-	if (pageValue === PAGE_TONE) {
+	if (isTone()) {
 		const t = tone();
 		const what = hitCurve(x, y, t, curveRect(w, mgraphics.size[1]), fs());
 		gesture = what ? { kind: "curve", what, x0: x, c0: params.center } : null;
@@ -349,7 +363,7 @@ function ondrag(x: number, y: number, but: number): void {
 function ondblclick(x: number, y: number, _but: number, _cmd: number, shift: number): void {
 	const w = mgraphics.size[0];
 	gesture = null;
-	if (pageValue === PAGE_TONE) {
+	if (isTone()) {
 		const e = bandEdges(tone(), fs());
 		const rect = curveRect(w, mgraphics.size[1]);
 		if (x > xOfF(e.lo, rect) && x < xOfF(e.hi, rect)) send("bmode", params.bmode > 0.5 ? 0 : 1);
@@ -407,7 +421,7 @@ function fitted(s: string, maxw: number): string {
 }
 
 function drawHeader(w: number, p: Palette): void {
-	const tonePage = pageValue === PAGE_TONE;
+	const tonePage = isTone();
 	const tw = label(tonePage ? "TONE" : "TABLE", PAD, HEADER_Y + 9, p.label, 8, true);
 	const icons = iconRects(w);
 	const infoX = PAD + tw + 6;
@@ -527,17 +541,19 @@ function drawLanes(w: number, h: number, p: Palette, lw: number): void {
 	// spans as ticks (D7)
 	const ow = w - 2 * PAD;
 	const oy = overviewY(h);
+	const oh = overviewHeight(h);
+	const bh = Math.max(1, oh - 2);
 	rgba(p.rule);
-	mgraphics.rectangle_rounded(PAD, oy + 1, ow, 3, 2, 2);
+	mgraphics.rectangle_rounded(PAD, oy + 1, ow, bh, 2, 2);
 	mgraphics.fill();
 	rgba(p.label);
-	mgraphics.rectangle_rounded(PAD, oy + 1, Math.max(2, ow * clamp(params.size / 100, 0.001, 1)), 3, 2, 2);
+	mgraphics.rectangle_rounded(PAD, oy + 1, Math.max(2, ow * clamp(params.size / 100, 0.001, 1)), bh, 2, 2);
 	mgraphics.fill();
 	rgba(withAlpha(p.label, 0.45));
-	mgraphics.rectangle(PAD + Math.min(ow - 1, ow * zoom), oy, 1, OVERVIEW_H);
+	mgraphics.rectangle(PAD + Math.min(ow - 1, ow * zoom), oy, 1, oh);
 	mgraphics.fill();
 	rgba(p.voice);
-	for (let v = 0; v < VOICES; v++) mgraphics.rectangle(PAD + Math.min(ow - 1, ow * effSize(v)), oy, 1, OVERVIEW_H);
+	for (let v = 0; v < VOICES; v++) mgraphics.rectangle(PAD + Math.min(ow - 1, ow * effSize(v)), oy, 1, oh);
 	mgraphics.fill();
 }
 
@@ -665,7 +681,7 @@ function paint(): void {
 	const h = mgraphics.size[1];
 	if (!announced) {
 		announced = true;
-		post(`aliasing_display: v0.3 ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}\n`);
+		post(`aliasing_display: v0.3b ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}\n`);
 	}
 	let getcolor: ((id: string) => any) | null = null;
 	try {
@@ -679,7 +695,7 @@ function paint(): void {
 	mgraphics.rectangle_rounded(0, 0, w, h, 8, 8);
 	mgraphics.fill();
 	drawHeader(w, p);
-	if (pageValue === PAGE_TONE) drawCurve(w, h, p, lw);
+	if (isTone()) drawCurve(w, h, p, lw);
 	else drawLanes(w, h, p, lw);
 	if (!tableBuf) {
 		rgba([0, 0, 0, 0.5]);

@@ -9,6 +9,10 @@
 #     OUT     default build/aliasing/shapes
 #     EXPORT  default build/aliasing/export/cpp (tools/gen-export.sh aliasing)
 #   STEPS="grid read audition" to choose steps (default all three)
+#
+# Measures the v0.3 DSP (8 write shapes, rdir, Drift; aliasing.gendsp of commit 9c23f87). v0.3b (D34-D36)
+# renumbered the shapes and removed rdir, so EXPORT must be a gen~ export of that older .gendsp
+# (git show 9c23f87:devices/aliasing/aliasing.gendsp); the scenarios here do not run on v0.3b.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"

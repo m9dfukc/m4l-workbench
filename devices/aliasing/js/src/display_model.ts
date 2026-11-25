@@ -8,8 +8,10 @@ export const VOICES = 5;
 export const COLUMNS_2D = 64;
 export const SIZE_MIN = 0.001;
 
-/** Display box 328 x 136 (shell, v0.3): the Size live.slider sits below it, never overlapping (D9).
- *  Lane and curve geometry follow the box height, so the shell may change it. */
+/** Display box 328 x 136 (hybrid face, v0.3): the Size live.slider sits below it, never overlapping
+ *  (D9). Lane and curve geometry follow the box height, so the shell may change it. Below COMPACT_H
+ *  (option (b): 496 x 85, D33) the lanes take a fixed share and the overview shrinks to 3 px, so the
+ *  five lanes stay 13 px high (face review b.4). */
 export const W = 328;
 export const H = 136;
 export const PAD = 4;
@@ -18,6 +20,7 @@ export const HEADER_H = 12;
 export const LANE_TOP = 17;
 export const OVERVIEW_H = 5;
 export const CURVE_TOP = 17;
+export const COMPACT_H = 100;
 
 export interface Rect {
 	x: number;
@@ -30,13 +33,18 @@ export function clamp(x: number, lo: number, hi: number): number {
 	return x < lo ? lo : x > hi ? hi : x;
 }
 
+/** Height of the span overview strip: 5 px, 3 px in the compact layout. */
+export function overviewHeight(h = H): number {
+	return h < COMPACT_H ? 3 : OVERVIEW_H;
+}
+
 /** Top of the span overview (the 5 voices' spans over the whole row) at the bottom of the display. */
 export function overviewY(h = H): number {
-	return h - PAD - OVERVIEW_H + 1;
+	return h < COMPACT_H ? h - overviewHeight(h) : h - PAD - OVERVIEW_H + 1;
 }
 
 export function laneHeight(h = H): number {
-	return (overviewY(h) - 2 - LANE_TOP) / VOICES;
+	return (overviewY(h) - (h < COMPACT_H ? 0 : 2) - LANE_TOP) / VOICES;
 }
 
 export function laneRect(v: number, w = W, h = H): Rect {

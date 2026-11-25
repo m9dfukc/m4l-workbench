@@ -60,6 +60,19 @@ test("lanes stack under the header and stay above the overview, for any display 
 	assert.ok(curve.y + curve.h + 10 <= H, "frequency labels fit below the curve");
 });
 
+test("option (b)'s 496 x 85 display: five 13-px lanes and a 3-px overview (D33, face review b.4)", () => {
+	const w = 496;
+	const h = 85;
+	assert.equal(laneHeight(h), 13);
+	const last = laneRect(VOICES - 1, w, h);
+	assert.equal(last.y + last.h, overviewY(h), "the overview starts right under the last lane");
+	assert.equal(overviewY(h), 82);
+	assert.equal(laneHit(100, 17 + 13 * 4 + 6, w, h)?.voice, 4);
+	assert.equal(laneHit(100, 83, w, h), null, "the overview is not a lane");
+	const c = curveRect(w, h);
+	assert.ok(c.h >= 50 && c.y + c.h + 10 <= h, "the tone curve and its labels fit");
+});
+
 test("zoom follows the Size control, opens at once, closes slowly (D7)", () => {
 	assert.equal(nextZoom(0.1, 0.1, [0.1, 0.1, 0.1, 0.1, 0.1], 1 / 30), 0.1);
 	assert.equal(nextZoom(0.1, 0.1, [0.1, 0.4, 0.1, 0.1, 0.1], 1 / 30), 0.4, "opens at once to a wider voice");

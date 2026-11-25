@@ -1,18 +1,17 @@
 #!/usr/bin/env node
-// Preview of the Aliasing face without Max: renders the real painter and display bundles
-// (devices/aliasing/aliasing_paint_*.js, aliasing_display.js) into HTML canvases through a small
-// mgraphics -> Canvas 2D adapter, with the boxes, ranges and initial values of Aliasing.amxd and
-// the table / display data of a host render (test/host: drone.table.f32, drone.heads.f32).
-// One canvas per page (LFO · Env, Mod, Tone, Global) plus variants, on Live's dark and light device
-// backgrounds with the theme panels (D22, colours as the pages script computes them).
-// Fonts differ from Live (no Ableton Sans in the browser); this is for layout review only.
+// Preview of an Aliasing face without Max (v0.3b: Aliasing.amxd = hybrid, Aliasing B.amxd = face b):
+// renders the real painter and display bundles (devices/aliasing/aliasing_paint_*.js,
+// aliasing_display.js) into HTML canvases through a small mgraphics -> Canvas 2D adapter, with the
+// boxes, ranges and initial values of the shell and the table / display data of a host render
+// (test/host: drone.table.f32, drone.heads.f32). One canvas per page and a few states, on Live's dark
+// and light device backgrounds with the theme panels (D22, colours as the pages script computes them).
+// Dials are drawn at the height Live gives them (48 with showname 1, 36 with showname 0 [measured:
+// dial probe 2026-11-25]), not at the saved rect. Text uses Ableton Sans from the local Max install,
+// embedded in the HTML (the output stays local, in build/); the browser's rasteriser still differs
+// from Live's, so this is for layout review.
 //
-//   node devices/aliasing/test/preview/make_preview.mjs OUT.html [SHELL.amxd] [variants]
-// "variants": the section power switches (DRIVE, BAND, RESONATOR, LIMITER) in the current style and
-// alternatives (A square switch, B power symbol left, C plain clickable title, D title + On/Off pill,
-// E power symbol right of the title),
-// Tone and Global pages, dark and light: a mock-up for the user's choice (2026-11-25).
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+//   node devices/aliasing/test/preview/make_preview.mjs OUT.html [SHELL.amxd]
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,9 +19,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dev = join(here, "..", "..");
 const root = join(dev, "..", "..");
 const out = process.argv[2];
-const MODE = process.argv[4] || "";
 if (!out) {
-	console.error("usage: node make_preview.mjs OUT.html");
+	console.error("usage: node make_preview.mjs OUT.html [SHELL.amxd]");
 	process.exit(2);
 }
 
@@ -33,7 +31,10 @@ function readAmxd(path) {
 	return JSON.parse(buf.subarray(i + 8, i + 8 + n).toString("utf8").replace(/\0+$/, ""));
 }
 const pat = readAmxd(process.argv[3] || join(dev, "Aliasing.amxd")).patcher;
-const boxes = pat.boxes.map((b) => b.box).filter((b) => b.presentation && b.presentation_rect);
+const all = pat.boxes.map((b) => b.box);
+const pagesBox = all.find((b) => String(b.text || "").startsWith("v8 aliasing_pages.js"));
+const FACE = pagesBox && String(pagesBox.text).split(/\s+/)[2] === "b" ? "b" : "hybrid";
+const boxes = all.filter((b) => b.presentation && b.presentation_rect);
 const painters = {};
 for (const b of boxes) {
 	const f = b.jspainterfile;
@@ -47,20 +48,25 @@ function f32(p) {
 }
 const table = f32(join(root, "build/aliasing/host/drone.table.f32"));
 const heads = f32(join(root, "build/aliasing/host/drone.heads.f32"));
+const FONTS = "/Applications/Max.app/Contents/Resources/C74/fonts/";
+const font = (f) => (existsSync(FONTS + f) ? `url(data:font/otf;base64,${readFileSync(FONTS + f).toString("base64")})` : "local(Helvetica)");
 
-const html = `<!doctype html><html><head><meta charset="utf-8"><title>Aliasing face preview</title>
-<style>body{background:#111;color:#bbb;font:12px -apple-system,Helvetica,sans-serif;margin:16px}
-#root.grid{display:grid;grid-template-columns:repeat(2,max-content);gap:4px 28px}#root.grid canvas{zoom:1.5}
-h2{font-size:12px;font-weight:600;margin:14px 0 4px}canvas{display:block;border-radius:2px;max-width:100%;height:auto!important}</style></head><body>
+const html = `<!doctype html><html><head><meta charset="utf-8"><title>Aliasing ${FACE} preview</title>
+<style>@font-face{font-family:"AbletonSansMedium";src:${font("AbletonSans-Medium.otf")}}
+@font-face{font-family:"AbletonSansBold";src:${font("AbletonSans-Bold.otf")}}
+body{background:#111;color:#bbb;font:12px -apple-system,Helvetica,sans-serif;margin:16px}
+h2{font-size:12px;font-weight:600;margin:14px 0 4px}canvas{display:block;border-radius:2px;image-rendering:pixelated}</style></head><body>
 <div id="root"></div>
 <script>
+const FACE = ${JSON.stringify(FACE)};
 const BOXES = ${JSON.stringify(boxes)};
-const MODE = ${JSON.stringify(MODE)};
 const PAINTERS = ${JSON.stringify(painters)};
 const DISPLAY = ${JSON.stringify(display)};
 const TABLE = ${JSON.stringify(table)};
 const HEADS = ${JSON.stringify(heads)};
-const W = 968, H = 169;
+const W = ${Number(pat.devicewidth) || 968}, H = 169;
+const S = Number(new URLSearchParams(location.search).get("scale") || 1);
+const fam = (n) => (String(n).includes("Bold") ? "AbletonSansBold" : "AbletonSansMedium");
 function mgFor(ctx, w, h) {
   let fontSize = 9, fontName = "";
   const mg = {
@@ -75,7 +81,7 @@ function mgFor(ctx, w, h) {
     ellipse(x, y, ww, hh) { ctx.moveTo(x + ww, y + hh / 2); ctx.ellipse(x + ww / 2, y + hh / 2, ww / 2, hh / 2, 0, 0, Math.PI * 2); },
     fill() { ctx.fill(); ctx.beginPath(); }, stroke() { ctx.stroke(); ctx.beginPath(); },
     set_line_width(lw) { ctx.lineWidth = lw; }, set_line_cap(c) { ctx.lineCap = c; }, set_line_join(j) { ctx.lineJoin = j; },
-    select_font_face(n) { fontName = n; ctx.font = (n.includes("Bold") ? "600 " : "500 ") + fontSize + "px Inter, Helvetica, sans-serif"; },
+    select_font_face(n) { fontName = n; ctx.font = fontSize + "px " + fam(n); },
     set_font_size(s) { fontSize = s; mg.select_font_face(fontName); },
     show_text(s) { const p = ctx.__p || [0, 0]; ctx.fillText(s, p[0], p[1]); },
     text_measure(s) { return [ctx.measureText(s).width, fontSize]; },
@@ -94,116 +100,89 @@ function boxMock(b) {
     _parameter_units: vo.parameter_units ?? "",
     _parameter_shortname: vo.parameter_shortname ?? "",
     text: b.text ?? "", texton: b.texton ?? b.text ?? "", active: b.__active ?? 1,
-    num_lines_presentation: b.num_lines_presentation ?? 1,
+    num_lines_presentation: b.num_lines_presentation ?? 1, multiline: b.multiline ?? 1,
   };
   return { varname: b.varname, getattr: (n) => (n in attrs ? attrs[n] : null), setattr() {},
            getvalueof: () => (b.__value ?? (vo.parameter_initial ? vo.parameter_initial[0] : 0)) };
 }
-function symLabelOf(k) { return k <= 0 ? "curve" : k <= 3 ? "skew" : k === 5 ? "duty" : k === 7 ? "smooth" : "width"; }
-function panelColor(bg) {
-  const lum = 0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2];
-  const c = lum > 0.5 ? bg.map((x) => x * 0.92) : bg.map((x) => x + (1 - x) * 0.06);
-  return "rgb(" + c.map((x) => Math.round(x * 255)).join(",") + ")";
-}
-const PAGES = ["lfo", "mod", "tone", "out"];
+// ---- mirror of pages_model.ts (faces, strip, Sym groups, greying, theme colours) ----
+const FACES = { hybrid: { pages: ["lfo", "mod", "tone", "out"], tone: [2] }, b: { pages: ["lfo1", "lfo2", "env", "band", "res", "lim", "out"], tone: [3, 4] } };
+const TARGETS = ["wp", "sy", "wa", "rp", "sp", "sz", "bc", "rf", "ou"];
+const SYM = ["curve", "skew", "duty", "width", "smooth"];
+function lum(c) { return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+function panelColor(bg) { return lum(bg) > 0.5 ? bg.map((x) => x * 0.92) : bg.map((x) => x + (1 - x) * 0.06); }
+const rgb = (c) => "rgb(" + c.map((x) => Math.round(x * 255)).join(",") + ")";
 function visible(b, st) {
   const parts = String(b.varname || "").split("_");
   if (parts.length < 2) return !b.hidden;
   const [area, cond] = parts;
+  const F = FACES[FACE];
+  if (FACE === "b" && area === "mod") { const t = TARGETS.indexOf(parts[2] || ""); return t < 0 ? !b.hidden : t === (st.target || 0); }
   let ok;
-  if (PAGES.includes(area)) ok = PAGES.indexOf(area) === st.page;
-  else if (area === "tbl") ok = st.page !== 2;
+  if (F.pages.includes(area)) ok = F.pages.indexOf(area) === st.page;
+  else if (area === "tbl") ok = !F.tone.includes(st.page);
   else if (area === "w" || area === "r") ok = true;
   else return !b.hidden;
   let c = true;
   if ((cond === "free" || cond === "sync") && (area === "w" || area === "r")) { const m = area === "w" ? st.wmode : st.rmode; c = cond === "free" ? m === 0 : m === 1; }
   if (cond === "hz1" || cond === "sy1") c = (st.l1mode === 0) === (cond === "hz1");
   if (cond === "hz2" || cond === "sy2") c = (st.l2mode === 0) === (cond === "hz2");
-  if (cond === "symlbl" && area === "w") c = symLabelOf(st.wshape ?? 1) === parts[2];
+  if (cond === "symlbl" && area === "w") c = SYM[st.wshape ?? 1] === parts[2];
   return ok && c;
 }
-const BG = { dark: [0x36 / 255, 0x36 / 255, 0x36 / 255], light: [0xa5 / 255, 0xa5 / 255, 0xa5 / 255] }; // Live 12 Neutral Medium
-// greying of switched-off sections (pages_model.ts activeFor, D17/D19)
-function idle(b, values) {
-  const n = String(b.varname || ""), v = (k, d) => (values && k in values ? values[k] : d);
-  if (/_on$/.test(n)) return false;
-  if (n === "tone_drive") return !v("tone_drive_on", 1);
-  if (n.startsWith("tone_band_")) return !v("tone_band_on", 1);
-  if (n.startsWith("tone_res_")) return !v("tone_res_on", 0);
-  if (n.startsWith("out_lim_")) return !v("out_lim_on", 1);
+function idle(b, st) {
+  const n = String(b.varname || ""), v = (k, d) => (st.values && k in st.values ? st.values[k] : d);
+  const on = (suffix, d) => { const hit = Object.keys(st.values || {}).find((k) => k.endsWith(suffix)); return hit ? st.values[hit] : d; };
+  if (["w_free_pitch", "w_sync_note", "w_fine", "w_sync_mult", "w_sync_div", "w_sym", "w_shape"].includes(n)) return v("w_active", 1) === 2;
+  if (/_on$/.test(n) || n.startsWith("mod_")) return false;
+  const key = n.substring(n.indexOf("_") + 1);
+  if (key === "transpose") return st.wmode === 1 && st.rmode === 1;
+  if (key === "syncrate") return st.wmode === 0 && st.rmode === 0;
+  if (key === "drive") return !on("_drive_on", 1);
+  if (key.startsWith("band_")) return !on("_band_on", 1);
+  if (key === "res_freq") return !on("_res_on", 0) || !!on("_res_track", 1);
+  if (key.startsWith("res_")) return !on("_res_on", 0);
+  if (key.startsWith("lim_")) return !on("_lim_on", 1);
   return false;
 }
-// section power switch styles for the variants mock-up
-function drawSwitch(ctx, b, v, dark, on) {
-  const C = dark ? { sel: "#d6d6d6", selFg: "#1b1b1b", track: "#5c5c5c", title: "#d2d2d2" }
-                 : { sel: "#1f1f1f", selFg: "#efefef", track: "#6e6e6e", title: "#111111" };
-  const [x, y, w, h] = b.presentation_rect;
-  const t = b.text;
-  ctx.save();
-  ctx.font = "600 9px Inter, Helvetica, sans-serif";
-  const title = (tx) => { ctx.globalAlpha = on ? 1 : 0.45; ctx.fillStyle = C.title; ctx.fillText(t, tx, y + 10); ctx.globalAlpha = 1; return ctx.measureText(t).width; };
-  if (v === "A") {
-    ctx.beginPath(); ctx.roundRect(x + 0.5, y + 1.5, 10, 10, 2);
-    if (on) { ctx.fillStyle = C.sel; ctx.fill(); } else { ctx.strokeStyle = C.track; ctx.lineWidth = 1; ctx.stroke(); }
-    title(x + 15);
-  } else if (v === "B") {
-    const cx = x + 6, cy = y + 6.5;
-    ctx.beginPath(); ctx.arc(cx, cy, 5.5, 0, Math.PI * 2);
-    if (on) { ctx.fillStyle = C.sel; ctx.fill(); } else { ctx.strokeStyle = C.track; ctx.lineWidth = 1; ctx.stroke(); }
-    ctx.strokeStyle = on ? C.selFg : C.track; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.arc(cx, cy, 2.8, -Math.PI / 2 + 0.75, Math.PI * 1.5 - 0.75); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx, cy - 3.8); ctx.lineTo(cx, cy - 0.8); ctx.stroke();
-    title(x + 15);
-  } else if (v === "E") {
-    const tw = title(x), cx = x + tw + 4 + 4.5, cy = y + 6.5;
-    ctx.beginPath(); ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
-    if (on) { ctx.fillStyle = C.sel; ctx.fill(); } else { ctx.strokeStyle = C.track; ctx.lineWidth = 1; ctx.stroke(); }
-    ctx.strokeStyle = on ? C.selFg : C.track; ctx.lineWidth = 1.1; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.arc(cx, cy, 2.3, -Math.PI / 2 + 0.75, Math.PI * 1.5 - 0.75); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx, cy - 3.1); ctx.lineTo(cx, cy - 0.7); ctx.stroke();
-  } else if (v === "C") {
-    title(x);
-  } else if (v === "D") {
-    const tw = title(x), px = x + tw + 5, pw = 24;
-    ctx.beginPath(); ctx.roundRect(px + 0.5, y + 0.5, pw, h - 1, (h - 1) / 2);
-    if (on) { ctx.fillStyle = C.sel; ctx.fill(); } else { ctx.strokeStyle = C.track; ctx.lineWidth = 1; ctx.stroke(); }
-    ctx.font = "500 8px Inter, Helvetica, sans-serif"; ctx.textAlign = "center";
-    ctx.fillStyle = on ? C.selFg : C.title; ctx.fillText(on ? "On" : "Off", px + pw / 2 + 0.5, y + 9.5);
-  }
-  ctx.restore();
+function markerCol(t, dark, panel) {
+  const role = ["wp", "sy", "wa"].includes(t) ? "write" : ["rp", "sp"].includes(t) ? "read" : "neutral";
+  if (role === "write") return dark ? "#e4e4e4" : "#1c1c1c";
+  if (role === "read") return dark ? "#8fb0c4" : "#2f5873";
+  const l = dark ? [0.69, 0.69, 0.69] : [0.149, 0.149, 0.149];
+  return rgb(panel.map((x, i) => x + (l[i] - x) * 0.45));
 }
-function render(title, st, dark, opts) {
-  if (only !== null && !title.toLowerCase().startsWith(only.toLowerCase())) return;
-  opts = opts || {};
-  const root = document.getElementById("root");
-  const cell = document.createElement("div"); root.appendChild(cell);
+const BG = { dark: [0x36 / 255, 0x36 / 255, 0x36 / 255], light: [0xa5 / 255, 0xa5 / 255, 0xa5 / 255] }; // Live 12 Neutral Medium
+function dialH(b, h) {
+  if (b.maxclass !== "live.dial") return h;
+  const sn = b.showname ?? 1, nb = b.shownumber ?? 1;
+  return sn && nb ? 48 : nb ? 36 : 28;
+}
+function render(title, st, dark) {
+  if (only !== null && !title.toLowerCase().includes(only.toLowerCase())) return;
+  const rootEl = document.getElementById("root");
+  const cell = document.createElement("div"); rootEl.appendChild(cell);
   const h2 = document.createElement("h2"); h2.textContent = title; cell.appendChild(h2);
-  const crop = opts.crop || [0, 0, W, H];
-  const cv = document.createElement("canvas"); const S = 2;
-  cv.width = crop[2] * S; cv.height = crop[3] * S; cv.style.width = crop[2] + "px"; cv.style.height = crop[3] + "px"; cell.appendChild(cv);
-  const ctx = cv.getContext("2d"); ctx.scale(S, S); ctx.translate(-crop[0], -crop[1]);
-  const switches = [];
+  const cv = document.createElement("canvas"); const R = 2;
+  cv.width = W * R; cv.height = H * R; cv.style.width = W * S + "px"; cv.style.height = H * S + "px"; cell.appendChild(cv);
+  const ctx = cv.getContext("2d"); ctx.scale(R, R);
   const bg = dark ? BG.dark : BG.light;
-  ctx.fillStyle = "rgb(" + bg.map((x) => Math.round(x * 255)).join(",") + ")"; ctx.fillRect(0, 0, W, H);
-  const getcolor = () => (dark ? [0.8, 0.8, 0.8, 1] : [0.12, 0.12, 0.12, 1]);
-  const max = { getcolor };
-  const rank = (b) => (b.maxclass === "panel" ? -2 : b.maxclass === "v8ui" ? -1 : 0);
-  const order = [...BOXES].sort((a, b) => rank(a) - rank(b));
-  for (const b0 of order) {
+  const panel = panelColor(bg);
+  ctx.fillStyle = rgb(bg); ctx.fillRect(0, 0, W, H);
+  const max = { getcolor: () => (dark ? [0.8, 0.8, 0.8, 1] : [0.12, 0.12, 0.12, 1]) };
+  for (const b0 of BOXES) {
     let b = st.values && b0.varname in st.values ? { ...b0, __value: st.values[b0.varname] } : b0;
-    if (opts.rects && b.varname in opts.rects) b = { ...b, presentation_rect: opts.rects[b.varname] };
-    if (idle(b, st.values)) b = { ...b, __active: 0 };
-    if (b.maxclass !== "panel" && !visible(b, st)) continue;
-    if (opts.variant && opts.variant !== "P" && b.maxclass === "live.text" && /_on$/.test(String(b.varname))) {
-      switches.push(b);
-      continue;
-    }
-    const [x, y, w, h] = b.varname === "display" && st.page === 2 ? [308, 6, 328, 157] : b.presentation_rect; // D31
+    if (idle(b, st)) b = { ...b, __active: 0 };
+    if (!visible(b, st)) continue;
+    let [x, y, w, h] = b.varname === "display" && FACE === "hybrid" && st.page === 2 ? [308, 6, 328, 157] : b.presentation_rect; // D31
+    h = dialH(b, h);
     ctx.save(); ctx.translate(x, y); ctx.beginPath();
     const mg = mgFor(ctx, w, h);
     try {
       if (b.maxclass === "panel") {
-        ctx.fillStyle = panelColor(bg); ctx.beginPath(); ctx.roundRect(0, 0, w, h, 4); ctx.fill();
+        const name = String(b.varname || "");
+        ctx.fillStyle = name.startsWith("mod_mark_") ? markerCol(name.substring(9), dark, panel) : rgb(panel);
+        ctx.beginPath(); ctx.roundRect(0, 0, w, h, name.startsWith("panel_") ? 4 : 0); ctx.fill();
       } else if (b.maxclass === "v8ui") {
         const store = { atab: TABLE, aheads: HEADS };
         class Buffer { constructor(n) { this.d = store[n]; this.ch = n === "atab" ? 5 : 10; this.fr = n === "atab" ? 1024 : 5; }
@@ -211,63 +190,52 @@ function render(title, st, dark, opts) {
         class Dict { constructor(n) { this.name = n || "d"; } parse() {} get() { return null; } }
         class Task { constructor() { this.running = false; } repeat() {} cancel() {} }
         const api = new Function("mgraphics", "Buffer", "Dict", "Task", "outlet", "post", "max", "inlets", "outlets",
-          DISPLAY + "\\n;return { paint, buffers, page, mode, pv };")(mg, Buffer, Dict, Task, () => {}, () => {}, max, 0, 0);
-        api.buffers("atab", "aheads"); api.page(st.page); api.mode(st.view || 0);
+          DISPLAY + "\\n;return { paint, buffers, page, mode, pv, tonepages };")(mg, Buffer, Dict, Task, () => {}, () => {}, max, 0, 0);
+        api.buffers("atab", "aheads"); api.tonepages(...FACES[FACE].tone); api.page(st.page); api.mode(st.view || 0);
         for (const [k, v] of Object.entries(st.pv || {})) api.pv(k, v);
         api.paint();
       } else if (b.jspainterfile && PAINTERS[b.jspainterfile]) {
         const paint = new Function("box", "mgraphics", "max", "post", "error", PAINTERS[b.jspainterfile] + "\\n;return paint;")(boxMock(b), mg, max, () => {}, () => {});
         paint();
       } else if (b.maxclass === "live.comment") {
-        const fs = b.fontsize || 9; ctx.font = (String(b.fontname).includes("Bold") ? "600 " : "500 ") + fs + "px Inter, Helvetica, sans-serif";
-        ctx.fillStyle = dark ? (String(b.fontname).includes("Bold") ? "#c9c9c9" : "#969696") : (String(b.fontname).includes("Bold") ? "#1e1e1e" : "#4d4d4d");
-        ctx.textAlign = b.textjustification === 1 ? "center" : "left";
-        ctx.fillText(b.text, b.textjustification === 1 ? w / 2 : 0, fs + 1);
+        const fs = b.fontsize || 9.5; ctx.font = fs + "px " + fam(b.fontname);
+        ctx.fillStyle = dark ? (String(b.fontname).includes("Bold") ? "#d2d2d2" : "#b0b0b0") : (String(b.fontname).includes("Bold") ? "#111111" : "#262626");
+        const j = b.textjustification || 0;
+        ctx.textAlign = j === 1 ? "center" : j === 2 ? "right" : "left";
+        ctx.fillText(b.text, j === 1 ? w / 2 : j === 2 ? w - 4 : 4, 11); // text 4 px in, baseline y+11 (face review §0)
         ctx.textAlign = "left";
       } else if (b.maxclass === "live.line") {
-        ctx.strokeStyle = dark ? "#3a3a3a" : "#b5b5b5"; ctx.lineWidth = 1; ctx.beginPath();
-        if (w >= h) { ctx.moveTo(0, Math.round(h / 2) + 0.5); ctx.lineTo(w, Math.round(h / 2) + 0.5); } else { ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); }
+        ctx.strokeStyle = rgb(panel.map((x, i) => x + ((dark ? 0x5c : 0x6e) / 255 - x) * 0.7)); ctx.lineWidth = 1; ctx.beginPath();
+        if (w >= h) { ctx.moveTo(0, Math.round(h / 2) + 0.5); ctx.lineTo(w, Math.round(h / 2) + 0.5); } else { ctx.moveTo(Math.floor(w / 2) + 0.5, 0); ctx.lineTo(Math.floor(w / 2) + 0.5, h); }
         ctx.stroke();
       } else if (b.maxclass === "live.meter~") {
-        ctx.fillStyle = dark ? "#1b1b1b" : "#e6e6e6"; ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = dark ? "#9a9a9a" : "#555";
+        ctx.fillStyle = dark ? "#262626" : "#dedede"; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = dark ? "#9a9a9a" : "#3c3c3c";
         if (w > h) ctx.fillRect(0, 0, w * 0.55, h); else ctx.fillRect(0, h * 0.45, w, h * 0.55);
       }
     } catch (e) { ctx.restore(); ctx.save(); ctx.translate(x, y); ctx.fillStyle = "red"; ctx.fillRect(0, 0, w, h); console.error(b.varname, e); }
     ctx.restore();
   }
-  for (const b of switches) {
-    const vo = (b.saved_attribute_attributes || {}).valueof || {};
-    drawSwitch(ctx, b, opts.variant, dark, (b.__value ?? (vo.parameter_initial ? vo.parameter_initial[0] : 0)) > 0.5);
-  }
 }
-const base = { page: 0, wmode: 0, rmode: 0, l1mode: 0, l2mode: 1, wshape: 1 };
+const base = { page: 0, target: 0, wmode: 0, rmode: 0, l1mode: 0, l2mode: 1, wshape: 1 };
 const only = new URLSearchParams(location.search).get("only");
-if (MODE === "variants") {
-  document.getElementById("root").className = "grid";
-  const V = [["E", "E: power symbol right of the title"], ["P", "Now: the title is the switch (pill)"],
-             ["A", "A: square switch left of the title"],
-             ["B", "B: power symbol left of the title"], ["C", "C: plain title, clickable (dim = off)"],
-             ["D", "D: title + On/Off pill"]];
-  const crop = [640, 0, 328, 169];
+const mx = { mod_l1_wp: 35, mod_l2_rp: 20, mod_vo_rp: -60, mod_nb_wa: -100, mod_en_ou: -100, mod_ro_sz: 45, mod_l1_bc: 70, mod_l2_wa: 100, mod_ve_ou: 60 };
+// document.fonts.ready resolves before canvas-only fonts load: load them explicitly
+Promise.all([document.fonts.load("10px AbletonSansMedium"), document.fonts.load("10px AbletonSansBold")]).catch(() => null).then(() => {
   for (const [name, dark] of [["dark", true], ["light", false]]) {
-    for (const [v, t] of V) {
-      const rects = v === "E" ? { tone_res_track: [730, 98, 64, 13] } : {};
-      render(t + " - Tone (" + name + ")", { ...base, page: 2 }, dark, { variant: v, crop, rects });
-      render(t + " - Global, Limiter off (" + name + ")", { ...base, page: 3, values: { out_lim_on: 0 } }, dark, { variant: v, crop });
-    }
+    const pages = FACES[FACE].pages;
+    const label = FACE === "b" ? ["LFO 1", "LFO 2", "Env", "Band", "Res", "Limit", "Global"] : ["LFO · Env", "Mod", "Tone", "Global"];
+    pages.forEach((_, k) => render(label[k] + " page (" + name + ")", { ...base, page: k, values: { ...mx, page: k } }, dark));
   }
-} else {
-const mx = { mod_l1_wp: 35, mod_l2_rp: 20, mod_vo_rp: -60, mod_nb_wa: -100, mod_en_ou: -100, mod_ro_sz: 45, mod_dr_bc: 70 };
-for (const [name, dark] of [["dark", true], ["light", false]]) {
-  render("LFO · Env page (" + name + ")", base, dark);
-  render("Mod page, some matrix cells set (" + name + ")", { ...base, page: 1, values: mx }, dark);
-  render("Tone page, resonator on (" + name + ")", { ...base, page: 2, pv: { reson: 1 }, values: { tone_res_on: 1 } }, dark);
-  render("Global page (" + name + ")", { ...base, page: 3 }, dark);
-}
-render("Write + Read in Sync mode, Pulsar (Duty), LFO 1 synced, 2D view (dark)", { ...base, wmode: 1, rmode: 1, l1mode: 1, view: 1, wshape: 5, values: { w_shape: 5, w_active: 2 } }, true);
-render("Tone page, Reject, 12 dB, band off (light)", { ...base, page: 2, pv: { center: 900, bwidth: 1, bres: 30, bmode: 1, bslope: 0, bandon: 0 }, values: { tone_band_on: 0 } }, false);
-}
+  render("Write + Read in Sync, Pulsar (Duty), LFO 1 synced, 2D view (dark)", { ...base, wmode: 1, rmode: 1, l1mode: 1, view: 1, wshape: 2, values: { w_shape: 2 } }, true);
+  render("Clean (light): write controls greyed, Spike", { ...base, wshape: 3, values: { w_shape: 3, w_active: 2 } }, false);
+  if (FACE === "b") {
+    render("Strip on Output, Band page, Reject, band off (dark)", { ...base, page: 3, target: 8, values: { ...mx, mod_target: 8, band_band_on: 0 }, pv: { center: 900, bwidth: 1, bmode: 1, bandon: 0 } }, true);
+    render("Strip on Size, Res page, resonator on (light)", { ...base, page: 4, target: 5, values: { ...mx, mod_target: 5, res_res_on: 1 }, pv: { reson: 1 } }, false);
+  } else {
+    render("Tone page, Reject, 12 dB, band off (light)", { ...base, page: 2, pv: { center: 900, bwidth: 1, bres: 30, bmode: 1, bslope: 0, bandon: 0 }, values: { tone_band_on: 0 } }, false);
+  }
+});
 </script></body></html>`;
 writeFileSync(out, html);
-console.log(`wrote ${out}`);
+console.log(`wrote ${out} (face ${FACE})`);

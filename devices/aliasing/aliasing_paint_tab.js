@@ -22,6 +22,7 @@ function palette(dark) {
       text: hex("#d2d2d2"),
       label: hex("#b0b0b0"),
       track: hex("#5c5c5c"),
+      dialTrack: hex("#747474"),
       rule: hex("#2a2a2a"),
       field: hex("#262626"),
       sel: hex("#d6d6d6"),
@@ -31,7 +32,8 @@ function palette(dark) {
       read: hex("#8fb0c4"),
       disp: hex("#161616"),
       voice: hex("#a6a6a6"),
-      meter: hex("#9a9a9a")
+      meter: hex("#9a9a9a"),
+      slot: hex("#393939")
     };
   }
   return {
@@ -39,6 +41,7 @@ function palette(dark) {
     text: hex("#111111"),
     label: hex("#262626"),
     track: hex("#6e6e6e"),
+    dialTrack: hex("#5a5a5a"),
     rule: hex("#d0d0d0"),
     field: hex("#dedede"),
     sel: hex("#1f1f1f"),
@@ -48,7 +51,8 @@ function palette(dark) {
     read: hex("#2f5873"),
     disp: hex("#ececec"),
     voice: hex("#4a4a4a"),
-    meter: hex("#3c3c3c")
+    meter: hex("#3c3c3c"),
+    slot: hex("#8c8c8c")
   };
 }
 function themeIsDark(getcolor) {
@@ -68,9 +72,30 @@ function roleOf(varname) {
     if (t === "rp" || t === "sp") return "read";
     return "neutral";
   }
-  if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
-  if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
+  if (v.indexOf("w_") === 0) return "write";
+  if (v.indexOf("r_") === 0) return "read";
+  var key = v.substring(v.indexOf("_") + 1);
+  if (key.indexOf("band_") === 0) return "write";
+  if (key.indexOf("res_") === 0) return "read";
   return "neutral";
+}
+var FONT_SIZE = 9.5;
+function baselineOf(h) {
+  return Math.round(h) + 8 >> 1;
+}
+function compactValue(s, maxw, measure2) {
+  if (measure2(s) <= maxw) return s;
+  var t = s.replace(/(\d) (?=[^\d\s])/g, "$1");
+  if (measure2(t) <= maxw) return t;
+  t = t.replace(/(\.\d*?)0+(?=\D|$)/g, "$1").replace(/\.(?=\D|$)/g, "");
+  if (measure2(t) <= maxw) return t;
+  return fitText(t, maxw, measure2);
+}
+function fitName(s, maxw, measure2) {
+  if (measure2(s) <= maxw) return s;
+  var t = s.substring(0, 3);
+  if (s.length > 3 && measure2(t) <= maxw) return t;
+  return fitText(s, maxw, measure2);
 }
 function accentFor(role, p) {
   if (role === "write") return p.write;
@@ -325,7 +350,7 @@ function text(s, x, y, color, align) {
   var w = measure(s);
   var tx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
   setColor(color);
-  mgraphics.move_to(tx, y);
+  mgraphics.move_to(Math.round(tx), Math.round(y));
   mgraphics.show_text(s);
 }
 function enableAutomationDots() {
@@ -364,15 +389,16 @@ function paint() {
   var segw = (w - 1) / cols;
   var segh = (h - 1) / rows;
   var family = varnameOf() === "w_shape" ? "write" : "";
-  var rad = rows > 1 ? 4 : Math.min(h - 1, 16);
+  var hasIcons = iconPath(labels[0], family) !== null;
+  var rad = rows > 1 || hasIcons ? 8 : Math.min(h - 1, 16);
   setColor(dim(p.sel, active, p));
   if (sel >= 0 && sel < n) {
     var sr = Math.floor(sel / cols);
     var sc = sel % cols;
     var x0 = 0.5 + sc * segw;
     var y0 = 0.5 + sr * segh;
-    if (rows > 1) {
-      mgraphics.rectangle_rounded(x0 + 1, y0 + 1, segw - 2, segh - 2, 3, 3);
+    if (rows > 1 || hasIcons) {
+      mgraphics.rectangle_rounded(x0 + 1, y0 + 1, segw - 2, segh - 2, 6, 6);
       mgraphics.fill();
     } else if (n === 1 || sel === 0 || sel === n - 1) {
       mgraphics.rectangle_rounded(x0, 0.5, segw, h - 1, rad, rad);
@@ -390,7 +416,8 @@ function paint() {
   setColor(dim(p.track, active, p));
   mgraphics.rectangle_rounded(0.5, 0.5, w - 1, h - 1, rad, rad);
   mgraphics.stroke();
-  font(segh <= 14 ? 8 : 9, false);
+  font(segh < 13 ? 8 : segh < 14 ? 9 : FONT_SIZE, false);
+  var base = baselineOf(segh);
   for (var i = 0; i < n; i++) {
     var on = i === sel;
     var fg = dim(on ? p.selFg : p.text, active, p);
@@ -400,14 +427,20 @@ function paint() {
     if (icon) {
       var iw = Math.min(segw - 6, 22);
       var ih = Math.min(segh - 5, 12);
-      mgraphics.set_line_width(1.4);
+      mgraphics.set_line_width(1.1);
       mgraphics.set_line_join("round");
       setColor(on ? fg : dim(p.label, active, p));
-      polyline(icon, cx - iw / 2, cy - ih / 2, iw / 22, ih / 12);
+      polyline(
+        icon,
+        Math.round(cx - iw / 2) + 0.5 - (iw - 1) / 20,
+        Math.round(cy - ih / 2) + 0.5 - (ih - 1) / 10,
+        (iw - 1) / 20,
+        (ih - 1) / 10
+      );
       mgraphics.stroke();
     } else {
-      var s = fitText(labels[i], segw - 4, measure);
-      text(s, cx, cy + 3, fg, "center");
+      var s = fitText(labels[i], segw - 2, measure);
+      text(s, cx, 0.5 + segh * Math.floor(i / cols) + base, fg, "center");
     }
   }
 }

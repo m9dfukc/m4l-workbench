@@ -4,9 +4,10 @@
 // with several rows (num_lines_presentation, e.g. the 2 x 4 Write Shape grid) is drawn as a grid,
 // items row by row [hypothesis: live.tab lays out and hit-tests its items row by row; t4 check].
 // Shape labels are drawn as waveform icons (write shapes as write-head paths on w_shape, LFO and
-// read shapes as waveforms), everything else as text. ES5 ONLY (see paint_kit.ts).
+// read shapes as waveforms; stroke 1.1 px, points on pixel centres), everything else as text
+// (v0.3b: 9.5 pt from a 15-px line up, baseline (h + 8) >> 1, D43). ES5 ONLY (see paint_kit.ts).
 
-import { fitText, iconPath } from "./paint_kit.ts";
+import { baselineOf, FONT_SIZE, fitText, iconPath } from "./paint_kit.ts";
 import { attrNum, currentPalette, dim, enableAutomationDots, font, isActive, measure, paramInfo, polyline, setColor, text, value, varnameOf } from "./paint_max.ts";
 
 enableAutomationDots();
@@ -27,7 +28,8 @@ function paint(): void {
 	var segw = (w - 1) / cols;
 	var segh = (h - 1) / rows;
 	var family = varnameOf() === "w_shape" ? "write" : "";
-	var rad = rows > 1 ? 4 : Math.min(h - 1, 16);
+	var hasIcons = iconPath(labels[0], family) !== null;
+	var rad = rows > 1 || hasIcons ? 8 : Math.min(h - 1, 16);
 
 	// selected segment: in a single row rounded at the pill's ends and square towards its neighbours;
 	// in a grid a small rounded cell
@@ -37,8 +39,8 @@ function paint(): void {
 		var sc = sel % cols;
 		var x0 = 0.5 + sc * segw;
 		var y0 = 0.5 + sr * segh;
-		if (rows > 1) {
-			mgraphics.rectangle_rounded(x0 + 1, y0 + 1, segw - 2, segh - 2, 3, 3);
+		if (rows > 1 || hasIcons) {
+			mgraphics.rectangle_rounded(x0 + 1, y0 + 1, segw - 2, segh - 2, 6, 6);
 			mgraphics.fill();
 		} else if (n === 1 || sel === 0 || sel === n - 1) {
 			mgraphics.rectangle_rounded(x0, 0.5, segw, h - 1, rad, rad);
@@ -58,7 +60,8 @@ function paint(): void {
 	mgraphics.rectangle_rounded(0.5, 0.5, w - 1, h - 1, rad, rad);
 	mgraphics.stroke();
 
-	font(segh <= 14 ? 8 : 9, false);
+	font(segh < 13 ? 8 : segh < 14 ? 9 : FONT_SIZE, false);
+	var base = baselineOf(segh);
 	for (var i = 0; i < n; i++) {
 		var on = i === sel;
 		var fg = dim(on ? p.selFg : p.text, active, p);
@@ -68,14 +71,16 @@ function paint(): void {
 		if (icon) {
 			var iw = Math.min(segw - 6, 22);
 			var ih = Math.min(segh - 5, 12);
-			mgraphics.set_line_width(1.4);
+			mgraphics.set_line_width(1.1);
 			mgraphics.set_line_join("round");
 			setColor(on ? fg : dim(p.label, active, p));
-			polyline(icon, cx - iw / 2, cy - ih / 2, iw / 22, ih / 12);
+			// icon points 1..21 x 1..11 onto pixel centres (face review §2)
+			polyline(icon, Math.round(cx - iw / 2) + 0.5 - (iw - 1) / 20, Math.round(cy - ih / 2) + 0.5 - (ih - 1) / 10,
+				(iw - 1) / 20, (ih - 1) / 10);
 			mgraphics.stroke();
 		} else {
-			var s = fitText(labels[i], segw - 4, measure);
-			text(s, cx, cy + 3, fg, "center");
+			var s = fitText(labels[i], segw - 2, measure);
+			text(s, cx, 0.5 + segh * Math.floor(i / cols) + base, fg, "center");
 		}
 	}
 }

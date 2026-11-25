@@ -44,6 +44,10 @@ OUT="$ROOT/build/$DEVICE/export"
 CPP="$OUT/cpp"
 rm -rf "$CPP"
 mkdir -p "$CPP"
+# Max reopens its last session's patches at start: park its workspace notes for this run (user,
+# 2026-11-25; tools/max-workspace.sh) and put them back however the script ends.
+"$ROOT/tools/max-workspace.sh" park "$OUT/workspace"
+trap '"$ROOT/tools/max-workspace.sh" restore "$OUT/workspace"' EXIT
 cp "$GENDSP" "$OUT/$STEM.gendsp"
 
 GENEXPR="$ROOT/devices/$DEVICE/gen/$STEM.genexpr"

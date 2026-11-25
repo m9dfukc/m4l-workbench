@@ -22,6 +22,7 @@ function palette(dark) {
       text: hex("#d2d2d2"),
       label: hex("#b0b0b0"),
       track: hex("#5c5c5c"),
+      dialTrack: hex("#747474"),
       rule: hex("#2a2a2a"),
       field: hex("#262626"),
       sel: hex("#d6d6d6"),
@@ -31,7 +32,8 @@ function palette(dark) {
       read: hex("#8fb0c4"),
       disp: hex("#161616"),
       voice: hex("#a6a6a6"),
-      meter: hex("#9a9a9a")
+      meter: hex("#9a9a9a"),
+      slot: hex("#393939")
     };
   }
   return {
@@ -39,6 +41,7 @@ function palette(dark) {
     text: hex("#111111"),
     label: hex("#262626"),
     track: hex("#6e6e6e"),
+    dialTrack: hex("#5a5a5a"),
     rule: hex("#d0d0d0"),
     field: hex("#dedede"),
     sel: hex("#1f1f1f"),
@@ -48,7 +51,8 @@ function palette(dark) {
     read: hex("#2f5873"),
     disp: hex("#ececec"),
     voice: hex("#4a4a4a"),
-    meter: hex("#3c3c3c")
+    meter: hex("#3c3c3c"),
+    slot: hex("#8c8c8c")
   };
 }
 function themeIsDark(getcolor) {
@@ -68,9 +72,30 @@ function roleOf(varname) {
     if (t === "rp" || t === "sp") return "read";
     return "neutral";
   }
-  if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
-  if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
+  if (v.indexOf("w_") === 0) return "write";
+  if (v.indexOf("r_") === 0) return "read";
+  var key = v.substring(v.indexOf("_") + 1);
+  if (key.indexOf("band_") === 0) return "write";
+  if (key.indexOf("res_") === 0) return "read";
   return "neutral";
+}
+var FONT_SIZE = 9.5;
+function baselineOf(h) {
+  return Math.round(h) + 8 >> 1;
+}
+function compactValue(s, maxw, measure2) {
+  if (measure2(s) <= maxw) return s;
+  var t = s.replace(/(\d) (?=[^\d\s])/g, "$1");
+  if (measure2(t) <= maxw) return t;
+  t = t.replace(/(\.\d*?)0+(?=\D|$)/g, "$1").replace(/\.(?=\D|$)/g, "");
+  if (measure2(t) <= maxw) return t;
+  return fitText(t, maxw, measure2);
+}
+function fitName(s, maxw, measure2) {
+  if (measure2(s) <= maxw) return s;
+  var t = s.substring(0, 3);
+  if (s.length > 3 && measure2(t) <= maxw) return t;
+  return fitText(s, maxw, measure2);
 }
 function accentFor(role, p) {
   if (role === "write") return p.write;
@@ -325,7 +350,7 @@ function text(s, x, y, color, align) {
   var w = measure(s);
   var tx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
   setColor(color);
-  mgraphics.move_to(tx, y);
+  mgraphics.move_to(Math.round(tx), Math.round(y));
   mgraphics.show_text(s);
 }
 function enableAutomationDots() {
@@ -361,8 +386,8 @@ function paint() {
   setColor(dim(p.field, active, p));
   mgraphics.rectangle_rounded(0, 0, w, h, 6, 6);
   mgraphics.fill();
-  font(9, false);
-  text(fitText(label, w - 18, measure), 6, h / 2 + 3, dim(k === 0 ? p.label : p.text, active, p), "left");
+  font(h >= 15 ? FONT_SIZE : 9, false);
+  text(fitText(label, w - 18, measure), 5, baselineOf(h), dim(p.text, active, p), "left");
   setColor(dim(p.label, active, p));
   mgraphics.move_to(w - 11, h / 2 - 2);
   mgraphics.line_to(w - 4, h / 2 - 2);

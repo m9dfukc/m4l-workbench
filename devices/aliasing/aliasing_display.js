@@ -14,14 +14,18 @@ var HEADER_H = 12;
 var LANE_TOP = 17;
 var OVERVIEW_H = 5;
 var CURVE_TOP = 17;
+var COMPACT_H = 100;
 function clamp(x, lo, hi) {
   return x < lo ? lo : x > hi ? hi : x;
 }
+function overviewHeight(h = H) {
+  return h < COMPACT_H ? 3 : OVERVIEW_H;
+}
 function overviewY(h = H) {
-  return h - PAD - OVERVIEW_H + 1;
+  return h < COMPACT_H ? h - overviewHeight(h) : h - PAD - OVERVIEW_H + 1;
 }
 function laneHeight(h = H) {
-  return (overviewY(h) - 2 - LANE_TOP) / VOICES;
+  return (overviewY(h) - (h < COMPACT_H ? 0 : 2) - LANE_TOP) / VOICES;
 }
 function laneRect(v, w = W, h = H) {
   const lh = laneHeight(h);
@@ -328,6 +332,7 @@ function palette(dark) {
       text: hex("#d2d2d2"),
       label: hex("#b0b0b0"),
       track: hex("#5c5c5c"),
+      dialTrack: hex("#747474"),
       rule: hex("#2a2a2a"),
       field: hex("#262626"),
       sel: hex("#d6d6d6"),
@@ -337,7 +342,8 @@ function palette(dark) {
       read: hex("#8fb0c4"),
       disp: hex("#161616"),
       voice: hex("#a6a6a6"),
-      meter: hex("#9a9a9a")
+      meter: hex("#9a9a9a"),
+      slot: hex("#393939")
     };
   }
   return {
@@ -345,6 +351,7 @@ function palette(dark) {
     text: hex("#111111"),
     label: hex("#262626"),
     track: hex("#6e6e6e"),
+    dialTrack: hex("#5a5a5a"),
     rule: hex("#d0d0d0"),
     field: hex("#dedede"),
     sel: hex("#1f1f1f"),
@@ -354,7 +361,8 @@ function palette(dark) {
     read: hex("#2f5873"),
     disp: hex("#ececec"),
     voice: hex("#4a4a4a"),
-    meter: hex("#3c3c3c")
+    meter: hex("#3c3c3c"),
+    slot: hex("#8c8c8c")
   };
 }
 function themeIsDark(getcolor) {
@@ -374,9 +382,30 @@ function roleOf(varname) {
     if (t === "rp" || t === "sp") return "read";
     return "neutral";
   }
-  if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
-  if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
+  if (v.indexOf("w_") === 0) return "write";
+  if (v.indexOf("r_") === 0) return "read";
+  var key = v.substring(v.indexOf("_") + 1);
+  if (key.indexOf("band_") === 0) return "write";
+  if (key.indexOf("res_") === 0) return "read";
   return "neutral";
+}
+var FONT_SIZE = 9.5;
+function baselineOf(h) {
+  return Math.round(h) + 8 >> 1;
+}
+function compactValue(s, maxw, measure) {
+  if (measure(s) <= maxw) return s;
+  var t = s.replace(/(\d) (?=[^\d\s])/g, "$1");
+  if (measure(t) <= maxw) return t;
+  t = t.replace(/(\.\d*?)0+(?=\D|$)/g, "$1").replace(/\.(?=\D|$)/g, "");
+  if (measure(t) <= maxw) return t;
+  return fitText(t, maxw, measure);
+}
+function fitName(s, maxw, measure) {
+  if (measure(s) <= maxw) return s;
+  var t = s.substring(0, 3);
+  if (s.length > 3 && measure(t) <= maxw) return t;
+  return fitText(s, maxw, measure);
 }
 function accentFor(role, p) {
   if (role === "write") return p.write;
@@ -541,7 +570,6 @@ mgraphics.relative_coords = 0;
 mgraphics.autofill = 0;
 var FPS_INTERVAL_MS = 33;
 var NCH = 10;
-var PAGE_TONE = 2;
 var FONT = "Ableton Sans Medium";
 var FONT_BOLD = "Ableton Sans Bold";
 var tableBuf = null;
@@ -549,6 +577,7 @@ var headsBuf = null;
 var rows = Array.from({ length: VOICES }, () => identityRow());
 var heads = Array.from({ length: NCH }, () => new Array(VOICES).fill(0));
 var pageValue = 0;
+var tonePageList = [2];
 var modeValue = 0;
 var params = {
   size: 10,
@@ -648,8 +677,17 @@ function buffers(table, headsName, dictName) {
   startTimer();
   mgraphics.redraw();
 }
+function isTone() {
+  return tonePageList.indexOf(pageValue) >= 0;
+}
 function page(v) {
   pageValue = Math.round(Number(v)) || 0;
+  gesture = null;
+  mgraphics.redraw();
+}
+function tonepages(...v) {
+  const list = v.map((x) => Math.round(Number(x))).filter((x) => Number.isFinite(x));
+  tonePageList = list.length ? list : [2];
   gesture = null;
   mgraphics.redraw();
 }
@@ -692,7 +730,7 @@ function send(name, value) {
 function onclick(x, y, _but, _cmd, shift, _caps, option) {
   const w = mgraphics.size[0];
   const icons = iconRects(w);
-  if (pageValue !== PAGE_TONE && y < icons.line.y + icons.line.h + 2) {
+  if (!isTone() && y < icons.line.y + icons.line.h + 2) {
     if (inRect(x, y, icons.line) && modeValue !== 0) {
       modeValue = 0;
       send("mode", 0);
@@ -703,7 +741,7 @@ function onclick(x, y, _but, _cmd, shift, _caps, option) {
     mgraphics.redraw();
     return;
   }
-  if (pageValue === PAGE_TONE) {
+  if (isTone()) {
     const t = tone();
     const what = hitCurve(x, y, t, curveRect(w, mgraphics.size[1]), fs());
     gesture = what ? { kind: "curve", what, x0: x, c0: params.center } : null;
@@ -761,7 +799,7 @@ function ondrag(x, y, but) {
 function ondblclick(x, y, _but, _cmd, shift) {
   const w = mgraphics.size[0];
   gesture = null;
-  if (pageValue === PAGE_TONE) {
+  if (isTone()) {
     const e = bandEdges(tone(), fs());
     const rect = curveRect(w, mgraphics.size[1]);
     if (x > xOfF(e.lo, rect) && x < xOfF(e.hi, rect)) send("bmode", params.bmode > 0.5 ? 0 : 1);
@@ -810,7 +848,7 @@ function fitted(s, maxw) {
   return `${t}\u2026`;
 }
 function drawHeader(w, p) {
-  const tonePage = pageValue === PAGE_TONE;
+  const tonePage = isTone();
   const tw = label(tonePage ? "TONE" : "TABLE", PAD, HEADER_Y + 9, p.label, 8, true);
   const icons = iconRects(w);
   const infoX = PAD + tw + 6;
@@ -921,17 +959,19 @@ function drawLanes(w, h, p, lw) {
   }
   const ow = w - 2 * PAD;
   const oy = overviewY(h);
+  const oh = overviewHeight(h);
+  const bh = Math.max(1, oh - 2);
   rgba(p.rule);
-  mgraphics.rectangle_rounded(PAD, oy + 1, ow, 3, 2, 2);
+  mgraphics.rectangle_rounded(PAD, oy + 1, ow, bh, 2, 2);
   mgraphics.fill();
   rgba(p.label);
-  mgraphics.rectangle_rounded(PAD, oy + 1, Math.max(2, ow * clamp(params.size / 100, 1e-3, 1)), 3, 2, 2);
+  mgraphics.rectangle_rounded(PAD, oy + 1, Math.max(2, ow * clamp(params.size / 100, 1e-3, 1)), bh, 2, 2);
   mgraphics.fill();
   rgba(withAlpha(p.label, 0.45));
-  mgraphics.rectangle(PAD + Math.min(ow - 1, ow * zoom), oy, 1, OVERVIEW_H);
+  mgraphics.rectangle(PAD + Math.min(ow - 1, ow * zoom), oy, 1, oh);
   mgraphics.fill();
   rgba(p.voice);
-  for (let v = 0; v < VOICES; v++) mgraphics.rectangle(PAD + Math.min(ow - 1, ow * effSize(v)), oy, 1, OVERVIEW_H);
+  for (let v = 0; v < VOICES; v++) mgraphics.rectangle(PAD + Math.min(ow - 1, ow * effSize(v)), oy, 1, oh);
   mgraphics.fill();
 }
 function drawCurve(w, h, p, lw) {
@@ -1050,7 +1090,7 @@ function paint() {
   const h = mgraphics.size[1];
   if (!announced) {
     announced = true;
-    post(`aliasing_display: v0.3 ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}
+    post(`aliasing_display: v0.3b ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}
 `);
   }
   let getcolor = null;
@@ -1065,7 +1105,7 @@ function paint() {
   mgraphics.rectangle_rounded(0, 0, w, h, 8, 8);
   mgraphics.fill();
   drawHeader(w, p);
-  if (pageValue === PAGE_TONE) drawCurve(w, h, p, lw);
+  if (isTone()) drawCurve(w, h, p, lw);
   else drawLanes(w, h, p, lw);
   if (!tableBuf) {
     rgba([0, 0, 0, 0.5]);

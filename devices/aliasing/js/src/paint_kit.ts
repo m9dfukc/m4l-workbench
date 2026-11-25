@@ -15,6 +15,7 @@ export interface Palette {
 	text: RGBA;
 	label: RGBA;
 	track: RGBA;
+	dialTrack: RGBA;
 	rule: RGBA;
 	field: RGBA;
 	sel: RGBA;
@@ -25,6 +26,7 @@ export interface Palette {
 	disp: RGBA;
 	voice: RGBA;
 	meter: RGBA;
+	slot: RGBA;
 }
 
 export function hex(h: string, a?: number): RGBA {
@@ -45,7 +47,9 @@ export function luminance(c: RGBA): number {
 }
 
 /** Graphite palette, dark or light: the v0.3 mock-up's theme values (docs/mockup-v0.3/Main.dc.html THEME),
- *  tuned for the theme panels (D22): outlines stay visible on the panel surfaces. */
+ *  tuned for the theme panels (D22): outlines stay visible on the panel surfaces. v0.3b (face review §1,
+ *  §7): a darker dial track (light 2.39 : 1, dark 2.15 : 1 on the panel) and a quiet slot for empty
+ *  matrix cells. */
 export function palette(dark: boolean): Palette {
 	if (dark) {
 		return {
@@ -53,6 +57,7 @@ export function palette(dark: boolean): Palette {
 			text: hex("#d2d2d2"),
 			label: hex("#b0b0b0"),
 			track: hex("#5c5c5c"),
+			dialTrack: hex("#747474"),
 			rule: hex("#2a2a2a"),
 			field: hex("#262626"),
 			sel: hex("#d6d6d6"),
@@ -63,6 +68,7 @@ export function palette(dark: boolean): Palette {
 			disp: hex("#161616"),
 			voice: hex("#a6a6a6"),
 			meter: hex("#9a9a9a"),
+			slot: hex("#393939"),
 		};
 	}
 	return {
@@ -70,6 +76,7 @@ export function palette(dark: boolean): Palette {
 		text: hex("#111111"),
 		label: hex("#262626"),
 		track: hex("#6e6e6e"),
+		dialTrack: hex("#5a5a5a"),
 		rule: hex("#d0d0d0"),
 		field: hex("#dedede"),
 		sel: hex("#1f1f1f"),
@@ -80,6 +87,7 @@ export function palette(dark: boolean): Palette {
 		disp: hex("#ececec"),
 		voice: hex("#4a4a4a"),
 		meter: hex("#3c3c3c"),
+		slot: hex("#8c8c8c"),
 	};
 }
 
@@ -98,7 +106,8 @@ export function themeIsDark(getcolor: ((id: string) => any) | null): boolean {
 
 /** Accent role of a control from its scripting name: write, read or neutral. Matrix cells
  *  mod_<source>_<target> take the role of their target: Write Pitch, Write Sym, Write = write;
- *  Read Pitch, Read Spread = read (mock-up v0.3). */
+ *  Read Pitch, Read Spread = read (mock-up v0.3). Both faces (D40): the part after the page prefix
+ *  decides for the tone controls (hybrid tone_band_*, option (b) band_band_*; tone_res_* / res_res_*). */
 export function roleOf(varname: string): string {
 	var v = String(varname || "");
 	if (v.indexOf("mod_") === 0) {
@@ -107,9 +116,41 @@ export function roleOf(varname: string): string {
 		if (t === "rp" || t === "sp") return "read";
 		return "neutral";
 	}
-	if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
-	if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
+	if (v.indexOf("w_") === 0) return "write";
+	if (v.indexOf("r_") === 0) return "read";
+	var key = v.substring(v.indexOf("_") + 1);
+	if (key.indexOf("band_") === 0) return "write";
+	if (key.indexOf("res_") === 0) return "read";
 	return "neutral";
+}
+
+/** Text size of the v0.3b face (Ableton's own label size, research note summary 2). */
+export var FONT_SIZE = 9.5;
+
+/** Baseline of one line of text in a box of height h, whole pixels (face review §1.3): h 15 -> 11,
+ *  h 14 -> 11, h 13 -> 10, h 12 -> 10. */
+export function baselineOf(h: number): number {
+	return (Math.round(h) + 8) >> 1;
+}
+
+/** A value text that fits into maxw (D43): as is; without the gap before the unit ("0.10ms"); with
+ *  trailing decimal zeros dropped ("0.1ms"); finally shortened. measure(s) -> width. */
+export function compactValue(s: string, maxw: number, measure: (t: string) => number): string {
+	if (measure(s) <= maxw) return s;
+	var t = s.replace(/(\d) (?=[^\d\s])/g, "$1");
+	if (measure(t) <= maxw) return t;
+	t = t.replace(/(\.\d*?)0+(?=\D|$)/g, "$1").replace(/\.(?=\D|$)/g, "");
+	if (measure(t) <= maxw) return t;
+	return fitText(t, maxw, measure);
+}
+
+/** A parameter name that fits into maxw: written out; else its first three letters (Att, Rel); else
+ *  shortened with a trailing dot. */
+export function fitName(s: string, maxw: number, measure: (t: string) => number): string {
+	if (measure(s) <= maxw) return s;
+	var t = s.substring(0, 3);
+	if (s.length > 3 && measure(t) <= maxw) return t;
+	return fitText(s, maxw, measure);
 }
 
 export function accentFor(role: string, p: Palette): RGBA {
@@ -223,7 +264,8 @@ export function enumLabelsFrom(range: any, type: number): string[] | null {
 	return out.length ? out : null;
 }
 
-/** Write-shape icons (D4): the write head's position over one cycle (mock-up v0.3), 22 x 12 box. */
+/** Write-shape icons (D4, D34): the write head's position over one cycle (mock-up v0.3), 22 x 12 box.
+ *  v0.3b keeps Ramp, Tri, Pulsar, Spike and Noise; the others stay for older shells. */
 function writeIcon(label: string): number[][] | null {
 	switch (label) {
 		case "Ramp":

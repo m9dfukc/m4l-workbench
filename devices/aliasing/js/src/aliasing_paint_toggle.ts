@@ -4,10 +4,12 @@
 // - Pills: on = filled with the role accent (write/read) or the selection colour; off = outlined.
 // - Section power switches (scripting names ending in _on, D32 = mock-up variant E): a plain bold
 //   section title with a power symbol right after it, measured in Live's own font; on = filled symbol,
-//   off = outlined symbol and a dimmed title. The whole box is the click area.
+//   off = outlined symbol and a dimmed title. The whole box is the click area. v0.3b: sized to the
+//   15-px line, 9.5 pt bold, title text 2 px in (= a live.comment's text 2 px left of the box, D43).
+// Text 9.5 pt from a 15-px line up, baseline (h + 8) >> 1 (face review §1.3).
 // ES5 ONLY (see paint_kit.ts).
 
-import { fitText, roleOf, withAlpha, type Palette, type RGBA } from "./paint_kit.ts";
+import { baselineOf, FONT_SIZE, fitText, roleOf, withAlpha, type Palette, type RGBA } from "./paint_kit.ts";
 import { attrStr, currentPalette, dim, enableAutomationDots, font, isActive, measure, setColor, text, value, varnameOf } from "./paint_max.ts";
 
 enableAutomationDots();
@@ -47,12 +49,14 @@ function paint(): void {
 	var name = varnameOf();
 	var label = attrStr(on ? "texton" : "text") || attrStr("text");
 
+	var fs = h >= 15 ? FONT_SIZE : h >= 14 ? 9 : 8;
+	var base = baselineOf(h);
 	if (name.length > 3 && name.substring(name.length - 3) === "_on") {
-		font(9, true);
-		var title = fitText(label, w - 16, measure);
+		font(fs, true);
+		var title = fitText(label, w - 18, measure);
 		var tw = measure(title);
-		text(title, 0, h / 2 + 3.5, dim(on ? p.text : withAlpha(p.text, 0.45), active, p), "left");
-		powerSymbol(Math.min(w - POWER_R - 0.5, tw + 4 + POWER_R), h / 2, on, active, p);
+		text(title, 2, base, dim(on ? p.text : withAlpha(p.text, 0.45), active, p), "left");
+		powerSymbol(Math.min(w - POWER_R - 0.5, Math.round(2 + tw + 4 + POWER_R) + 0.5), Math.round(h / 2) - 0.5, on, active, p);
 		return;
 	}
 
@@ -68,6 +72,6 @@ function paint(): void {
 	setColor(dim(on ? accent : p.track, active, p));
 	mgraphics.rectangle_rounded(0.5, 0.5, w - 1, h - 1, rad, rad);
 	mgraphics.stroke();
-	font(h <= 14 ? 8 : 9, false);
-	text(fitText(label, w - 6, measure), w / 2, h / 2 + 3, dim(on ? p.selFg : p.text, active, p), "center");
+	font(fs, false);
+	text(fitText(label, w - 6, measure), w / 2, base, dim(on ? p.selFg : p.text, active, p), "center");
 }

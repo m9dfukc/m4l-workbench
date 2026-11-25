@@ -126,12 +126,13 @@ export function measure(s: string): number {
 	return mgraphics.text_measure(s)[0];
 }
 
-/** Text with the baseline at y; align "left" | "center" | "right". Font must be selected. */
+/** Text with the baseline at y; align "left" | "center" | "right". Font must be selected. The start
+ *  and the baseline are snapped to whole pixels (face review §1: at 1x, fractional text positions blur). */
 export function text(s: string, x: number, y: number, color: RGBA, align: string): void {
 	var w = measure(s);
 	var tx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
 	setColor(color);
-	mgraphics.move_to(tx, y);
+	mgraphics.move_to(Math.round(tx), Math.round(y));
 	mgraphics.show_text(s);
 }
 

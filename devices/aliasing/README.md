@@ -2,8 +2,10 @@
 
 Max for Live instrument **inspired by** the Reaktor User Library ensemble **aliasing Synth** by
 **Dietrich Pank** (2008-09-18, UL version 1.0, Reaktor 5): the same mechanism, our own DSP,
-GUI and presets — not an emulation. Status: **v0.2 built, not yet tested in Live**
-(`docs/v0.2-build.md`; decisions `docs/port-decisions.md`, `docs/redesign-t1.md`).
+GUI and presets — not an emulation. Status: **v0.3b built** as two faces for an A/B in Live:
+`Aliasing.amxd` (hybrid, 968 px) and `Aliasing B.amxd` (option (b), 800 px), same DSP and parameters
+(`docs/v0.3-design.md` D33–D44; earlier decisions `docs/port-decisions.md`, `docs/redesign-t1.md`,
+`docs/v0.2-build.md`). One face stays after the Live test.
 
 ## The original
 
@@ -36,14 +38,16 @@ Telling/asking the author before a public release is planned (nice to have).
 
 ```
 devices/aliasing/
-├── Aliasing.amxd          # unfrozen shell (Max Instrument)
+├── Aliasing.amxd          # unfrozen shell (Max Instrument), hybrid face
+├── Aliasing B.amxd        # unfrozen shell, option (b) face (same runtime files, D40)
 ├── aliasing.gendsp        # generated from gen/aliasing.genexpr (one gen~, 5-voice loop)
 ├── aliasing_*.js          # bundled from js/src/*.ts (v8ui display, v8 pages, jspainter painters)
-├── presets/               # own presets as JSON (v0.3)
+├── presets/               # own presets as JSON (planned, v0.4)
 ├── gen/                   # GenExpr sources
 ├── js/src/                # TypeScript (display, pages, painters in ES5) + js/test/
 ├── scripts/               # bootstrap_shell.py (shell generator), check_shell.py, table_sim.py
-├── test/                  # host/ (gen~ export test), smoke/ (standalone Max), preview/, probe-ui/
+├── test/                  # host/ (gen~ export test), smoke/ (standalone Max), preview/, probe-ui/,
+│                          # dial-probe/ (live.dial size probe), shapes/ (v0.3 shapes study)
 ├── docs/                  # inventory, signal flow, port decisions, deviations from the original
 └── reference/
     ├── reaktor/           # local only: original .ens + screenshots
