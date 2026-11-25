@@ -188,7 +188,8 @@ Only upgrade a marker with a reference to the test/source.
   first look (State drop-down, menu dots + Clear in (b)). Dial probe PASS (a `showname 1` dial is 48 px
   whatever the saved rect); offline chain, host test, smoke test (standalone Max 9.2.1) and the Live
   harness (both devices) pass. **Next: test t5 in Live** (§6b there): look and feel of both faces, the
-  user picks one. Earlier: 9c23f87 (Write Shape fix, face review), 9b1d5d7 v0.3, …
+  user picks one. Sample drop D50–D54 added to both faces (2026-11-25, uncommitted): smoke tests +
+  harness pass (testlog t6-auto); **t6** (real drags in Live) handed over. Earlier: 9c23f87 (Write Shape fix, face review), 9b1d5d7 v0.3, …
 - Standalone Max **restores its last session's patches at start** (Crash Recovery workspace):
   every unattended run parks that file first (`tools/max-workspace.sh`, user, 2026-11-25).
 - Standalone Max is **9.2.1** (Live uses it); jspainter scripts run on Max's legacy JS engine:
@@ -199,7 +200,8 @@ Only upgrade a marker with a reference to the test/source.
   Live land in `~/Library/Application Support/Cycling '74/Max 9/Logs/MaxPlugLib.log`.
 - Research (2026-11-24) in `docs/research/notes/`: `m4l-toolchain-dependencies-*`,
   `reaktor-fundamentals-and-porting-*`, `max-port-targets-gen-rnbo-*`, `aliasing-synth-sources-*`,
-  `m4l-custom-ui-and-sync-*`, `live-auto-filter-*`.
+  `m4l-custom-ui-and-sync-*`, `live-auto-filter-*`; 2026-11-25: `push-compatibility-*` (Push banks,
+  Push 3 Standalone: Max 9 there, v8/v8ui/jspainter untested, `live.banks` needed).
 
 ## Skills and rules (project-local, `.claude/`)
 

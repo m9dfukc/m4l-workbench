@@ -4,8 +4,13 @@ Max for Live instrument **inspired by** the Reaktor User Library ensemble **alia
 **Dietrich Pank** (2008-09-18, UL version 1.0, Reaktor 5): the same mechanism, our own DSP,
 GUI and presets — not an emulation. Status: **v0.3b built** as two faces for an A/B in Live:
 `Aliasing.amxd` (hybrid, 918 px) and `Aliasing B.amxd` (option (b), 800 px), same DSP and parameters
-(`docs/v0.3-design.md` D33–D44; earlier decisions `docs/port-decisions.md`, `docs/redesign-t1.md`,
+(`docs/v0.3-design.md` D33–D49; earlier decisions `docs/port-decisions.md`, `docs/redesign-t1.md`,
 `docs/v0.2-build.md`). One face stays after the Live test.
+
+**Sample drop** (both faces, D50–D54): drop an audio file from Live's browser or the Finder onto the
+table display and it becomes the table of all five voices — **FIT** (header pill) resamples the whole
+file (up to 10 min) into the 1024 cells, **1:1** takes its first 1024 samples. The drop switches Write
+State to Freeze so the sample stays; switch to Write and the write head eats it.
 
 ## The original
 
@@ -41,7 +46,7 @@ devices/aliasing/
 ├── Aliasing.amxd          # unfrozen shell (Max Instrument), hybrid face
 ├── Aliasing B.amxd        # unfrozen shell, option (b) face (same runtime files, D40)
 ├── aliasing.gendsp        # generated from gen/aliasing.genexpr (one gen~, 5-voice loop)
-├── aliasing_*.js          # bundled from js/src/*.ts (v8ui display, v8 pages, jspainter painters)
+├── aliasing_*.js          # bundled from js/src/*.ts (v8ui display incl. sample drop, v8 pages, painters)
 ├── presets/               # own presets as JSON (planned, v0.4)
 ├── gen/                   # GenExpr sources
 ├── js/src/                # TypeScript (display, pages, painters in ES5) + js/test/

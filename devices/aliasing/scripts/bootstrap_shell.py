@@ -15,8 +15,9 @@ Every dial is a 48-px live.dial with its name and value inside (showname 1: Live
 9.5 pt. Every control is a real live.* parameter drawn by a jspainter script (aliasing_paint_*.js, R5);
 labels are live.comment. Logic: MIDI (notes held, note-on impulse, velocity, mod wheel), transport
 (plugsync~, a locked bar phasor~), the gen~ core with its two buffer~s and the follower outlet, the
-v8ui display, the v8 page switcher (pages, greying, theme colours), and a dict Blob parameter that
-stores the drawn table with the Live Set (R10). Box JSON follows real Max-saved boxes (m4l-boxref).
+v8ui display, the v8 page switcher (pages, greying, theme colours), a dict Blob parameter that
+stores the drawn table with the Live Set (R10), and the sample drop (D50-D54: an invisible live.drop behind
+the display, sfinfo~ and a mono buffer~ the display reads a dropped file through). Box JSON follows real Max-saved boxes (m4l-boxref).
 
 The unfrozen .amxd files are the source of truth once the user edits them in Max. This script
 therefore refuses to overwrite an existing file unless --force is given, and --force discards every
@@ -64,6 +65,7 @@ U_INT, U_FLOAT, U_MS, U_HZ, U_DB, U_PCT, U_ST, U_CUSTOM = 0, 1, 2, 3, 4, 5, 7, 9
 MOD_NONE, MOD_BIPOLAR, MOD_ABSOLUTE = 0, 2, 4
 T_FLOAT, T_INT, T_ENUM, T_BLOB = 0, 1, 2, 3
 STORED_ONLY = 1
+HIDDEN = 2  # not stored, not automatable, not on Push (903 Max-saved live.text use it: m4l-boxref)
 
 NOTES = ["8 bars", "4 bars", "2 bars", "1 bar", "1/2", "1/2D", "1/2T", "1/4", "1/4D", "1/4T", "1/8", "1/8D",
          "1/8T", "1/16", "1/16D", "1/16T", "1/32", "1/32T", "1/64"]  # = Data divb in the GenExpr
@@ -752,6 +754,9 @@ def build(template: dict, face: str = "hybrid") -> dict:
                 ["signal", "signal", "signal"], w=330.0)
     p.obj("buffer~ ---atab @samps 1024 5", 420.0, 920.0, 1, ["float", "bang"])
     p.obj("buffer~ ---aheads @samps 5 10", 420.0, 950.0, 1, ["float", "bang"])
+    # sample drop (D50-D54): a mono buffer, so `read <file> 0 <ms>` sums the file's channels and reads at
+    # most its size [sourced: msp-ref/buffer~.maxref.xml "read"]; the display sizes it per drop
+    adrop = p.obj("buffer~ ---adrop @samps 1 1", 1440.0, 760.0, 1, ["float", "bang"], w=170.0)
     p.wire(gen, 0, "obj-plugout", 0)
     p.wire(gen, 1, "obj-plugout", 1)
 
@@ -802,6 +807,19 @@ def build(template: dict, face: str = "hybrid") -> dict:
 
     # ---- display, pages, storage, theme -----------------------------------------------------------------
     dr = lay.display
+    # sample drop zone (D50): an invisible live.drop at the display's rect, directly behind it, clicks
+    # passing through (ignoreclick) - Ableton's pattern in Granulator III, Emit and Vector Grain. Hidden
+    # parameter: a Set never re-imports a file at load, the table itself is stored (dict "Table")
+    clear = [0.3, 0.3, 0.3, 0.0]
+    sdrop = p.add({"maxclass": "live.drop", "varname": "sample_drop", "numinlets": 1, "numoutlets": 2,
+                   "outlettype": ["", ""], "parameter_enable": 1, "ignoreclick": 1, "decodemode": 1, "legend": "",
+                   "bordercolor": clear, "focusbordercolor": clear, "textcolor": clear,
+                   "patching_rect": [1440.0, 600.0, 120.0, 40.0], "presentation": 1, "presentation_rect": list(dr),
+                   "saved_attribute_attributes": {
+                       "bordercolor": {"expression": ""}, "focusbordercolor": {"expression": ""},
+                       "textcolor": {"expression": ""},
+                       "valueof": {"parameter_longname": "Sample Drop", "parameter_shortname": "Drop",
+                                   "parameter_type": 4, "parameter_invisible": HIDDEN, "parameter_modmode": 0}}})
     disp = p.add({"maxclass": "v8ui", "filename": "aliasing_display.js", "embed": 0, "numinlets": 1,
                   "numoutlets": 2, "outlettype": ["", ""], "parameter_enable": 0,
                   "patching_rect": list(dr), "presentation": 1, "presentation_rect": list(dr), "varname": "display",
@@ -811,7 +829,7 @@ def build(template: dict, face: str = "hybrid") -> dict:
                   textfile={"filename": "aliasing_pages.js", "flags": 0, "embed": 0, "autowatch": 1})
     thisdev = p.obj("live.thisdevice", 840.0, 480.0, 1, ["bang", "int", "int"], w=105.0)
     init = p.obj("t b b b", 840.0, 520.0, 1, ["bang", "bang", "bang"])
-    bufmsg = p.msg("buffers ---atab ---aheads ---atable", 960.0, 520.0)
+    bufmsg = p.msg("buffers ---atab ---aheads ---atable ---adrop", 960.0, 520.0)
     tpmsg = p.msg("tonepages " + " ".join(str(k) for k in FACE_TONE_PAGES[face]), 1260.0, 480.0)
     facemsg = p.msg(f"face {face}", 1000.0, 480.0)
     p.wire(thisdev, 0, init, 0)
@@ -832,9 +850,10 @@ def build(template: dict, face: str = "hybrid") -> dict:
     p.wire(lpre, 0, pages, 0)
 
     # the display's gestures -> parameters; the stored Display Mode tab (not on the face)
-    route_names = ["mode", "center", "bwidth", "bres", "bmode", "rsfreq", "rsfb", "rsmix", "rstrack", "reson"]
+    route_names = ["mode", "center", "bwidth", "bres", "bmode", "rsfreq", "rsfb", "rsmix", "rstrack", "reson",
+                   "fit", "wactive", "sfopen", "bufsize", "bufread"]
     route = p.obj("route " + " ".join(route_names), 960.0, 600.0, len(route_names) + 1,
-                  [""] * (len(route_names) + 1), w=460.0)
+                  [""] * (len(route_names) + 1), w=640.0)
     p.wire(disp, 0, route, 0)
     dmode = p.add({"maxclass": "live.tab", "numinlets": 1, "numoutlets": 3, "outlettype": ["", "", "float"],
                    "parameter_enable": 1, "patching_rect": [960.0, 640.0, 60.0, 15.0], "varname": "display_mode",
@@ -846,6 +865,40 @@ def build(template: dict, face: str = "hybrid") -> dict:
     mpre = p.obj("prepend mode", 960.0, 670.0, 1, [""])
     p.wire(dmode, 0, mpre, 0)
     p.wire(mpre, 0, disp, 0)
+
+    # sample drop (D50-D54, v0.3-design 4c): live.drop -> display -> sfinfo~ (length, rate, channels) ->
+    # display -> buffer~ ---adrop (size, read) -> "dropready" -> display (fits, Freeze, writes, stores)
+    dfit = p.add({"maxclass": "live.tab", "numinlets": 1, "numoutlets": 3, "outlettype": ["", "", "float"],
+                  "parameter_enable": 1, "patching_rect": [1440.0, 520.0, 60.0, 15.0], "varname": "drop_fit",
+                  "num_lines_patching": 1, "num_lines_presentation": 1, "multiline": 0, "fontname": FONT,
+                  "fontsize": FS, "saved_attribute_attributes": {"valueof": valueof(
+                      "Drop Fit", "Drop Fit", T_ENUM, enum=["Fit", "1:1"], invisible=STORED_ONLY,
+                      info="Sample drop: Fit = the whole file resampled to the table row, 1:1 = its first 1024 "
+                           "samples (the FIT / 1:1 pills in the display).")}})
+    p.wire(route, route_names.index("fit"), dfit, 0)
+    fpre = p.obj("prepend fit", 1440.0, 550.0, 1, [""])
+    p.wire(dfit, 0, fpre, 0)
+    p.wire(fpre, 0, disp, 0)
+    dpre = p.obj("prepend droppath", 1580.0, 600.0, 1, [""], w=110.0)
+    p.wire(sdrop, 0, dpre, 0)
+    p.wire(dpre, 0, disp, 0)
+    sfopen = p.obj("prepend open", 1440.0, 660.0, 1, [""])
+    sfinfo = p.obj("sfinfo~", 1440.0, 690.0, 1, ["int", "int", "float", "float", "", ""], w=170.0)
+    p.wire(route, route_names.index("sfopen"), sfopen, 0)
+    p.wire(sfopen, 0, sfinfo, 0)
+    for k, name in ((3, "sfms"), (2, "sfsr"), (0, "sfch")):  # sfinfo~ outputs right to left: channels last
+        pre = p.obj(f"prepend {name}", 1440.0 + 60.0 * k, 720.0, 1, [""])
+        p.wire(sfinfo, k, pre, 0)
+        p.wire(pre, 0, disp, 0)
+    bsize = p.obj("prepend sizeinsamps", 1620.0, 700.0, 1, [""], w=120.0)
+    bread = p.obj("prepend read", 1620.0, 730.0, 1, [""])
+    p.wire(route, route_names.index("bufsize"), bsize, 0)
+    p.wire(route, route_names.index("bufread"), bread, 0)
+    p.wire(bsize, 0, adrop, 0)
+    p.wire(bread, 0, adrop, 0)
+    dready = p.msg("dropready", 1440.0, 800.0)
+    p.wire(adrop, 1, dready, 0)  # right outlet: read done
+    p.wire(dready, 0, disp, 0)
 
     # dict Blob parameter: the drawn table, saved with the Set (R10; probe variant B, Ableton's pattern)
     tdict = p.add({"maxclass": "newobj", "text": "dict ---atable", "numinlets": 2, "numoutlets": 5,
@@ -943,7 +996,8 @@ def build(template: dict, face: str = "hybrid") -> dict:
 
     # display gestures -> the controls (user gestures: undo entries are intended here)
     targets = {"center": "band.center", "bwidth": "band.width", "bres": "band.res", "bmode": "band.mode",
-               "rsfreq": "res.freq", "rsfb": "res.fb", "rsmix": "res.mix", "rstrack": "res.track", "reson": "res.on"}
+               "rsfreq": "res.freq", "rsfb": "res.fb", "rsmix": "res.mix", "rstrack": "res.track", "reson": "res.on",
+               "wactive": "w.active"}  # a sample drop sets Write State to Freeze (D53)
     for k, name in enumerate(route_names):
         if name in targets:
             p.wire(route, k, by_key[targets[name]], 0)

@@ -10,8 +10,11 @@
   page / Hz|Sync / write-shape / strip-target state (rules of js/src/pages_model.ts, mirrored in
   bootstrap_shell.visible_in); the theme panels (D22) lie behind everything (first in the box order) and
   every visible control lies inside one of them; nothing overlaps the v8ui display (it would cover the
-  object in Live, t3). Allowed: a divider (live.line) under a comment, and a dial's name-row overlay
-  (live.comment, ignoreclick, after its dial in the box order, h.2) on that dial
+  object in Live, t3). Allowed: a divider (live.line) under a comment, a dial's name-row overlay
+  (live.comment, ignoreclick, after its dial in the box order, h.2) on that dial, and the sample drop's
+  invisible live.drop at the display's rect right behind it (D50)
+- sample drop (D50-D54): one live.drop, ignoreclick, transparent, Hidden parameter, wired to the display;
+  a mono buffer~ ---adrop named in the display's buffers message
 - live.dial heights as Live draws them: 48 with showname 1 + shownumber 1, 36 with showname 0 +
   shownumber 1 [measured: dial probe 2026-11-25]; live.text toggles switch on mouse up (D38); a multi-row
   live.tab has multiline 1 (D44)
@@ -190,11 +193,16 @@ def check(amxd: Path) -> int:
         return abs(ax - cx) < 0.01 and abs(aw - cw) < 0.01 and cy - 1.01 <= ay <= cy and ay + ah <= cy + 16 and \
             order.index(a["id"]) > order.index(c["id"])
 
+    def is_drop_zone(a: dict, c: dict) -> bool:
+        """a = the sample drop's live.drop at display c's rect, right behind it, clicks passing through (D50)."""
+        return a["maxclass"] == "live.drop" and c["maxclass"] == "v8ui" and bool(a.get("ignoreclick")) and \
+            a["presentation_rect"] == c["presentation_rect"] and order.index(a["id"]) == order.index(c["id"]) - 1
+
     def allowed(a: dict, c: dict) -> bool:
         kinds = {a["maxclass"], c["maxclass"]}
         if kinds == {"live.line", "live.comment"}:
             return True
-        return is_overlay_on(a, c) or is_overlay_on(c, a)
+        return is_overlay_on(a, c) or is_overlay_on(c, a) or is_drop_zone(a, c) or is_drop_zone(c, a)
     for b in boxes.values():
         if b["maxclass"] == "live.comment" and b.get("ignoreclick") and b.get("presentation"):
             if not any(is_overlay_on(b, c) for c in boxes.values() if c["maxclass"] == "live.dial"):
@@ -227,9 +235,32 @@ def check(amxd: Path) -> int:
     for a, c in sorted(overlaps):
         errors.append(f"overlap: {a} / {c}")
 
+    # sample drop (D50-D54): one invisible live.drop right behind the display at its rect, Hidden parameter
+    # (no re-import at load), wired to the display; a mono drop buffer named in the buffers message
+    drops = [b for b in boxes.values() if b["maxclass"] == "live.drop"]
+    disp_box = next((b for b in boxes.values() if b.get("varname") == "display"), None)
+    if len(drops) != 1 or disp_box is None:
+        errors.append(f"sample drop: {len(drops)} live.drop boxes (want 1) or no display")
+    else:
+        dz = drops[0]
+        if not is_drop_zone(dz, disp_box):
+            errors.append("sample drop: the live.drop must lie at the display's rect, right behind it, with ignoreclick 1")
+        vo = (dz.get("saved_attribute_attributes") or {}).get("valueof") or {}
+        if vo.get("parameter_invisible") != 2:
+            errors.append("sample drop: live.drop parameter must be Hidden (parameter_invisible 2)")
+        if any((dz.get(k) or [0, 0, 0, 1])[3] != 0 for k in ("bordercolor", "focusbordercolor", "textcolor")) or dz.get("legend"):
+            errors.append("sample drop: live.drop must draw nothing (transparent colours, no legend)")
+        if not any(ln["source"][0] == dz["id"] and str(boxes[ln["destination"][0]].get("text", "")) == "prepend droppath"
+                   for ln in lines):
+            errors.append("sample drop: live.drop is not wired to 'prepend droppath'")
+    texts = [str(b.get("text", "")) for b in boxes.values()]
+    if "buffer~ ---adrop @samps 1 1" not in texts or not any(t.startswith("buffers ") and t.split()[-1] == "---adrop" for t in texts):
+        errors.append("sample drop: no mono 'buffer~ ---adrop @samps 1 1' named in the display's buffers message")
+
     # files
     for b in boxes.values():
-        if b["maxclass"].startswith("live.") and b.get("parameter_enable") and b.get("presentation"):
+        if b["maxclass"].startswith("live.") and b["maxclass"] != "live.drop" and b.get("parameter_enable") and \
+                b.get("presentation"):
             f = b.get("jspainterfile")
             if not f:
                 errors.append(f"{b.get('varname')}: no jspainterfile")

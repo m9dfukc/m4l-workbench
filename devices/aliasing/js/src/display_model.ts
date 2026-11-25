@@ -125,6 +125,13 @@ export function iconRects(w = W): { line: Rect; twoD: Rect } {
 	};
 }
 
+/** The sample drop's Fit / 1:1 pills (D54), left of the Line / 2D icons. */
+export function fitRects(w = W): { fit: Rect; one: Rect } {
+	const line = iconRects(w).line;
+	const one = { x: line.x - 6 - 18, y: HEADER_Y, w: 18, h: 11 };
+	return { fit: { x: one.x - 19, y: HEADER_Y, w: 19, h: 11 }, one };
+}
+
 export function inRect(x: number, y: number, r: Rect): boolean {
 	return x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 }

@@ -16,20 +16,32 @@
 // Tone page: the Band + Resonator curve with handles (drag the band = Center x / Res y, drag an
 // edge = Width, double-click the band = Pass/Reject, R handle = Res Freq x / Feedback y).
 //
+// Sample drop (D50-D54, docs/v0.3-design.md section 4c): an audio file dropped on the display (a
+// live.drop behind it) is read through sfinfo~ and buffer~ ---adrop and written into all five rows,
+// either the whole file resampled to the row (FIT) or its first 1024 frames (1:1, pills in the header);
+// the Write State goes to Freeze first. Pure logic in drop_model.ts.
+//
 // Messages in (inlet 0):
-//   buffers <table> <heads> [<dict>]  names of buffer~ ---atab, ---aheads and dict ---atable
-//                             (the patch resolves ---); the stored table is read from the dict
+//   buffers <table> <heads> [<dict> [<drop>]]  names of buffer~ ---atab, ---aheads, dict ---atable and
+//                             buffer~ ---adrop (the patch resolves ---); the stored table is read from
+//                             the dict
 //   page <n>                  the face's page (from the Page live.tab)
 //   tonepages <n ...>         pages that show the tone curve (default 2 = the hybrid's Tone; face b
 //                             sends 3 4 = Band, Res)
 //   mode <0|1>                Line, 2D (from the stored Display Mode live.tab)
+//   fit <0|1>                 sample drop: FIT, 1:1 (from the stored Drop Fit live.tab)
 //   pv <name> <value>         parameter values the display needs: size center bwidth bres bslope
 //                             bmode rsfreq rsfb rsmix rstrack bandon reson
 //   dictionary <name>         the stored table (dict Blob parameter "Table"): recall or echo
+//   droppath <path>           a file dropped on the display (live.drop)
+//   sfms / sfsr / sfch <v>    sfinfo~'s report on the dropped file (length ms, sample rate, channels;
+//                             channels comes last and starts the read)
+//   dropready                 buffer~ ---adrop has read the file
 //   bang                      redraw once
 // Outlets:
-//   0  <name> <value> for the patch's route: mode center bwidth bres bmode rsfreq rsfb rsmix rstrack
-//      reson
+//   0  <name> <value> for the patch's route: mode fit center bwidth bres bmode rsfreq rsfb rsmix rstrack
+//      reson wactive (Freeze on drop), sfopen <path> (-> sfinfo~), bufsize <n> / bufread <path> 0 <ms>
+//      (-> buffer~ ---adrop)
 //   1  dictionary <name> -> dict ---atable (stores the table with the Live Set)
 //
 // Max calls handlers by message name: they stay top-level function declarations (js-build checks).
@@ -53,6 +65,7 @@ import {
 	inRect,
 	copyInto,
 	curveRect,
+	fitRects,
 	laneHit,
 	laneOutline,
 	laneRect,
@@ -77,6 +90,16 @@ import {
 	type Rect,
 	type Tone,
 } from "./display_model.ts";
+import {
+	ONE_TO_ONE,
+	dropSummary,
+	fileFrames,
+	fileName,
+	fitRow,
+	framesToRead,
+	isAudioPath,
+	readMs,
+} from "./drop_model.ts";
 import { palette, themeIsDark, withAlpha, type Palette, type RGBA } from "./paint_kit.ts";
 
 inlets = 1;
@@ -127,6 +150,27 @@ const storeDict = new Dict();
 let expectEcho = false;
 let pendingRestore: number[][] | null = null;
 
+// sample drop (D50-D54): idle -> info (waiting for sfinfo~) -> reading (waiting for buffer~) -> idle
+const DROP_TIMEOUT_MS = 15000;
+const NOTE_MS = 4000;
+let dropName = "";
+let fitValue = 0;
+let drop: { state: "idle" | "info" | "reading"; path: string; ms: number; sr: number; frames: number; mode: number; since: number } = {
+	state: "idle",
+	path: "",
+	ms: 0,
+	sr: 0,
+	frames: 0,
+	mode: 0,
+	since: 0,
+};
+let note: { text: string; until: number } = { text: "", until: 0 };
+
+function setNote(text: string): void {
+	note = { text, until: Date.now() + NOTE_MS };
+	mgraphics.redraw();
+}
+
 const timer = new Task(tick);
 timer.interval = FPS_INTERVAL_MS;
 
@@ -146,6 +190,10 @@ function readData(): void {
 
 function tick(): void {
 	readData();
+	if (drop.state !== "idle" && Date.now() - drop.since > DROP_TIMEOUT_MS) {
+		drop.state = "idle";
+		setNote(`could not read ${fileName(drop.path)}`);
+	}
 	mgraphics.redraw();
 }
 
@@ -207,9 +255,10 @@ function applyRows(r: number[][]): void {
 
 // ---- message handlers ---------------------------------------------------------------------------
 
-function buffers(table: string, headsName: string, dictName?: string): void {
+function buffers(table: string, headsName: string, dictName?: string, dropBufName?: string): void {
 	tableBuf = table ? new Buffer(String(table)) : null;
 	headsBuf = headsName ? new Buffer(String(headsName)) : null;
+	dropName = dropBufName ? String(dropBufName) : "";
 	// Fallback for a dict parameter that does not output on recall (probe G-UI5 untested): read the
 	// stored table by name; Live has restored the parameters before live.thisdevice fires.
 	if (!pendingRestore && dictName) {
@@ -268,6 +317,74 @@ function dictionary(name: string): void {
 	}
 }
 
+function fit(v: number): void {
+	fitValue = Number(v) ? ONE_TO_ONE : 0;
+	mgraphics.redraw();
+}
+
+// ---- sample drop (D50-D54) ------------------------------------------------------------------------------
+
+function droppath(...a: string[]): void {
+	const path = a.map(String).join(" ").trim();
+	if (!path || path === "none") return;
+	if (!isAudioPath(path)) {
+		setNote(`not an audio file: ${fileName(path)}`);
+		return;
+	}
+	if (!tableBuf || !dropName) {
+		setNote("table not ready");
+		return;
+	}
+	drop = { state: "info", path, ms: 0, sr: 0, frames: 0, mode: fitValue, since: Date.now() };
+	setNote(`reading ${fileName(path)}…`);
+	outlet(0, "sfopen", path);
+}
+
+function sfms(v: number): void {
+	if (drop.state === "info") drop.ms = Number(v) || 0;
+}
+
+function sfsr(v: number): void {
+	if (drop.state === "info") drop.sr = Number(v) || 0;
+}
+
+/** sfinfo~'s left outlet (channels) comes last: start the read. */
+function sfch(_v: number): void {
+	if (drop.state !== "info") return;
+	drop.frames = fileFrames(drop.ms, drop.sr);
+	if (drop.frames < 1) {
+		drop.state = "idle";
+		setNote(`empty or unreadable: ${fileName(drop.path)}`);
+		return;
+	}
+	const n = framesToRead(drop.mode, drop.frames, drop.sr);
+	drop.state = "reading";
+	drop.since = Date.now();
+	outlet(0, "bufsize", n);
+	outlet(0, "bufread", drop.path, 0, readMs(n, drop.sr));
+}
+
+function dropready(): void {
+	if (drop.state !== "reading" || !tableBuf || !dropName) return;
+	drop.state = "idle";
+	let row: number[];
+	try {
+		const b = new Buffer(dropName);
+		const frames = b.framecount();
+		row = fitRow(drop.mode, frames, (start, count) => b.peek(1, start, count));
+	} catch (e) {
+		setNote(`could not read ${fileName(drop.path)}`);
+		return;
+	}
+	// Freeze first (D53), so the write heads do not overwrite the new rows in the next audio vector
+	outlet(0, "wactive", 0);
+	applyRows(Array.from({ length: VOICES }, () => row.slice()));
+	storeTable();
+	outlet(0, "bufsize", 1); // free the file's memory
+	setNote(dropSummary(fileName(drop.path), drop.frames, drop.sr, drop.mode));
+	post(`aliasing_display: dropped ${fileName(drop.path)}, ${drop.frames} frames, ${drop.mode === ONE_TO_ONE ? "1:1" : "fit"}\n`);
+}
+
 function bang(): void {
 	readData();
 	mgraphics.redraw();
@@ -292,7 +409,14 @@ function onclick(x: number, y: number, _but: number, _cmd: number, shift: number
 	const w = mgraphics.size[0];
 	const icons = iconRects(w);
 	if (!isTone() && y < icons.line.y + icons.line.h + 2) {
-		if (inRect(x, y, icons.line) && modeValue !== 0) {
+		const pills = fitRects(w);
+		if (inRect(x, y, pills.fit) && fitValue !== 0) {
+			fitValue = 0;
+			send("fit", 0);
+		} else if (inRect(x, y, pills.one) && fitValue !== ONE_TO_ONE) {
+			fitValue = ONE_TO_ONE;
+			send("fit", ONE_TO_ONE);
+		} else if (inRect(x, y, icons.line) && modeValue !== 0) {
 			modeValue = 0;
 			send("mode", 0);
 		} else if (inRect(x, y, icons.twoD) && modeValue !== 1) {
@@ -424,15 +548,34 @@ function drawHeader(w: number, p: Palette): void {
 	const tonePage = isTone();
 	const tw = label(tonePage ? "TONE" : "TABLE", PAD, HEADER_Y + 9, p.label, 8, true);
 	const icons = iconRects(w);
+	const pills = fitRects(w);
 	const infoX = PAD + tw + 6;
-	const maxw = (tonePage ? w - PAD : icons.line.x - 4) - infoX;
-	const info = tonePage
-		? "drag band · edges = width · dbl-click = Pass/Reject · R"
-		: tableInfo(spanCells(params.size / 100), heads[4][0], heads[5][2], fs());
+	const maxw = (tonePage ? w - PAD : pills.fit.x - 4) - infoX;
+	const showNote = note.text !== "" && Date.now() < note.until;
+	const info = showNote
+		? note.text
+		: tonePage
+			? "drag band · edges = width · dbl-click = Pass/Reject · R"
+			: tableInfo(spanCells(params.size / 100), heads[4][0], heads[5][2], fs());
 	mgraphics.select_font_face(FONT);
 	mgraphics.set_font_size(8);
-	label(fitted(info, maxw), infoX, HEADER_Y + 9, p.label, 8);
+	label(fitted(info, maxw), infoX, HEADER_Y + 9, showNote ? p.write : p.label, 8);
 	if (tonePage) return;
+	// sample drop: FIT | 1:1 pills (D54)
+	for (const [r, s, on] of [
+		[pills.fit, "FIT", fitValue === 0],
+		[pills.one, "1:1", fitValue === ONE_TO_ONE],
+	] as [Rect, string, boolean][]) {
+		if (on) {
+			rgba(p.sel);
+			mgraphics.rectangle_rounded(r.x, r.y, r.w, r.h, 4, 4);
+			mgraphics.fill();
+		}
+		mgraphics.select_font_face(FONT_BOLD);
+		mgraphics.set_font_size(7);
+		const tx = Math.round(r.x + (r.w - mgraphics.text_measure(s)[0]) / 2);
+		label(s, tx, r.y + 8, on ? p.selFg : p.label, 7, true);
+	}
 	// Line / 2D icons
 	const sel = (r: Rect, on: boolean): void => {
 		if (on) {

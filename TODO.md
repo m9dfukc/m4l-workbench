@@ -9,6 +9,10 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
       face that stays (then delete the other shell and its generator branch). Re-handed over after
       D46–D49 (user's first look: State drop-down, 918 px, menu dots, Clear). Includes the still open
       t3/t4 items: bundled Max 9.1.5 round, table storage, hot reload. Harness pre-check PASS (t5-auto).
+- [ ] **aliasing t6 (user, in Live):** sample drop D50–D54 in both faces (FIT | 1:1 pills, Freeze on
+      drop) — handover 2026-11-25 `testlog/aliasing/t6-handover.md`; the open point is a real drag from
+      Live's browser / the Finder through the v8ui to the `live.drop` behind it. Pre-check PASS (t6-auto:
+      smoke tests both faces with `check_drop.py`, harness in Live). Can run together with t5.
 - [x] aliasing t4 (v0.3, 9b1d5d7 + e0b2b59): the user looked at it in Live and sent screenshots and a
       critique instead of the checklist → face review, D33–D44, v0.3b (2026-11-25).
 - [ ] **Live harness spike, rest (Claude + user):** L1, L3 done; first run on aliasing v0.3 (9b1d5d7)
@@ -26,7 +30,11 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 - [ ] **aliasing review (user + Claude):** the v0.2 decisions A1–A33 (`docs/v0.2-build.md` §1) that
       v0.3 did not replace, and the mock-up's own decisions (`docs/mockup-v0.3/layout.md` §4–§5).
 - [ ] aliasing v0.4: own presets (JSON + menu) incl. the v0.2 init sound (D1), `live.banks` for Push,
-      CPU reading; remove the debug "ready" posts (A33) before a release.
+      CPU reading; remove the debug "ready" and "dropped" posts (A33) before a release.
+- [ ] **aliasing Push (v0.4):** `live.banks` for both faces (proposal: 8 core banks + 9 mod-matrix banks,
+      `docs/research/notes/push-compatibility-2026-11-25.md` §A); Push 3 Standalone stays **untested /
+      unsupported** until a probe device (v8, v8ui, jspainter, gen~, dict Blob) has loaded on the
+      hardware; hardware checks P1–P6 there (needs a Push 2/3; P4–P6 a Push 3 with processor).
 - [ ] **aliasing (user, Reaktor):** optional simple-settings recording (R23: write ramp hi,
       In-Pitch 73, read −29.5, Size 0.08, LFOs off) to check Tri/Par Symm `W` and the anti-aliased
       ramp against `scripts/table_sim.py`; renders R1a, R1d, R7a–e from `renders.md`.

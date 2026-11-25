@@ -23,7 +23,7 @@ trap '"$ROOT/tools/max-workspace.sh" restore "$OUT/workspace"' EXIT
 cp "$SETTINGS/audioprefs.txt" "$OUT/audioprefs.before.txt"
 DRIVER="$(sed -n 's/.*prefdrivername "\([^"]*\)".*/\1/p' "$OUT/audioprefs.before.txt")"
 DRIVER="${DRIVER:-Core Audio}"
-rm -f "$OUT/smoke.wav"
+rm -f "$OUT/smoke.wav" "$OUT/atab_after_drop.wav"
 python3 -B "$ROOT/devices/aliasing/test/smoke/make_smoke.py" "$OUT" "$DRIVER" "$FACE"
 echo "run_smoke: starting Max (driver to restore: $DRIVER)"
 "$MAX_BIN" "$OUT/smoke.maxpat" > "$OUT/max-stdout.log" 2>&1 &
@@ -41,3 +41,5 @@ echo "== Max.log: device posts"
 grep -a "aliasing_\|probe_dial_painter\|ProbeUI" "$OUT/Max.log" | sed 's/^\[[^]]*\] \[[0-9]*\] //' | head -20 || true
 echo "== recording"
 ls -la "$OUT/smoke.wav" 2> /dev/null || echo "no recording"
+echo "== sample drop (D50-D54)"
+UV_CACHE_DIR="$ROOT/.uv-cache" uv run --quiet --project "$ROOT/tools" python -B "$ROOT/devices/aliasing/test/smoke/check_drop.py" "$OUT" "$FACE" || echo "run_smoke: sample drop check FAILED"

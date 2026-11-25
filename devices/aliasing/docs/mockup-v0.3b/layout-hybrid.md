@@ -23,6 +23,9 @@ Deviations from h.1 (all measured against the mock-up in the canvas preview, 202
   everything right of them sits **50 px further left** than in h.1 (the table below has the final
   rects).
 
+Sample drop (D50, 2026-11-25): an invisible `live.drop` (`sample_drop`, ignoreclick, Hidden parameter)
+lies at the display's rect directly behind the v8ui; it is not a control and not in the table below.
+
 | Scripting name | Object | Rect x y w h | Visible | Note |
 |---|---|---|---|---|
 | `panel_w` | panel | 4 4 250 79 | always | theme surface (D22) |

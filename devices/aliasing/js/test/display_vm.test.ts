@@ -60,6 +60,9 @@ async function load() {
 			if (!b) throw new Error(`no buffer ${name}`);
 			this.b = b;
 		}
+		framecount() {
+			return this.b.frames;
+		}
 		peek(ch: number, frame: number, count: number) {
 			const out: number[] = [];
 			for (let i = 0; i < count; i++) out.push(this.b.data[(frame + i) * this.b.ch + (ch - 1)]);
@@ -113,8 +116,74 @@ async function load() {
 	});
 	vm.runInContext(code, ctx);
 	const call = (fn: string, ...args: unknown[]) => (ctx[fn] as (...a: unknown[]) => unknown)(...args);
-	return { call, buffers, dicts, outs, calls, ctx };
+	return { call, buffers, mkbuf, dicts, outs, calls, ctx };
 }
+
+test("sample drop: sfinfo~, buffer~ read, Freeze first, all five rows, stored, buffer freed (D50-D54)", async () => {
+	const d = await load();
+	d.mkbuf("adrop", 1, 1);
+	d.call("buffers", "atab", "aheads", "---atable", "adrop");
+	d.call("page", 0);
+	// not audio: nothing is asked of sfinfo~, the header says why
+	d.call("droppath", "Macintosh HD:/Users/x/My Set.als");
+	assert.equal(d.outs.filter((o) => o[1] === "sfopen").length, 0);
+	d.call("paint");
+	// FIT: a 4096-frame stereo file of 4 cycles (sfinfo~ reports right to left: ms, sr, channels)
+	d.outs.length = 0;
+	d.call("droppath", "Macintosh HD:/Users/x/four cycles.wav");
+	assert.deepEqual(d.outs[0], [0, "sfopen", "Macintosh HD:/Users/x/four cycles.wav"]);
+	d.call("sfms", (4096 / 48000) * 1000);
+	d.call("sfsr", 48000);
+	d.call("sfch", 2);
+	assert.deepEqual(d.outs[1], [0, "bufsize", 4096]);
+	assert.equal(d.outs[2][1], "bufread");
+	assert.equal(d.outs[2][2], "Macintosh HD:/Users/x/four cycles.wav");
+	assert.equal(d.outs[2][3], 0);
+	assert.ok((d.outs[2][4] as number) > (4096 / 48000) * 1000);
+	// buffer~ has summed the channels into its mono buffer and bangs
+	d.mkbuf("adrop", 4096, 1);
+	const src = d.buffers.get("adrop")!;
+	for (let i = 0; i < 4096; i++) src.data[i] = 0.8 * Math.sin((2 * Math.PI * 4 * i) / 4096);
+	d.outs.length = 0;
+	d.call("dropready");
+	const names = d.outs.map((o) => `${o[0]}:${o[1]}`);
+	assert.ok(names.indexOf("0:wactive") >= 0 && names.indexOf("0:wactive") < names.indexOf("1:dictionary"), `Freeze before the store (${names})`);
+	assert.deepEqual(d.outs.find((o) => o[1] === "wactive"), [0, "wactive", 0]);
+	assert.deepEqual(d.outs[d.outs.length - 1], [0, "bufsize", 1], "buffer shrunk after the read");
+	const tab = d.buffers.get("atab")!;
+	const cell = (v: number, i: number) => tab.data[i * 5 + v];
+	for (let v = 0; v < 5; v++) {
+		assert.ok(Math.abs(cell(v, 32) - (0.5 + 0.5 * Math.sin((2 * Math.PI * 4 * (32.5 * 4 - 0.5)) / 4096))) < 0.01, `voice ${v}`);
+		assert.equal(cell(v, 700), cell(0, 700), "same row in every voice");
+	}
+	const stored = d.dicts.get(String(d.outs.find((o) => o[1] === "dictionary")![2])) as { table: number[] };
+	assert.ok(Math.abs(stored.table[3 * 1024 + 32] - cell(3, 32)) < 1e-5, "the dict holds the dropped table");
+	d.call("paint");
+	// a late or repeated bang does nothing
+	d.outs.length = 0;
+	d.call("dropready");
+	assert.equal(d.outs.length, 0);
+	// 1:1 via the header pill, a 300-frame file: 1024 frames are read, silence after the file
+	(d.ctx.mgraphics as { size: number[] }).size = [328, 136];
+	d.call("onclick", 328 - 4 - 30 - 6 - 18 + 9, 8, 1, 0, 0, 0, 0);
+	assert.deepEqual(d.outs[0], [0, "fit", 1]);
+	d.outs.length = 0;
+	d.call("droppath", "/tmp/short.aif");
+	d.call("sfms", (300 / 44100) * 1000);
+	d.call("sfsr", 44100);
+	d.call("sfch", 1);
+	assert.deepEqual(d.outs[1], [0, "bufsize", 1024]);
+	d.mkbuf("adrop", 1024, 1);
+	const s2 = d.buffers.get("adrop")!;
+	for (let i = 0; i < 300; i++) s2.data[i] = i < 150 ? 0.25 : -0.5;
+	d.call("dropready");
+	assert.ok(Math.abs(cell(2, 10) - 0.75) < 1e-6 && Math.abs(cell(2, 200)) < 1e-6 && cell(2, 600) === 0.5, "1:1 cells");
+	// fit back from the stored Drop Fit tab
+	d.call("fit", 0);
+	d.outs.length = 0;
+	d.call("onclick", 328 - 4 - 30 - 6 - 18 - 19 + 9, 8, 1, 0, 0, 0, 0);
+	assert.equal(d.outs.length, 0, "FIT already selected");
+});
 
 test("paints every page and mode, before and after the buffers arrive", async () => {
 	const d = await load();

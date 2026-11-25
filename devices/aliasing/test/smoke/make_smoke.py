@@ -3,8 +3,10 @@
 Aliasing B.amxd, from scripts/bootstrap_shell.py) with plugout~ replaced by sfrecord~, plus a runner that
 switches to the NonRealTime driver, records a few seconds while it pages through the face, flips modes,
 write shapes and states, section switches, the strip target (face b) and a few matrix cells (Voice /
-Read Osc / Env feedback), restores the audio driver and quits Max. Written to OUTDIR/smoke.maxpat next to
-copies of the runtime files.
+Read Osc / Env feedback), drops a test file on the sample drop (D50-D54: hybrid FIT with drop_fit.wav, b 1:1
+with drop_one.wav, through the live.drop's set + bang), writes the table to OUTDIR/atab_after_drop.wav
+(check_drop.py compares it), restores the audio driver and quits Max. Written to OUTDIR/smoke.maxpat next
+to copies of the runtime files and the two test files.
 
 Never Live, never the user's patches, no sound (NonRealTime driver). See run_smoke.sh.
 
@@ -15,14 +17,39 @@ Usage: python3 devices/aliasing/test/smoke/make_smoke.py OUTDIR DRIVER [hybrid|b
 from __future__ import annotations
 
 import json
+import math
 import shutil
+import struct
 import sys
+import wave
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DEVICE = HERE.parent.parent
 sys.path.insert(0, str(DEVICE / "scripts"))
 import bootstrap_shell as bs  # noqa: E402
+
+
+def write_wav(path: Path, sr: int, chans: list[list[float]]) -> None:
+    """16-bit PCM test file (buffer~ reads v / 32768: 0.25 and -0.5 stay exact)."""
+    data = bytearray()
+    for i in range(len(chans[0])):
+        for c in chans:
+            data += struct.pack("<h", max(-32768, min(32767, round(c[i] * 32767))))
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(len(chans))
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(bytes(data))
+
+
+def drop_files(out: Path) -> tuple[Path, Path]:
+    """drop_fit.wav: 4096 frames, stereo 48 kHz, 4 cycles at 0.5 per channel (FIT: 4 cycles over the row);
+    drop_one.wav: 1000 frames, mono 44.1 kHz, 500 x 0.25 then 500 x -0.5 (1:1: cells 0.75, 0, then 0.5)."""
+    a = [0.5 * math.sin(2 * math.pi * 4 * k / 4096) for k in range(4096)]
+    write_wav(out / "drop_fit.wav", 48000, [a, a])
+    write_wav(out / "drop_one.wav", 44100, [[0.25 if k < 500 else -0.5 for k in range(1000)]])
+    return out / "drop_fit.wav", out / "drop_one.wav"
 
 
 def main(argv: list[str]) -> int:
@@ -36,6 +63,8 @@ def main(argv: list[str]) -> int:
     for f in list(DEVICE.glob("aliasing*.js")) + [DEVICE / "aliasing.gendsp",
                                                     DEVICE / "test" / "probe-ui" / "probe_dial_painter.js"]:
         shutil.copy2(f, out / f.name)
+
+    fit_wav, one_wav = drop_files(out)
 
     _, tmpl = bs.read_amxd(bs.TEMPLATE)
     dev = bs.build(tmpl, face)["patcher"]
@@ -78,7 +107,7 @@ def main(argv: list[str]) -> int:
     seq = obj("t b b b", x0, y0 + 30, 1, ["bang", "bang", "bang"])
     start = msg("; dsp setdriver NonRealTime; dsp start", x0, y0 + 60)
     open_ = msg(f"open {out / 'smoke.wav'}, 1", x0 + 300, y0 + 60)
-    init_bufs = msg("buffers ---atab ---aheads ---atable", x0 + 600, y0 + 60)
+    init_bufs = msg("buffers ---atab ---aheads ---atable ---adrop", x0 + 600, y0 + 60)
     wire(lb, 0, seq, 0)
     wire(seq, 2, init_bufs, 0)
     wire(init_bufs, 0, by_var["display"], 0)
@@ -92,6 +121,11 @@ def main(argv: list[str]) -> int:
         # write shapes (D34) and states, feedback sources in the matrix (D36)
         (900, "w_shape", "2"), (1300, "w_shape", "4"), (1600, "w_active", "2"), (2000, "w_active", "1"),
         (1100, "mod_vo_wp", "50"), (1400, "mod_ro_sz", "60"), (1900, "mod_en_ou", "-50"), (2200, "mod_l1_wa", "-80"),
+        # sample drop (D50-D54): LFO 1 > Write off again, so only the drop's Freeze keeps the table; the
+        # live.drop gets the file by set, then bang (whichever of the two outputs, the result is the same)
+        (3500, "mod_l1_wa", "0"),
+        (3600, "sample_drop", f"set {fit_wav if face == 'hybrid' else one_wav}"), (3700, "sample_drop", "bang"),
+        (4300, "atab_buffer", f"writewave {out / 'atab_after_drop.wav'}"),
     ]
     if face == "hybrid":
         steps = common + [
@@ -108,11 +142,13 @@ def main(argv: list[str]) -> int:
             # D48/D49: the cells set above mark Write Pitch, Size, Output and Write Gate in the menu; Clear at
             # 1.65 s, with Size shown (1.15 s), resets mod_ro_sz (set at 1.4 s): the Size dot goes
             (1650, "pages_script", "clearmod"), (2350, "mod_ve_ou", "40"),
+            (3450, "drop_fit", "1"),  # 1:1 in face b
         ]
     # D49: a button-mode live.text cannot be clicked by a message (build/aliasing/btnprobe), so the step
     # sends the button's message, clearmod, straight to the pages script
     pages_id = next(b["box"]["id"] for b in boxes if str(b["box"].get("text", "")).startswith("v8 aliasing_pages.js"))
     by_var["pages_script"] = pages_id
+    by_var["atab_buffer"] = next(b["box"]["id"] for b in boxes if str(b["box"].get("text", "")).startswith("buffer~ ---atab"))
     for k, (t, var, val) in enumerate(steps):
         d = obj(f"delay {t}", x0, y0 + 120 + 30 * k, 2, ["bang"])
         m = msg(val, x0 + 120, y0 + 120 + 30 * k)

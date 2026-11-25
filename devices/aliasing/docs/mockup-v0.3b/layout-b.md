@@ -20,6 +20,9 @@ Deviations from b.2 (all measured against the mock-up in the canvas preview, 202
 - The 72 strip cells are `mod_<source>_<target>`; the nine of one source share one rect and the pages
   script shows the one of the Mod Target (pages_model.ts, face b).
 
+Sample drop (D50, 2026-11-25): an invisible `live.drop` (`sample_drop`, ignoreclick, Hidden parameter)
+lies at the display's rect directly behind the v8ui; it is not a control and not in the table below.
+
 | Scripting name | Object | Rect x y w h | Visible | Note |
 |---|---|---|---|---|
 | `panel_disp` | panel | 4 4 500 89 | always | theme surface (D22) |

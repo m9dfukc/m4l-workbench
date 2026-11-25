@@ -89,6 +89,11 @@ function iconRects(w = W) {
     twoD: { x: w - PAD - 14, y: HEADER_Y, w: 14, h: 11 }
   };
 }
+function fitRects(w = W) {
+  const line = iconRects(w).line;
+  const one = { x: line.x - 6 - 18, y: HEADER_Y, w: 18, h: 11 };
+  return { fit: { x: one.x - 19, y: HEADER_Y, w: 19, h: 11 }, one };
+}
 function inRect(x, y, r) {
   return x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 }
@@ -309,6 +314,120 @@ function normalizeRow(values, n) {
     out[i] = Number.isFinite(v) ? v : 0;
   }
   return out;
+}
+
+// devices/aliasing/js/src/drop_model.ts
+var FIT = 0;
+var ONE_TO_ONE = 1;
+var FIT_MAX_SECONDS = 600;
+var FRAMES_PER_CELL = 8;
+var CHUNK = 65536;
+var AUDIO_EXTENSIONS = ["wav", "wave", "aif", "aiff", "aifc", "flac", "mp3", "m4a", "caf", "ogg"];
+function isAudioPath(path) {
+  const m = /\.([A-Za-z0-9]+)$/.exec(String(path).trim());
+  return m !== null && AUDIO_EXTENSIONS.indexOf(m[1].toLowerCase()) >= 0;
+}
+function fileName(path) {
+  const s = String(path).trim();
+  const k = Math.max(s.lastIndexOf("/"), s.lastIndexOf(":"));
+  return k >= 0 ? s.slice(k + 1) : s;
+}
+function fileFrames(ms, sr) {
+  return ms > 0 && sr > 0 ? Math.round(ms * sr / 1e3) : 0;
+}
+function framesToRead(mode2, frames, sr) {
+  if (mode2 === ONE_TO_ONE) return CELLS;
+  return Math.max(1, Math.min(frames, Math.round(FIT_MAX_SECONDS * (sr > 0 ? sr : 48e3))));
+}
+function readMs(n, sr) {
+  return Math.round((n / (sr > 0 ? sr : 48e3) * 1e3 + 50) * 1e3) / 1e3;
+}
+function decimation(frames) {
+  return Math.max(1, Math.floor(frames / (CELLS * FRAMES_PER_CELL)));
+}
+function blockMeans(d) {
+  const out = [];
+  let acc = 0;
+  let k = 0;
+  return {
+    push(x) {
+      for (let i = 0; i < x.length; i++) {
+        acc += Number(x[i]) || 0;
+        if (++k === d) {
+          out.push(acc / d);
+          acc = 0;
+          k = 0;
+        }
+      }
+    },
+    finish() {
+      if (k > 0) out.push(acc / k);
+      acc = 0;
+      k = 0;
+      return out;
+    }
+  };
+}
+function blackman(u) {
+  const a = Math.PI * (u + 1);
+  return 0.42 - 0.5 * Math.cos(a) + 0.08 * Math.cos(2 * a);
+}
+function resample(src, n) {
+  const m = src.length;
+  const out = new Array(n).fill(0);
+  if (m === 0) return out;
+  if (m === 1) return out.fill(Number(src[0]) || 0);
+  const r = m / n;
+  if (r <= 1) {
+    for (let i = 0; i < n; i++) {
+      const t = i * r;
+      const k = Math.floor(t);
+      const a = src[k];
+      out[i] = a + (src[Math.min(k + 1, m - 1)] - a) * (t - k);
+    }
+    return out;
+  }
+  const w = 2 * Math.PI * 0.5 / r;
+  const hw = Math.ceil(4 * r);
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) * r - 0.5;
+    const k0 = Math.max(0, Math.ceil(t - hw));
+    const k1 = Math.min(m - 1, Math.floor(t + hw));
+    let acc = 0;
+    let sum = 0;
+    for (let k = k0; k <= k1; k++) {
+      const x = k - t;
+      const h = (x === 0 ? 1 : Math.sin(w * x) / (w * x)) * blackman(x / hw);
+      acc += h * src[k];
+      sum += h;
+    }
+    out[i] = sum !== 0 ? acc / sum : 0;
+  }
+  return out;
+}
+function toCells(x) {
+  let peak = 0;
+  for (let i = 0; i < x.length; i++) peak = Math.max(peak, Math.abs(Number(x[i]) || 0));
+  const out = new Array(x.length);
+  for (let i = 0; i < x.length; i++) out[i] = peak < 1e-9 ? 0.5 : clamp(0.5 + 0.5 * (Number(x[i]) || 0) / peak, 0, 1);
+  return out;
+}
+function fitRow(mode2, frames, read) {
+  if (mode2 === ONE_TO_ONE) {
+    const x = new Array(CELLS).fill(0);
+    const a = frames > 0 ? read(0, Math.min(frames, CELLS)) : [];
+    for (let i = 0; i < a.length && i < CELLS; i++) x[i] = Number(a[i]) || 0;
+    return toCells(x);
+  }
+  const bm = blockMeans(decimation(frames));
+  for (let s = 0; s < frames; s += CHUNK) bm.push(read(s, Math.min(CHUNK, frames - s)));
+  return toCells(resample(bm.finish(), CELLS));
+}
+function dropSummary(name, frames, sr, mode2) {
+  const secs = sr > 0 ? frames / sr : 0;
+  const len = secs >= 1 ? `${secs.toFixed(2)} s` : `${Math.round(secs * 1e3)} ms`;
+  const cut = mode2 === FIT && sr > 0 && frames > FIT_MAX_SECONDS * sr ? ` (first ${FIT_MAX_SECONDS / 60} min)` : "";
+  return `${name} \xB7 ${len}${cut} \u2192 ${mode2 === ONE_TO_ONE ? "1:1" : "FIT"} \xB7 Freeze`;
 }
 
 // devices/aliasing/js/src/paint_kit.ts
@@ -598,6 +717,24 @@ var gesture = null;
 var storeDict = new Dict();
 var expectEcho = false;
 var pendingRestore = null;
+var DROP_TIMEOUT_MS = 15e3;
+var NOTE_MS = 4e3;
+var dropName = "";
+var fitValue = 0;
+var drop = {
+  state: "idle",
+  path: "",
+  ms: 0,
+  sr: 0,
+  frames: 0,
+  mode: 0,
+  since: 0
+};
+var note = { text: "", until: 0 };
+function setNote(text) {
+  note = { text, until: Date.now() + NOTE_MS };
+  mgraphics.redraw();
+}
 var timer = new Task(tick);
 timer.interval = FPS_INTERVAL_MS;
 function readData() {
@@ -612,6 +749,10 @@ function readData() {
 }
 function tick() {
   readData();
+  if (drop.state !== "idle" && Date.now() - drop.since > DROP_TIMEOUT_MS) {
+    drop.state = "idle";
+    setNote(`could not read ${fileName(drop.path)}`);
+  }
   mgraphics.redraw();
 }
 function startTimer() {
@@ -661,9 +802,10 @@ function applyRows(r) {
   if (headsBuf) headsBuf.poke(NCH, 1, 1);
   mgraphics.redraw();
 }
-function buffers(table, headsName, dictName) {
+function buffers(table, headsName, dictName, dropBufName) {
   tableBuf = table ? new Buffer(String(table)) : null;
   headsBuf = headsName ? new Buffer(String(headsName)) : null;
+  dropName = dropBufName ? String(dropBufName) : "";
   if (!pendingRestore && dictName) {
     try {
       const r = rowsFromStored(new Dict(String(dictName)).get("table"));
@@ -714,6 +856,65 @@ function dictionary(name) {
 `);
   }
 }
+function fit(v) {
+  fitValue = Number(v) ? ONE_TO_ONE : 0;
+  mgraphics.redraw();
+}
+function droppath(...a) {
+  const path = a.map(String).join(" ").trim();
+  if (!path || path === "none") return;
+  if (!isAudioPath(path)) {
+    setNote(`not an audio file: ${fileName(path)}`);
+    return;
+  }
+  if (!tableBuf || !dropName) {
+    setNote("table not ready");
+    return;
+  }
+  drop = { state: "info", path, ms: 0, sr: 0, frames: 0, mode: fitValue, since: Date.now() };
+  setNote(`reading ${fileName(path)}\u2026`);
+  outlet(0, "sfopen", path);
+}
+function sfms(v) {
+  if (drop.state === "info") drop.ms = Number(v) || 0;
+}
+function sfsr(v) {
+  if (drop.state === "info") drop.sr = Number(v) || 0;
+}
+function sfch(_v) {
+  if (drop.state !== "info") return;
+  drop.frames = fileFrames(drop.ms, drop.sr);
+  if (drop.frames < 1) {
+    drop.state = "idle";
+    setNote(`empty or unreadable: ${fileName(drop.path)}`);
+    return;
+  }
+  const n = framesToRead(drop.mode, drop.frames, drop.sr);
+  drop.state = "reading";
+  drop.since = Date.now();
+  outlet(0, "bufsize", n);
+  outlet(0, "bufread", drop.path, 0, readMs(n, drop.sr));
+}
+function dropready() {
+  if (drop.state !== "reading" || !tableBuf || !dropName) return;
+  drop.state = "idle";
+  let row;
+  try {
+    const b = new Buffer(dropName);
+    const frames = b.framecount();
+    row = fitRow(drop.mode, frames, (start, count) => b.peek(1, start, count));
+  } catch (e) {
+    setNote(`could not read ${fileName(drop.path)}`);
+    return;
+  }
+  outlet(0, "wactive", 0);
+  applyRows(Array.from({ length: VOICES }, () => row.slice()));
+  storeTable();
+  outlet(0, "bufsize", 1);
+  setNote(dropSummary(fileName(drop.path), drop.frames, drop.sr, drop.mode));
+  post(`aliasing_display: dropped ${fileName(drop.path)}, ${drop.frames} frames, ${drop.mode === ONE_TO_ONE ? "1:1" : "fit"}
+`);
+}
 function bang() {
   readData();
   mgraphics.redraw();
@@ -731,7 +932,14 @@ function onclick(x, y, _but, _cmd, shift, _caps, option) {
   const w = mgraphics.size[0];
   const icons = iconRects(w);
   if (!isTone() && y < icons.line.y + icons.line.h + 2) {
-    if (inRect(x, y, icons.line) && modeValue !== 0) {
+    const pills = fitRects(w);
+    if (inRect(x, y, pills.fit) && fitValue !== 0) {
+      fitValue = 0;
+      send("fit", 0);
+    } else if (inRect(x, y, pills.one) && fitValue !== ONE_TO_ONE) {
+      fitValue = ONE_TO_ONE;
+      send("fit", ONE_TO_ONE);
+    } else if (inRect(x, y, icons.line) && modeValue !== 0) {
       modeValue = 0;
       send("mode", 0);
     } else if (inRect(x, y, icons.twoD) && modeValue !== 1) {
@@ -851,13 +1059,29 @@ function drawHeader(w, p) {
   const tonePage = isTone();
   const tw = label(tonePage ? "TONE" : "TABLE", PAD, HEADER_Y + 9, p.label, 8, true);
   const icons = iconRects(w);
+  const pills = fitRects(w);
   const infoX = PAD + tw + 6;
-  const maxw = (tonePage ? w - PAD : icons.line.x - 4) - infoX;
-  const info = tonePage ? "drag band \xB7 edges = width \xB7 dbl-click = Pass/Reject \xB7 R" : tableInfo(spanCells(params.size / 100), heads[4][0], heads[5][2], fs());
+  const maxw = (tonePage ? w - PAD : pills.fit.x - 4) - infoX;
+  const showNote = note.text !== "" && Date.now() < note.until;
+  const info = showNote ? note.text : tonePage ? "drag band \xB7 edges = width \xB7 dbl-click = Pass/Reject \xB7 R" : tableInfo(spanCells(params.size / 100), heads[4][0], heads[5][2], fs());
   mgraphics.select_font_face(FONT);
   mgraphics.set_font_size(8);
-  label(fitted(info, maxw), infoX, HEADER_Y + 9, p.label, 8);
+  label(fitted(info, maxw), infoX, HEADER_Y + 9, showNote ? p.write : p.label, 8);
   if (tonePage) return;
+  for (const [r, s, on] of [
+    [pills.fit, "FIT", fitValue === 0],
+    [pills.one, "1:1", fitValue === ONE_TO_ONE]
+  ]) {
+    if (on) {
+      rgba(p.sel);
+      mgraphics.rectangle_rounded(r.x, r.y, r.w, r.h, 4, 4);
+      mgraphics.fill();
+    }
+    mgraphics.select_font_face(FONT_BOLD);
+    mgraphics.set_font_size(7);
+    const tx = Math.round(r.x + (r.w - mgraphics.text_measure(s)[0]) / 2);
+    label(s, tx, r.y + 8, on ? p.selFg : p.label, 7, true);
+  }
   const sel = (r, on) => {
     if (on) {
       rgba(p.sel);
