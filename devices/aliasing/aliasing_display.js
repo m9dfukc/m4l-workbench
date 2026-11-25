@@ -540,9 +540,17 @@ function applyRows(r) {
   if (headsBuf) headsBuf.poke(NCH, 1, 1);
   mgraphics.redraw();
 }
-function buffers(table, headsName) {
+function buffers(table, headsName, dictName) {
   tableBuf = table ? new Buffer(String(table)) : null;
   headsBuf = headsName ? new Buffer(String(headsName)) : null;
+  if (!pendingRestore && dictName) {
+    try {
+      const r = rowsFromStored(new Dict(String(dictName)).get("table"));
+      if (r) pendingRestore = r;
+    } catch (e) {
+      pendingRestore = null;
+    }
+  }
   if (pendingRestore) applyRows(pendingRestore);
   readData();
   startTimer();

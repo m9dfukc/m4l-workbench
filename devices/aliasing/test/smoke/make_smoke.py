@@ -75,7 +75,7 @@ def main(argv: list[str]) -> int:
     seq = obj("t b b b", x0, y0 + 30, 1, ["bang", "bang", "bang"])
     start = msg("; dsp setdriver NonRealTime; dsp start", x0, y0 + 60)
     open_ = msg(f"open {out / 'smoke.wav'}, 1", x0 + 300, y0 + 60)
-    init_bufs = msg("buffers ---atab ---aheads", x0 + 600, y0 + 60)
+    init_bufs = msg("buffers ---atab ---aheads ---atable", x0 + 600, y0 + 60)
     wire(lb, 0, seq, 0)
     wire(seq, 2, init_bufs, 0)
     wire(init_bufs, 0, by_var["display"], 0)

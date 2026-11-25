@@ -12,7 +12,8 @@
 // edge = Width, double-click the band = Pass/Reject, R handle = Res Freq x / Feedback y).
 //
 // Messages in (inlet 0):
-//   buffers <table> <heads>   names of buffer~ ---atab and ---aheads (the patch resolves ---)
+//   buffers <table> <heads> [<dict>]  names of buffer~ ---atab, ---aheads and dict ---atable
+//                             (the patch resolves ---); the stored table is read from the dict
 //   page <0..3>               LFO, Mod, Tone, Out (from the Page live.tab)
 //   mode <0|1>                Line, 2D (from the stored Display Mode live.tab)
 //   pv <name> <value>         parameter values the display needs: size center bwidth bres bslope
@@ -191,9 +192,19 @@ function applyRows(r: number[][]): void {
 
 // ---- message handlers ---------------------------------------------------------------------------
 
-function buffers(table: string, headsName: string): void {
+function buffers(table: string, headsName: string, dictName?: string): void {
 	tableBuf = table ? new Buffer(String(table)) : null;
 	headsBuf = headsName ? new Buffer(String(headsName)) : null;
+	// Fallback for a dict parameter that does not output on recall (probe G-UI5 untested): read the
+	// stored table by name; Live has restored the parameters before live.thisdevice fires.
+	if (!pendingRestore && dictName) {
+		try {
+			const r = rowsFromStored(new Dict(String(dictName)).get("table"));
+			if (r) pendingRestore = r;
+		} catch (e) {
+			pendingRestore = null;
+		}
+	}
 	if (pendingRestore) applyRows(pendingRestore);
 	readData();
 	startTimer();

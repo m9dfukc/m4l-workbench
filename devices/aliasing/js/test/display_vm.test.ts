@@ -194,6 +194,16 @@ test("a recalled table is written into the buffer and flagged for gen~", async (
 	assert.ok(Math.abs(tab.data[1000 * 5 + 3] - 1000 / 2048) < 1e-6);
 });
 
+test("the stored table is read by name at init when the dict did not output", async () => {
+	const d = await load();
+	d.dicts.set("---atable", { table: new Array(5120).fill(0.75) });
+	d.call("buffers", "atab", "aheads", "---atable");
+	assert.ok(Math.abs(d.buffers.get("atab")!.data[700 * 5 + 2] - 0.75) < 1e-6);
+	const e = await load();
+	e.call("buffers", "atab", "aheads", "missing-dict");
+	assert.equal(e.buffers.get("atab")!.data[700 * 5 + 2], 0, "an empty dict leaves the buffer alone");
+});
+
 test("tone page gestures send parameter values", async () => {
 	const d = await load();
 	d.call("buffers", "atab", "aheads");

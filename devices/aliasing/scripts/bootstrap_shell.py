@@ -474,7 +474,7 @@ def build(template: dict) -> dict:
                   textfile={"filename": "aliasing_pages.js", "flags": 0, "embed": 0, "autowatch": 1})
     thisdev = p.obj("live.thisdevice", 840.0, 480.0, 1, ["bang", "int", "int"], w=105.0)
     init = p.obj("t b b", 840.0, 520.0, 1, ["bang", "bang"])
-    bufmsg = p.msg("buffers ---atab ---aheads", 960.0, 520.0)
+    bufmsg = p.msg("buffers ---atab ---aheads ---atable", 960.0, 520.0)
     p.wire(thisdev, 0, init, 0)
     p.wire(init, 1, bufmsg, 0)
     p.wire(bufmsg, 0, disp, 0)
