@@ -1,4 +1,4 @@
-"""Pass/fail checks on the host renders of the aliasing gen~ export, v0.2 (see run.sh).
+"""Pass/fail checks on the host renders of the aliasing gen~ export, v0.3 (see run.sh).
 
 Usage: uv run python check_renders.py BUILD_HOST_DIR
 """
@@ -55,8 +55,10 @@ def main(argv: list[str]) -> int:
         f = np.fft.rfftfreq(len(m), 1 / sr)
         return float(spec[(f >= lo) & (f < hi)].sum() / max(spec.sum(), 1e-30))
 
-    names = ("off", "drone", "gate", "stress", "stress44", "sync", "frozen", "tempo",
-             "band_open", "band_pass", "band_reject", "aa", "naive")
+    names = ("off", "drone", "alias", "gate", "stress", "stress44", "sync", "frozen", "clean",
+             "wgate_open", "wgate_shut", "tempo", "band_open", "band_pass", "band_reject", "aa", "naive",
+             "lim_off", "lim_idle", "lim_color", "drv_zero", "drv_off", "lim_ceil", "env_ref", "env_duck",
+             "res_on")
     for name in names:
         x, _ = wav(name)
         check(bool(np.isfinite(x).all()) and peak(x) <= 1.0, f"{name}: finite, peak <= 0 dBFS ({db(peak(x)):.1f})")
@@ -74,13 +76,21 @@ def main(argv: list[str]) -> int:
     check(bool((h[2] == 1).all()), "drone: write enable 1 for all voices")
     check(bool(np.allclose(h[3], 0.1, atol=1e-6)), f"drone: effective Size 0.1 per voice ({h[3].round(4).tolist()})")
     fw = float(h[4, 0])
-    check(abs(fw - 16004.3) < 2.0, f"drone: write frequency = 16004 Hz (fs/3 + 4 Hz) ({fw:.1f})")
+    check(abs(fw - 261.63) < 0.05, f"drone: init write frequency = note 60 = 261.63 Hz (D1) ({fw:.2f})")
+    fr = float(h[5, 2])
+    check(abs(fr - 261.63) < 0.05, f"drone: init read frequency (middle voice) = 261.63 Hz (D1) ({fr:.2f})")
     check(abs(float(h[9, 0]) - sr) < 0.5, f"drone: samplerate in the display data ({h[9, 0]:.0f})")
     t = table("drone")
     check(bool((t >= 0).all() and (t <= 1).all()), "drone: table values within 0..1")
     ident = np.tile(np.arange(N, dtype=np.float64) / N, (NV, 1))
     changed = int((np.abs(t[:, :103] - ident[:, :103]) > 1e-6).sum())
     check(changed > 50, f"drone: the write pointer rewrites the active span ({changed} cells changed)")
+    h = heads("alias")
+    fw = float(h[4, 0])
+    check(abs(fw - 16004.3) < 2.0, f"alias: v0.2 init write frequency = 16004 Hz (fs/3 + 4 Hz) ({fw:.1f})")
+    t = table("alias")
+    changed = int((np.abs(t[:, :103] - ident[:, :103]) > 1e-6).sum())
+    check(changed > 50, f"alias: the write pointer rewrites the active span ({changed} cells changed)")
 
     x, sr = wav("gate")
     check(peak(seg(x, sr, 0, 0.45)) < 1e-6, "gate: silent before the MIDI gate")
@@ -98,14 +108,22 @@ def main(argv: list[str]) -> int:
     check(r > 10 ** (-60 / 20), f"stress: not silent (rms {db(r):.1f})")
 
     t = table("frozen").astype(np.float64)
-    check(float(np.abs(t - ident).max()) == 0.0, "frozen: Write Active off keeps the identity table")
+    check(float(np.abs(t - ident).max()) == 0.0, "frozen: write state Freeze keeps the identity table")
+    t = table("clean").astype(np.float64)
+    near = float((np.abs(t - ident) <= 1.0 / N + 1e-7).mean())
+    check(near > 0.99, f"clean: Clean heals an aliased table back to identity ({near * 100:.2f} % of cells "
+                       "within one cell value)")
+    t = table("wgate_open").astype(np.float64)
+    check(int((np.abs(t - ident) > 1e-6).sum()) > 50, "write gate: Freeze + Velocity 1 at +100 % writes")
+    t = table("wgate_shut").astype(np.float64)
+    check(float(np.abs(t - ident).max()) == 0.0, "write gate: Freeze + Velocity 0.4 at +100 % stays frozen")
     t = table("sync").astype(np.float64)
     dev = float(np.abs(t - ident).max())
     check(dev <= 1.0 / N + 1e-7, f"sync: equal pitches keep the table within one cell value of identity "
                                  f"(max dev {dev * N:.3f} cells)")
 
     h = heads("tempo")
-    check(abs(float(h[4, 0]) - 512.0) < 0.5, f"tempo: synced write = 64 x 1/16 at 120 BPM = 512 Hz ({h[4, 0]:.2f})")
+    check(abs(float(h[4, 0]) - 128.0) < 0.2, f"tempo: synced write = 1/16 x 64 / 4 at 120 BPM = 128 Hz ({h[4, 0]:.2f})")
     check(abs(float(h[5, 0]) - 2.0) < 0.01, f"tempo: synced read = 1/4 at 120 BPM = 2 Hz ({h[5, 0]:.3f})")
     check(abs(float(h[9, 3]) - 120.0) < 0.01, f"tempo: BPM in the display data ({h[9, 3]:.2f})")
 
@@ -122,6 +140,29 @@ def main(argv: list[str]) -> int:
     xn, _ = wav("naive")
     diff = float(np.abs(xa - xn).max())
     check(diff > 1e-3, f"aa: anti-aliased ramps change the output (max diff {diff:.3f})")
+
+    # exact bypasses (D17, D19); the section switches fade in 5 ms and snap, so compare after 0.2 s
+    def same(a: str, b: str, t0: float = 0.0) -> float:
+        xa, sra = wav(a)
+        xb, _ = wav(b)
+        return float(np.abs(seg(xa, sra, t0, 2) - seg(xb, sra, t0, 2)).max())
+    dmax = same("lim_off", "lim_idle")
+    check(dmax == 0.0, f"limiter: on but not limiting, Saturation 0 = exact bypass (max diff {dmax:.2e})")
+    dmax = same("lim_idle", "lim_color")
+    check(dmax == 0.0, f"limiter: Color alone changes nothing (max diff {dmax:.2e})")
+    dmax = same("drv_zero", "drv_off")
+    check(dmax == 0.0, f"drive: section off = exact bypass, from the first sample (max diff {dmax:.2e})")
+    x, sr = wav("lim_ceil")
+    p6 = peak(seg(x, sr, 0.05, 2))
+    check(p6 <= 10 ** (-6 / 20) + 1e-6, f"limiter: +24 dB into a -6 dB ceiling stays below it ({db(p6):.2f} dBFS)")
+    check(rms(x) > 10 ** (-30 / 20), f"limiter: still audible at the ceiling (rms {db(rms(x)):.1f})")
+    xr_, sr = wav("env_ref")
+    xd, _ = wav("env_duck")
+    rr, rd_ = rms(seg(xr_, sr, 0.5, 2)), rms(seg(xd, sr, 0.5, 2))
+    check(rd_ < rr * 10 ** (-3 / 20), f"env follower: Env -> Output -100 % lowers the level ({db(rr):.1f} -> {db(rd_):.1f})")
+    xo, _ = wav("res_on")
+    dmax = same("env_ref", "res_on", 0.2)
+    check(dmax > 1e-3, f"resonator: section on changes the output, off is the default (max diff {dmax:.3f})")
 
     print(f"\n{len(fails)} failed" if fails else "\nall checks passed")
     return 1 if fails else 0

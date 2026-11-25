@@ -19,36 +19,36 @@ function palette(dark) {
   if (dark) {
     return {
       dark: true,
-      text: hex("#c9c9c9"),
-      label: hex("#969696"),
-      track: hex("#424242"),
-      rule: hex("#2e2e2e"),
-      field: hex("#1b1b1b"),
+      text: hex("#d2d2d2"),
+      label: hex("#b0b0b0"),
+      track: hex("#5c5c5c"),
+      rule: hex("#2a2a2a"),
+      field: hex("#262626"),
       sel: hex("#d6d6d6"),
       selFg: hex("#1b1b1b"),
-      sizeFill: hex("#3a3a3a"),
+      sizeFill: hex("#4c4c4c"),
       write: hex("#e4e4e4"),
-      read: hex("#8fa6b6"),
-      disp: hex("#151515"),
-      voice: hex("#a3a3a3"),
+      read: hex("#8fb0c4"),
+      disp: hex("#161616"),
+      voice: hex("#a6a6a6"),
       meter: hex("#9a9a9a")
     };
   }
   return {
     dark: false,
-    text: hex("#1e1e1e"),
-    label: hex("#4d4d4d"),
-    track: hex("#9e9e9e"),
-    rule: hex("#c9c9c9"),
-    field: hex("#e6e6e6"),
-    sel: hex("#2a2a2a"),
+    text: hex("#111111"),
+    label: hex("#262626"),
+    track: hex("#6e6e6e"),
+    rule: hex("#d0d0d0"),
+    field: hex("#dedede"),
+    sel: hex("#1f1f1f"),
     selFg: hex("#efefef"),
     sizeFill: hex("#bdbdbd"),
-    write: hex("#242424"),
-    read: hex("#41627a"),
+    write: hex("#1c1c1c"),
+    read: hex("#2f5873"),
     disp: hex("#ececec"),
-    voice: hex("#555555"),
-    meter: hex("#555555")
+    voice: hex("#4a4a4a"),
+    meter: hex("#3c3c3c")
   };
 }
 function themeIsDark(getcolor) {
@@ -62,6 +62,12 @@ function themeIsDark(getcolor) {
 }
 function roleOf(varname) {
   var v = String(varname || "");
+  if (v.indexOf("mod_") === 0) {
+    var t = v.substring(v.lastIndexOf("_") + 1);
+    if (t === "wp" || t === "sy" || t === "wa") return "write";
+    if (t === "rp" || t === "sp") return "read";
+    return "neutral";
+  }
   if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
   if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
   return "neutral";
@@ -160,7 +166,33 @@ function enumLabelsFrom(range, type) {
   for (var i = 0; i < range.length; i++) out.push(String(range[i]));
   return out.length ? out : null;
 }
-function iconPath(label) {
+function writeIcon(label) {
+  switch (label) {
+    case "Ramp":
+      return [[1, 11], [21, 1], [21, 11]];
+    case "Tri":
+      return [[1, 11], [11, 1], [21, 11]];
+    case "Tri \xB1":
+      return [[1, 11], [6, 11], [11, 1], [16, 11], [21, 11]];
+    case "Sine": {
+      var pts = [];
+      for (var i = 0; i <= 20; i++) pts.push([1 + i, 11 - 10 * (0.5 - 0.5 * Math.cos(i / 20 * 2 * Math.PI))]);
+      return pts;
+    }
+    case "Pulse":
+      return [[1, 11], [11, 11], [11, 1], [21, 1]];
+    case "Pulsar":
+      return [[1, 11], [9, 1], [9, 11], [21, 11]];
+    case "Spike":
+      return [[1, 11], [5, 1], [9, 11], [21, 11]];
+    case "Noise":
+      return [[1, 7], [4, 7], [4, 2], [7, 2], [7, 9], [10, 9], [10, 4], [13, 4], [13, 10], [16, 10], [16, 3], [19, 3], [19, 6], [21, 6]];
+    default:
+      return null;
+  }
+}
+function iconPath(label, family) {
+  if (family === "write") return writeIcon(label);
   switch (label) {
     case "Ramp":
     case "Saw":
@@ -169,8 +201,6 @@ function iconPath(label) {
       return [[1, 11], [11, 1], [21, 11]];
     case "Tri \xB1":
       return [[1, 6], [6, 1], [16, 11], [21, 6]];
-    case "=Read":
-      return [[1, 11], [7, 5], [13, 9], [21, 1]];
     case "Square":
       return [[1, 11], [1, 1], [11, 1], [11, 11], [21, 11], [21, 1]];
     case "S&H":
@@ -319,16 +349,47 @@ function dim(c, active, p) {
 
 // devices/aliasing/js/src/aliasing_paint_toggle.ts
 enableAutomationDots();
+var POWER_R = 4.5;
+function powerSymbol(cx, cy, on, active, p) {
+  var r = POWER_R;
+  mgraphics.ellipse(cx - r, cy - r, 2 * r, 2 * r);
+  if (on) {
+    setColor(dim(p.sel, active, p));
+    mgraphics.fill();
+  } else {
+    mgraphics.set_line_width(1);
+    setColor(dim(p.track, active, p));
+    mgraphics.stroke();
+  }
+  var g = on ? p.selFg : p.track;
+  setColor(dim(g, active, p));
+  mgraphics.set_line_width(1.1);
+  mgraphics.set_line_cap("round");
+  mgraphics.arc(cx, cy, 2.3, -Math.PI / 2 + 0.75, Math.PI * 1.5 - 0.75);
+  mgraphics.stroke();
+  mgraphics.move_to(cx, cy - 3.1);
+  mgraphics.line_to(cx, cy - 0.7);
+  mgraphics.stroke();
+}
 function paint() {
   var w = mgraphics.size[0];
   var h = mgraphics.size[1];
   var p = currentPalette();
   var active = isActive();
   var on = value() > 0.5;
-  var role = roleOf(varnameOf());
+  var name = varnameOf();
+  var label = attrStr(on ? "texton" : "text") || attrStr("text");
+  if (name.length > 3 && name.substring(name.length - 3) === "_on") {
+    font(9, true);
+    var title = fitText(label, w - 16, measure);
+    var tw = measure(title);
+    text(title, 0, h / 2 + 3.5, dim(on ? p.text : withAlpha(p.text, 0.45), active, p), "left");
+    powerSymbol(Math.min(w - POWER_R - 0.5, tw + 4 + POWER_R), h / 2, on, active, p);
+    return;
+  }
+  var role = roleOf(name);
   var accent = role === "write" ? p.write : role === "read" ? p.read : p.sel;
   var rad = Math.min(h - 1, 16);
-  var label = attrStr(on ? "texton" : "text") || attrStr("text");
   if (on) {
     setColor(dim(accent, active, p));
     mgraphics.rectangle_rounded(0.5, 0.5, w - 1, h - 1, rad, rad);

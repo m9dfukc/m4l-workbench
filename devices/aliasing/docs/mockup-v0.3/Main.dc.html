@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aliasing face v0.3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#888}a:hover{color:#aaa}
+.al-btn{all:unset;box-sizing:border-box;cursor:pointer;touch-action:none;display:block}
+.al-btn:focus-visible{outline:1px solid #8fa6b6;outline-offset:1px}
+</style>
+</helmet>
+<div style="position: relative; width: 968px; height: 169px; overflow: hidden; font-family: Inter, 'Ableton Sans', system-ui, sans-serif; font-size: 9px; background: {{c.bg}}; color: {{c.text}}; user-select: none">
+
+  <sc-for list="{{panels}}" as="pn" hint-placeholder-count="4">
+    <div style="position: absolute; left: {{pn.x}}px; top: {{pn.y}}px; width: {{pn.w}}px; height: {{pn.h}}px; border-radius: 4px; background: {{pn.bg}}"></div>
+  </sc-for>
+
+  <sc-for list="{{vlines}}" as="vl" hint-placeholder-count="0">
+    <div style="position: absolute; left: {{vl.x}}px; top: {{vl.y}}px; width: 1px; height: {{vl.h}}px; background: {{c.rule}}"></div>
+  </sc-for>
+
+  <sc-for list="{{labels}}" as="lb" hint-placeholder-count="20">
+    <div style="position: absolute; left: {{lb.x}}px; top: {{lb.y}}px; width: {{lb.w}}px; height: {{lb.h}}px; line-height: {{lb.lh}}px; font-size: {{lb.fs}}px; font-weight: {{lb.fw}}; letter-spacing: {{lb.ls}}; text-align: {{lb.align}}; color: {{lb.color}}; white-space: nowrap; overflow: hidden">{{lb.text}}</div>
+  </sc-for>
+
+  <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="6">
+    <div style="position: absolute; left: {{tb.x}}px; top: {{tb.y}}px; width: {{tb.w}}px; height: {{tb.h}}px; box-sizing: border-box; display: grid; grid-template-columns: repeat({{tb.cols}}, minmax(0, 1fr)); grid-template-rows: repeat({{tb.rows}}, minmax(0, 1fr)); border-radius: {{tb.rad}}px; border: 1px solid {{c.track}}; overflow: hidden">
+      <sc-for list="{{tb.items}}" as="it" hint-placeholder-count="2">
+        <button class="al-btn" type="button" aria-label="{{it.label}}" onClick="{{it.pick}}" style="display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; white-space: nowrap; font-size: {{tb.fs}}px; background: {{it.bg}}; color: {{it.fg}}">
+          <sc-if value="{{it.isIcon}}" hint-placeholder-val="{{false}}">
+            <svg width="{{tb.iw}}" height="{{tb.ih}}" viewBox="0 0 22 12" aria-hidden="true"><path d="{{it.icon}}" stroke="{{it.fg}}" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path></svg>
+          </sc-if>
+          <sc-if value="{{it.isText}}" hint-placeholder-val="{{true}}">{{it.label}}</sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </sc-for>
+
+  <sc-for list="{{pills}}" as="pl" hint-placeholder-count="4">
+    <button class="al-btn" type="button" aria-label="{{pl.label}}" onClick="{{pl.toggle}}" style="position: absolute; left: {{pl.x}}px; top: {{pl.y}}px; width: {{pl.w}}px; height: {{pl.h}}px; border-radius: {{pl.rad}}px; border: 1px solid {{pl.border}}; background: {{pl.bg}}; color: {{pl.fg}}; text-align: center; line-height: {{pl.lh}}px; font-size: 8px; font-weight: {{pl.fw}}; letter-spacing: {{pl.ls}}; white-space: nowrap; overflow: hidden">{{pl.text}}</button>
+  </sc-for>
+
+  <sc-for list="{{numboxes}}" as="nb" hint-placeholder-count="0">
+    <button class="al-btn" type="button" aria-label="{{nb.label}}" onPointerDown="{{nb.down}}" onPointerMove="{{nb.move}}" onPointerUp="{{nb.up}}" onDoubleClick="{{nb.dbl}}" style="position: absolute; left: {{nb.x}}px; top: {{nb.y}}px; width: {{nb.w}}px; height: {{nb.h}}px; border-radius: 3px; background: {{c.field}}; text-align: center; line-height: {{nb.h}}px; font-size: 9px; color: {{c.text}}; cursor: ns-resize">{{nb.text}}</button>
+  </sc-for>
+
+  <sc-for list="{{dials}}" as="d" hint-placeholder-count="12">
+    <button class="al-btn" type="button" aria-label="{{d.label}}" onPointerDown="{{d.down}}" onPointerMove="{{d.move}}" onPointerUp="{{d.up}}" onDoubleClick="{{d.dbl}}" style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; width: {{d.w}}px; height: {{d.h}}px; display: flex; flex-direction: column; align-items: center; cursor: ns-resize">
+      <svg width="{{d.kd}}" height="{{d.kd}}" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="{{d.track}}" stroke="{{c.track}}" stroke-width="2.6" fill="none" stroke-linecap="round"></path>
+        <path d="{{d.arc}}" stroke="{{d.color}}" stroke-width="2.6" fill="none" stroke-linecap="round"></path>
+        <line x1="16" y1="16" x2="{{d.nx}}" y2="{{d.ny}}" stroke="{{d.color}}" stroke-width="1.6" stroke-linecap="round"></line>
+      </svg>
+      <div style="font-size: {{d.fs}}px; line-height: 10px; color: {{c.text}}; white-space: nowrap">{{d.text}}</div>
+    </button>
+  </sc-for>
+
+  <sc-for list="{{cells}}" as="ce" hint-placeholder-count="0">
+    <button class="al-btn" type="button" aria-label="{{ce.label}}" onPointerDown="{{ce.down}}" onPointerMove="{{ce.move}}" onPointerUp="{{ce.up}}" onDoubleClick="{{ce.dbl}}" style="position: absolute; left: {{ce.x}}px; top: {{ce.y}}px; width: 20px; height: 12px; border-radius: 2px; background: {{ce.bg}}; cursor: ns-resize; overflow: hidden">
+      <div style="position: absolute; top: 2px; bottom: 2px; left: 9.5px; width: 1px; background: {{c.track}}"></div>
+      <div style="position: absolute; top: 1px; bottom: 1px; left: {{ce.left}}%; width: {{ce.width}}%; background: {{ce.color}}; opacity: 0.8; border-radius: 1px"></div>
+      <div style="position: absolute; left: 0; right: 0; top: 0; line-height: 12px; text-align: center; font-size: 7px; font-weight: 600; color: {{ce.fg}}">{{ce.text}}</div>
+    </button>
+  </sc-for>
+
+  <sc-if value="{{showSize}}" hint-placeholder-val="{{true}}">
+    <button class="al-btn" type="button" aria-label="Size" onPointerDown="{{sizeBar.down}}" onPointerMove="{{sizeBar.move}}" onPointerUp="{{sizeBar.up}}" onDoubleClick="{{sizeBar.dbl}}" style="position: absolute; left: 308px; top: 145px; width: 328px; height: 18px; border-radius: 3px; background: {{c.field}}; cursor: ew-resize; overflow: hidden">
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{sizeFillPct}}%; background: {{c.sizeFill}}"></div>
+      <div style="position: absolute; left: 6px; top: 0; line-height: 18px; font-size: 9px; color: {{c.text}}">Size</div>
+      <div style="position: absolute; right: 6px; top: 0; line-height: 18px; font-size: 9px; color: {{c.text}}">{{sizeText}}</div>
+    </button>
+  </sc-if>
+
+  <div style="position: absolute; left: 308px; top: 6px; width: 328px; height: {{dispH}}px; border-radius: 4px; background: {{c.disp}}; overflow: hidden">
+    <div style="position: absolute; left: 4px; top: 3px; width: 320px; height: 12px; display: flex; align-items: center; gap: 6px; font-size: 8px; color: {{c.dlabel}}">
+      <span style="font-weight: 600; letter-spacing: 0.08em">{{dispTitle}}</span>
+      <span style="flex: 1; white-space: nowrap; overflow: hidden">{{dispInfo}}</span>
+      <sc-if value="{{showViewIcons}}" hint-placeholder-val="{{true}}">
+        <button class="al-btn" type="button" aria-label="Line view" onClick="{{setLine}}" style="width: 14px; height: 11px; display: flex; align-items: center; justify-content: center; border-radius: 2px; background: {{lineBg}}">
+          <svg width="10" height="8" viewBox="0 0 10 8" aria-hidden="true"><path d="M0 1.5 H10 M0 4 H10 M0 6.5 H10" stroke="{{lineFg}}" stroke-width="1"></path></svg>
+        </button>
+        <button class="al-btn" type="button" aria-label="2D view" onClick="{{set2d}}" style="width: 14px; height: 11px; display: flex; align-items: center; justify-content: center; border-radius: 2px; background: {{twoBg}}">
+          <svg width="10" height="8" viewBox="0 0 10 8" aria-hidden="true"><path d="M0 0 H3 V3 H0 Z M4 0 H6 V3 H4 Z M7 0 H10 V3 H7 Z M0 5 H2 V8 H0 Z M3 5 H7 V8 H3 Z M8 5 H10 V8 H8 Z" fill="{{twoFg}}"></path></svg>
+        </button>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{showTable}}" hint-placeholder-val="{{true}}">
+      <sc-for list="{{lanes}}" as="ln" hint-placeholder-count="5">
+        <div onPointerDown="{{ln.down}}" onPointerMove="{{ln.move}}" onPointerUp="{{ln.up}}" onDoubleClick="{{ln.dbl}}" style="position: absolute; left: 4px; top: {{ln.top}}px; width: 320px; height: 22px; cursor: crosshair; touch-action: none; border-top: 1px solid {{ln.rule}}; box-sizing: border-box; background: {{ln.grad}}">
+          <svg width="320" height="21" viewBox="0 0 320 21" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+            <path d="{{ln.fillD}}" fill="{{c.voice}}" stroke="none"></path>
+            <path d="{{ln.stepD}}" stroke="{{c.voice}}" stroke-width="{{lineWidth}}" fill="none" stroke-linejoin="miter"></path>
+            <rect x="{{ln.edgeX}}" y="0" width="{{ln.dimW}}" height="21" fill="{{c.disp}}" fill-opacity="0.62"></rect>
+            <line x1="{{ln.edgeX}}" y1="0" x2="{{ln.edgeX}}" y2="21" stroke="{{c.dlabel}}" stroke-opacity="{{ln.edgeOp}}" stroke-width="1" stroke-dasharray="2 2"></line>
+            <line x1="{{ln.wx}}" y1="0" x2="{{ln.wx}}" y2="21" stroke="{{ln.wColor}}" stroke-opacity="0.35" stroke-width="1"></line>
+            <circle cx="{{ln.wx}}" cy="{{ln.wy}}" r="2.6" fill="{{ln.wColor}}"></circle>
+            <line x1="{{ln.rx}}" y1="0" x2="{{ln.rx}}" y2="21" stroke="{{c.read}}" stroke-opacity="0.35" stroke-width="1"></line>
+            <circle cx="{{ln.rx}}" cy="{{ln.ry}}" r="3" fill="none" stroke="{{c.read}}" stroke-width="1.3"></circle>
+          </svg>
+        </div>
+      </sc-for>
+      <div style="position: absolute; left: 4px; top: 130px; width: 320px; height: 4px">
+        <div style="position: absolute; left: 0; right: 0; top: 1px; height: 2px; background: {{c.drule}}; border-radius: 1px"></div>
+        <div style="position: absolute; left: 0; top: 1px; height: 2px; width: {{ovPct}}%; background: {{c.dlabel}}; border-radius: 1px"></div>
+        <sc-for list="{{ovTicks}}" as="tk" hint-placeholder-count="5">
+          <div style="position: absolute; top: 0; height: 4px; width: 1px; left: {{tk.pct}}%; background: {{c.voice}}"></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showCurve}}" hint-placeholder-val="{{false}}">
+      <div onPointerDown="{{curve.down}}" onPointerMove="{{curve.move}}" onPointerUp="{{curve.up}}" onDoubleClick="{{curve.dbl}}" style="position: absolute; left: 4px; top: 17px; width: 320px; height: 140px; cursor: grab; touch-action: none">
+        <svg width="320" height="140" viewBox="0 0 320 140" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+          <rect x="{{curve.band.x}}" y="0" width="{{curve.band.w}}" height="126" fill="{{curve.band.fill}}" fill-opacity="{{curve.band.op}}"></rect>
+          <path d="{{curve.grid}}" stroke="{{c.drule}}" stroke-width="1" fill="none"></path>
+          <path d="{{curve.zero}}" stroke="{{c.track}}" stroke-width="1" fill="none"></path>
+          <path d="{{curve.voices}}" stroke="{{c.voice}}" stroke-opacity="0.28" stroke-width="1" fill="none"></path>
+          <path d="{{curve.fill}}" fill="{{c.write}}" fill-opacity="0.07" stroke="none"></path>
+          <path d="{{curve.d}}" stroke="{{c.write}}" stroke-width="{{lineWidth}}" fill="none"></path>
+          <line x1="{{curve.band.x}}" y1="0" x2="{{curve.band.x}}" y2="126" stroke="{{curve.band.fill}}" stroke-opacity="0.6" stroke-width="1"></line>
+          <line x1="{{curve.band.x2}}" y1="0" x2="{{curve.band.x2}}" y2="126" stroke="{{curve.band.fill}}" stroke-opacity="0.6" stroke-width="1"></line>
+          <rect x="{{curve.band.gx1}}" y="2" width="6" height="12" rx="2" fill="{{c.disp}}" stroke="{{curve.band.fill}}" stroke-width="1.2"></rect>
+          <rect x="{{curve.band.gx2}}" y="2" width="6" height="12" rx="2" fill="{{c.disp}}" stroke="{{curve.band.fill}}" stroke-width="1.2"></rect>
+          <circle cx="{{curve.ctr.x}}" cy="{{curve.ctr.y}}" r="5" fill="{{c.disp}}" stroke="{{c.write}}" stroke-width="1.5"></circle>
+          <rect x="{{curve.rs.x0}}" y="{{curve.rs.y0}}" width="9" height="9" rx="1" fill="{{c.disp}}" stroke="{{c.read}}" stroke-width="1.4" stroke-opacity="{{curve.rs.op}}"></rect>
+          <text x="{{curve.band.lx}}" y="24" font-size="8" fill="{{c.dlabel}}">{{curve.band.label}}</text>
+          <text x="{{curve.rs.tx}}" y="{{curve.rs.ty}}" font-size="8" fill="{{c.dlabel}}">R</text>
+          <text x="2" y="136" font-size="7" fill="{{c.dlabel}}">20</text>
+          <text x="96" y="136" font-size="7" fill="{{c.dlabel}}">200</text>
+          <text x="198" y="136" font-size="7" fill="{{c.dlabel}}">2k</text>
+          <text x="300" y="136" font-size="7" fill="{{c.dlabel}}">20k</text>
+        </svg>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{isLfo}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 858px; top: 52px; width: 102px; height: 10px; border-radius: 2px; background: {{c.field}}; overflow: hidden">
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{envPct}}%; background: {{c.meter}}"></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isOut}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 942px; top: 29px; width: 18px; height: 132px; display: flex; gap: 2px; align-items: flex-end">
+      <div style="position: relative; flex: 1; height: 132px; background: {{c.field}}; border-radius: 1px">
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{meterL}}%; background: {{c.meter}}; border-radius: 1px"></div>
+      </div>
+      <div style="position: relative; flex: 1; height: 132px; background: {{c.field}}; border-radius: 1px">
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: {{meterR}}%; background: {{c.meter}}; border-radius: 1px"></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"palette":{"editor":"enum","options":["Graphite","Sand","Ice"],"default":"Graphite","section":"Look"},"theme":{"editor":"enum","options":["Dark","Light"],"default":"Light","section":"Look"},"panels":{"editor":"enum","options":["Auto","Darker","Lighter","Off"],"default":"Auto","section":"Look"},"lineWeight":{"editor":"range","min":0.75,"max":2,"step":0.25,"default":1,"section":"Look"},"animate":{"editor":"boolean","default":true,"section":"Behaviour"},"sizeMod":{"editor":"boolean","default":true,"section":"Behaviour"},"demoMatrix":{"editor":"boolean","default":true,"section":"Behaviour"},"$preview":{"width":968,"height":169}}'>
+// v0.3 face layout table: the single source for the mock-up (embedded) and layout.md (generated).
+// r = [x, y, w, h] in face coordinates (968 x 169). page: lfo | mod | tone | out | tbl (hidden on Tone) | null.
+// cond: w_free | w_sync | r_free | r_sync | l1_hz | l1_sy | l2_hz | l2_sy | ws:<shapes> (Sym label per write shape).
+const SRCS = [['l1', 'LFO 1'], ['l2', 'LFO 2'], ['en', 'Env'], ['dr', 'Drift'], ['ve', 'Velocity'], ['mw', 'Mod Wheel'], ['vo', 'Voice'], ['nb', 'Neighbour'], ['ro', 'Read Osc']];
+// grouped column order: write | read | table | tone | out
+const TGTS = [['wp', 'W Pit', 0, 'write'], ['sy', 'Sym', 0, 'write'], ['wa', 'Write', 0, 'write'], ['rp', 'R Pit', 1, 'read'], ['sp', 'Sprd', 1, 'read'],
+  ['sz', 'Size', 2, 'label'], ['dv', 'Drive', 3, 'label'], ['bc', 'Ctr', 3, 'label'], ['bw', 'Wid', 3, 'label'], ['rf', 'R Frq', 3, 'label'], ['rb', 'R Fb', 3, 'label'], ['ou', 'Out', 4, 'label']];
+const TGT_LONG = { wp: 'Write Pitch', sy: 'Write Sym', wa: 'Write', rp: 'Read Pitch', sp: 'Read Spread', sz: 'Size', dv: 'Drive', bc: 'Band Center', bw: 'Band Width', rf: 'Res Freq', rb: 'Res Fdbk', ou: 'Output' };
+const W_SHAPES = [['Ramp', 'ramp'], ['Tri', 'tri'], ['Tri ±', 'tripm'], ['Sine', 'sine'], ['Pulse', 'pulse'], ['Pulsar', 'pulsar'], ['Spike', 'spike'], ['Noise', 'noise']];
+const LFO_SHAPES = [['Sine', 'lsine'], ['Tri', 'ltri'], ['Saw', 'saw'], ['Square', 'sq'], ['S&H', 'sh'], ['Random', 'rnd']];
+
+function buildLayout() {
+  const L = [];
+  const add = (o) => { L.push(o); return o; };
+  // ---- panels ----
+  add({ id: 'panel_w', cls: 'panel', kind: 'panel', r: [4, 4, 300, 79], note: 'Write section surface' });
+  add({ id: 'panel_r', cls: 'panel', kind: 'panel', r: [4, 86, 300, 79], note: 'Read section surface' });
+  add({ id: 'panel_disp', cls: 'panel', kind: 'panel', r: [306, 4, 332, 161], note: 'display + Size slider surface' });
+  add({ id: 'panel_page', cls: 'panel', kind: 'panel', r: [642, 4, 322, 161], note: 'page area surface' });
+
+  // ---- pointer rows ----
+  for (const [p, name, dy] of [['w', 'WRITE', 0], ['r', 'READ', 82]]) {
+    const acc = p === 'w' ? 'write' : 'read';
+    add({ id: `${p}_title`, cls: 'live.comment', kind: 'label', r: [10, 11 + dy, 52, 13], text: name, bold: true, fs: 9, role: 'text' });
+    add({ id: `${p}_mode`, cls: 'live.tab', kind: 'tab', r: [10, 28 + dy, 52, 14], key: `${p}_mode`, items: ['Hz', 'Sync'], param: `${name[0]}${name.slice(1).toLowerCase()} Mode` });
+    add({ id: `${p}_sync_mult`, cls: 'live.numbox', kind: 'numbox', r: [10, 46 + dy, 25, 14], key: `${p}_mult`, cond: `${p}_sync`, fmt: 'mult', note: 'x 1-128 (units "×%d")' });
+    add({ id: `${p}_sync_div`, cls: 'live.numbox', kind: 'numbox', r: [37, 46 + dy, 25, 14], key: `${p}_dv`, cond: `${p}_sync`, fmt: 'dv', note: '÷ 1-32 (units "÷%d")' });
+    add({ id: `${p}_free_lbl1`, cls: 'live.comment', kind: 'label', r: [66, 11 + dy, 40, 11], text: 'Pitch', cond: `${p}_free`, align: 'center' });
+    add({ id: `${p}_sync_lbl1`, cls: 'live.comment', kind: 'label', r: [66, 11 + dy, 40, 11], text: 'Rate', cond: `${p}_sync`, align: 'center' });
+    add({ id: `${p}_free_lbl2`, cls: 'live.comment', kind: 'label', r: [106, 11 + dy, 40, 11], text: 'Fine', cond: `${p}_free`, align: 'center' });
+    add({ id: `${p}_sync_lbl2`, cls: 'live.comment', kind: 'label', r: [106, 11 + dy, 40, 11], text: 'Detune', cond: `${p}_sync`, align: 'center' });
+    add({ id: `${p}_free_pitch`, cls: 'live.dial', kind: 'dial', r: [66, 22 + dy, 40, 45], key: `${p}_pitch`, cond: `${p}_free`, color: acc, fmt: 'semi', note: '−64…+130 st, default 0, steps 195' });
+    add({ id: `${p}_sync_note`, cls: 'live.dial', kind: 'dial', r: [66, 22 + dy, 40, 45], key: `${p}_div`, cond: `${p}_sync`, color: acc, fmt: 'div', note: 'note value enum (19)' });
+    add({ id: `${p}_fine`, cls: 'live.dial', kind: 'dial', r: [106, 22 + dy, 40, 45], key: `${p}_fine`, color: acc, fmt: 'st3', note: '−1…+1 st, default 0, steps 2001' });
+    if (p === 'w') {
+      for (const [lbl, shapes] of [['Curve', 'ramp'], ['Skew', 'tri,tripm,sine'], ['Width', 'pulse,spike'], ['Duty', 'pulsar'], ['Smooth', 'noise']]) {
+        add({ id: `w_symlbl_${lbl.toLowerCase()}`, cls: 'live.comment', kind: 'label', r: [146, 11, 40, 11], text: lbl, cond: `ws:${shapes}`, align: 'center', note: `shown for ${shapes}` });
+      }
+      add({ id: 'w_sym', cls: 'live.dial', kind: 'dial', r: [146, 22, 40, 45], key: 'w_sym', color: acc, fmt: 'sym', note: '−1…+1, 0.01 grid (201 steps)' });
+      add({ id: 'w_shapelbl', cls: 'live.comment', kind: 'label', r: [190, 11, 60, 11], text: 'Shape' });
+      add({ id: 'w_shape', cls: 'live.tab', kind: 'tab', r: [190, 23, 108, 32], key: 'w_shape', icons: W_SHAPES, rows: 2, note: '2 rows × 4 icons (num_lines 2)' });
+      add({ id: 'w_active', cls: 'live.tab', kind: 'tab', r: [190, 59, 108, 14], key: 'w_active', items: ['Freeze', 'Write', 'Clean'], note: 'Write State, default Write' });
+    } else {
+      add({ id: 'r_lbl3', cls: 'live.comment', kind: 'label', r: [146, 93, 40, 11], text: 'Spread', align: 'center' });
+      add({ id: 'r_spread', cls: 'live.dial', kind: 'dial', r: [146, 104, 40, 45], key: 'r_spread', color: acc, fmt: 'spread' });
+      add({ id: 'r_shapelbl', cls: 'live.comment', kind: 'label', r: [190, 93, 60, 11], text: 'Shape' });
+      add({ id: 'r_shape', cls: 'live.tab', kind: 'tab', r: [190, 105, 108, 18], key: 'r_shape', icons: [['Ramp', 'ramp'], ['Tri', 'tri']], rows: 1 });
+      add({ id: 'r_smooth', cls: 'live.text', kind: 'pill', r: [190, 127, 52, 14], key: 'r_smooth', text: 'Smooth', color: acc });
+      add({ id: 'r_dir', cls: 'live.text', kind: 'pill', r: [246, 127, 52, 14], key: 'r_dir', text: '1-Way', texton: '2-Way', color: acc });
+    }
+  }
+
+  // ---- display + Size ----
+  add({ id: 'display', cls: 'v8ui', kind: 'display', r: [308, 6, 328, 136], note: 'aliasing_display.js; header 3–15, lanes 17–127 (5 × 22), overview 130–134; on Tone the box is 308 6 328 157 (y 6–163), curve rect x 4 y 17 w 320 h = box h − 31, frequency labels below' });
+  add({ id: 'tbl_size', cls: 'live.slider', kind: 'slider', r: [308, 145, 328, 18], key: 'size', page: 'tbl', note: 'horizontal, showname 0, shownumber 0 (painter draws "Size" and the value)' });
+
+  // ---- page tabs ----
+  add({ id: 'page', cls: 'live.tab', kind: 'tab', r: [646, 8, 314, 16], key: 'page', items: ['LFO · Env', 'Mod', 'Tone', 'Global'], note: 'stored only' });
+
+  // ---- LFO · Env ----
+  for (const k of [1, 2]) {
+    const lx = 646 + (k - 1) * 106;
+    add({ id: `lfo_l${k}title`, cls: 'live.comment', kind: 'label', r: [lx, 30, 44, 13], text: `LFO ${k}`, bold: true, fs: 9, role: 'text', page: 'lfo' });
+    add({ id: `lfo_l${k}mode`, cls: 'live.tab', kind: 'tab', r: [lx + 50, 30, 52, 13], key: `l${k}_mode`, items: ['Hz', 'Sync'], page: 'lfo' });
+    add({ id: `lfo_l${k}shape`, cls: 'live.tab', kind: 'tab', r: [lx, 49, 102, 16], key: `l${k}_shape`, icons: LFO_SHAPES, rows: 1, page: 'lfo' });
+    ['Rate', 'Phase', 'Spread'].forEach((t, j) => add({ id: `lfo_l${k}lbl${j}`, cls: 'live.comment', kind: 'label', r: [lx + 34 * j, 72, 34, 11], text: t, align: 'center', page: 'lfo' }));
+    add({ id: `lfo_hz${k}_rate`, cls: 'live.dial', kind: 'dial', r: [lx, 83, 34, 40], key: `l${k}_rate`, fmt: 'lfoHz', page: 'lfo', cond: `l${k}_hz` });
+    add({ id: `lfo_sy${k}_note`, cls: 'live.dial', kind: 'dial', r: [lx, 83, 34, 40], key: `l${k}_div`, fmt: 'div', page: 'lfo', cond: `l${k}_sy` });
+    add({ id: `lfo_l${k}phase`, cls: 'live.dial', kind: 'dial', r: [lx + 34, 83, 34, 40], key: `l${k}_phase`, fmt: 'deg', page: 'lfo' });
+    add({ id: `lfo_l${k}spread`, cls: 'live.dial', kind: 'dial', r: [lx + 68, 83, 34, 40], key: `l${k}_spread`, fmt: 'pct', page: 'lfo' });
+    add({ id: `lfo_l${k}retriglbl`, cls: 'live.comment', kind: 'label', r: [lx, 137, 30, 13], text: 'Retrig', page: 'lfo', vcenter: true, note: 'same text line as the tab: vertically centred, font 8 like the tab [check in Live]' });
+    add({ id: `lfo_l${k}retrig`, cls: 'live.tab', kind: 'tab', r: [lx + 32, 137, 70, 13], key: `l${k}_retrig`, items: ['Off', 'Note', 'Bar'], page: 'lfo' });
+  }
+  add({ id: 'lfo_div1', cls: 'live.line', kind: 'vline', r: [750, 32, 1, 118], page: 'lfo' });
+  add({ id: 'lfo_div2', cls: 'live.line', kind: 'vline', r: [856, 32, 1, 118], page: 'lfo' });
+  add({ id: 'lfo_envtitle', cls: 'live.comment', kind: 'label', r: [858, 30, 102, 13], text: 'ENV FOLLOWER', bold: true, fs: 9, role: 'text', page: 'lfo' });
+  add({ id: 'lfo_envmeter', cls: 'live.meter~', kind: 'envbar', r: [858, 52, 102, 10], page: 'lfo', note: 'OPTIONAL (beyond spec): follower level, horizontal; needs a gen~ outlet for the env value' });
+  ['Attack', 'Release', 'Gain'].forEach((t, j) => add({ id: `lfo_envlbl${j}`, cls: 'live.comment', kind: 'label', r: [858 + 34 * j, 72, 34, 11], text: t, align: 'center', page: 'lfo' }));
+  add({ id: 'lfo_env_att', cls: 'live.dial', kind: 'dial', r: [858, 83, 34, 40], key: 'env_att', fmt: 'msAtt', page: 'lfo', note: '0.1–100 ms, default 5' });
+  add({ id: 'lfo_env_rel', cls: 'live.dial', kind: 'dial', r: [892, 83, 34, 40], key: 'env_rel', fmt: 'msRel', page: 'lfo', note: '10–2000 ms, default 150' });
+  add({ id: 'lfo_env_gain', cls: 'live.dial', kind: 'dial', r: [926, 83, 34, 40], key: 'env_gain', fmt: 'dbB', page: 'lfo', note: '−24…+24 dB, default +12' });
+  add({ id: 'lfo_envnote', cls: 'live.comment', kind: 'label', r: [858, 137, 102, 13], text: 'post Tone · pre Limiter', fs: 8, page: 'lfo', vcenter: true });
+
+  // ---- Mod matrix ----
+  const colX = (i, g) => 694 + 21 * i + 3 * g;
+  TGTS.forEach(([t, short, g, role], i) => add({ id: `mod_cl_${t}`, cls: 'live.comment', kind: 'label', r: [colX(i, g), 29, 20, 11], text: short, fs: 7.5, align: 'center', role: role, page: 'mod', note: TGT_LONG[t] }));
+  SRCS.forEach(([s, name], r) => {
+    const y = 42 + 13 * r;
+    add({ id: `mod_rl_${s}`, cls: 'live.comment', kind: 'label', r: [646, y, 46, 12], text: name, fs: 8, page: 'mod', vcenter: true });
+    TGTS.forEach(([t, short, g, role], i) => add({ id: `mod_${s}_${t}`, cls: 'live.numbox', kind: 'cell', r: [colX(i, g), y, 20, 12], key: `mx_${s}_${t}`, role: role, page: 'mod', param: `${name} > ${TGT_LONG[t]}` }));
+  });
+
+  // ---- Tone ----
+  add({ id: 'tone_drive_on', cls: 'live.text', kind: 'title', r: [646, 29, 44, 13], key: 'drive_on', text: 'DRIVE', page: 'tone', note: 'section power (toggle), default on' });
+  add({ id: 'tone_ldrive', cls: 'live.comment', kind: 'label', r: [646, 45, 40, 11], text: 'Amount', align: 'center', page: 'tone' });
+  add({ id: 'tone_drive', cls: 'live.dial', kind: 'dial', r: [648, 56, 36, 36], key: 'drive', fmt: 'db0', page: 'tone' });
+  add({ id: 'tone_arrow1', cls: 'live.comment', kind: 'label', r: [688, 66, 10, 12], text: '›', fs: 9, align: 'center', page: 'tone' });
+  add({ id: 'tone_band_on', cls: 'live.text', kind: 'title', r: [698, 29, 44, 13], key: 'band_on', text: 'BAND', page: 'tone', note: 'section power, default on' });
+  [['center', 'Center', 'b_center', 'hz'], ['width', 'Width', 'b_width', 'oct'], ['res', 'Res', 'b_res', 'pct'], ['fm', 'FM', 'fm', 'pct'], ['spread', 'Spread', 'b_spread', 'pct']].forEach(([k, t, key, fmt], j) => {
+    add({ id: `tone_lband${j}`, cls: 'live.comment', kind: 'label', r: [698 + 36 * j, 45, 36, 11], text: t, align: 'center', page: 'tone' });
+    add({ id: `tone_band_${k}`, cls: 'live.dial', kind: 'dial', r: [698 + 36 * j, 56, 36, 36], key: key, fmt: fmt, color: 'write', page: 'tone' });
+  });
+  add({ id: 'tone_band_mode', cls: 'live.tab', kind: 'tab', r: [884, 58, 76, 13], key: 'b_mode', items: ['Pass', 'Reject'], page: 'tone' });
+  add({ id: 'tone_band_slope', cls: 'live.tab', kind: 'tab', r: [884, 75, 76, 13], key: 'b_slope', items: ['12', '24 dB'], page: 'tone' });
+  add({ id: 'tone_res_on', cls: 'live.text', kind: 'title', r: [646, 98, 70, 13], key: 'res_on', text: 'RESONATOR', page: 'tone', note: 'section power, default off' });
+  add({ id: 'tone_res_track', cls: 'live.text', kind: 'pill', r: [722, 98, 64, 13], key: 'c_track', text: 'Track Read', color: 'read', page: 'tone' });
+  [['freq', 'Freq', 'c_freq', 'resHz'], ['fb', 'Fdbk', 'c_fb', 'fb'], ['mix', 'Mix', 'c_mix', 'pct']].forEach(([k, t, key, fmt], j) => {
+    add({ id: `tone_lres${j}`, cls: 'live.comment', kind: 'label', r: [646 + 36 * j, 114, 36, 11], text: t, align: 'center', page: 'tone' });
+    add({ id: `tone_res_${k}`, cls: 'live.dial', kind: 'dial', r: [646 + 36 * j, 125, 36, 36], key: key, fmt: fmt, color: 'read', page: 'tone' });
+  });
+
+  // ---- Global (scripting prefix stays out_) ----
+  add({ id: 'out_tplay', cls: 'live.comment', kind: 'label', r: [646, 29, 50, 13], text: 'PLAY', bold: true, fs: 9, role: 'text', page: 'out' });
+  add({ id: 'out_lgate', cls: 'live.comment', kind: 'label', r: [646, 46, 28, 14], text: 'Gate', page: 'out', vcenter: true });
+  add({ id: 'out_gate', cls: 'live.tab', kind: 'tab', r: [676, 46, 70, 14], key: 'gate', items: ['Drone', 'MIDI'], page: 'out' });
+  add({ id: 'out_lresync', cls: 'live.comment', kind: 'label', r: [646, 64, 28, 14], text: 'Resync', page: 'out', vcenter: true });
+  add({ id: 'out_resync', cls: 'live.tab', kind: 'tab', r: [676, 64, 70, 14], key: 'resync', items: ['Off', '1', '2', '4', '8'], page: 'out', note: 'bars' });
+  add({ id: 'out_syncnow', cls: 'live.text', kind: 'button', r: [646, 82, 48, 14], text: 'Sync now', page: 'out' });
+  add({ id: 'out_aa', cls: 'live.text', kind: 'pill', r: [698, 82, 48, 14], key: 'aa', text: 'Ramp AA', color: 'sel', page: 'out' });
+  add({ id: 'out_ltransp', cls: 'live.comment', kind: 'label', r: [646, 114, 44, 11], text: 'Transpose', align: 'center', page: 'out' });
+  add({ id: 'out_transpose', cls: 'live.dial', kind: 'dial', r: [648, 125, 40, 36], key: 'transpose', fmt: 'semi', page: 'out', note: '−48…+48 st, steps 97' });
+  add({ id: 'out_div', cls: 'live.line', kind: 'vline', r: [749, 32, 1, 128], page: 'out' });
+  add({ id: 'out_lim_on', cls: 'live.text', kind: 'title', r: [752, 29, 56, 13], key: 'lim_on', text: 'LIMITER', page: 'out', note: 'Color Limiter on/off, default on' });
+  [['gain', 'Gain', 'lim_gain', 'db0'], ['sat', 'Sat', 'lim_sat', 'pct'], ['color', 'Color', 'lim_color', 'pctB'], ['rel', 'Release', 'lim_rel', 'msLim'], ['ceil', 'Ceiling', 'lim_ceil', 'db1']].forEach(([k, t, key, fmt], j) => {
+    add({ id: `out_llim${j}`, cls: 'live.comment', kind: 'label', r: [752 + 36 * j, 45, 36, 11], text: t, align: 'center', page: 'out' });
+    add({ id: `out_lim_${k}`, cls: 'live.dial', kind: 'dial', r: [752 + 36 * j, 56, 36, 36], key: key, fmt: fmt, page: 'out' });
+  });
+  add({ id: 'out_tout', cls: 'live.comment', kind: 'label', r: [752, 98, 60, 13], text: 'OUTPUT', bold: true, fs: 9, role: 'text', page: 'out' });
+  [['width', 'Width', 'width', 'pct100'], ['output', 'Output', 'output', 'db0']].forEach(([k, t, key, fmt], j) => {
+    add({ id: `out_l${k}`, cls: 'live.comment', kind: 'label', r: [752 + 36 * j, 114, 36, 11], text: t, align: 'center', page: 'out' });
+    add({ id: `out_${k}`, cls: 'live.dial', kind: 'dial', r: [752 + 36 * j, 125, 36, 36], key: key, fmt: fmt, page: 'out' });
+  });
+  add({ id: 'out_meter', cls: 'live.meter~', kind: 'meter', r: [942, 29, 18, 132], page: 'out', note: 'stereo, vertical' });
+  add({ id: 'out_info', cls: 'live.comment', kind: 'label', r: [830, 150, 108, 11], text: 'Aliasing v0.3 · after D. Pank', fs: 7.5, page: 'out' });
+  return L;
+}
+if (typeof module !== 'undefined') module.exports = { buildLayout, SRCS, TGTS, TGT_LONG, W_SHAPES, LFO_SHAPES };
+
+const CELLS = 1024, NV = 5;
+const PAL = {
+  Graphite: { Dark: { write: '#e4e4e4', read: '#8fb0c4' }, Light: { write: '#1c1c1c', read: '#2f5873' } },
+  Sand:     { Dark: { write: '#e3cda4', read: '#a89a86' }, Light: { write: '#5c4420', read: '#574d40' } },
+  Ice:      { Dark: { write: '#cfe5ee', read: '#7fa7b6' }, Light: { write: '#17485a', read: '#3f6573' } }
+};
+// bg = Live's device background (SurfaceBackground of Default Dark/Light Neutral Medium; light measured in the t3 screenshot)
+const THEME = {
+  Dark:  { bg: '#363636', pLight: '#414141', pDark: '#2d2d2d', disp: '#161616', text: '#d2d2d2', label: '#b0b0b0', dlabel: '#9a9a9a', track: '#5c5c5c', rule: '#4c4c4c', drule: '#2a2a2a', field: '#262626', voice: '#a6a6a6', sel: '#d6d6d6', selFg: '#1b1b1b', sizeFill: '#4c4c4c', meter: '#9a9a9a', cellBg: '#2a2a2a' },
+  Light: { bg: '#a5a5a5', pLight: '#b3b3b3', pDark: '#989898', disp: '#ececec', text: '#111111', label: '#262626', dlabel: '#555555', track: '#6e6e6e', rule: '#858585', drule: '#d0d0d0', field: '#dedede', voice: '#4a4a4a', sel: '#1f1f1f', selFg: '#efefef', sizeFill: '#bdbdbd', meter: '#3c3c3c', cellBg: '#cdcdcd' }
+};
+const DIVS = ['8 bars','4 bars','2 bars','1 bar','1/2','1/2D','1/2T','1/4','1/4D','1/4T','1/8','1/8D','1/8T','1/16','1/16D','1/16T','1/32','1/32T','1/64'];
+const DIVBEATS = [32,16,8,4,2,3,4/3,1,1.5,2/3,0.5,0.75,1/3,0.25,0.375,1/6,0.125,1/12,0.0625];
+const ICON = {
+  ramp: 'M1 11 L21 1 V11', tri: 'M1 11 L11 1 L21 11', tripm: 'M1 11 H6 L11 1 L16 11 H21',
+  sine: 'M1 11 C6 11 6 1 11 1 C16 1 16 11 21 11', pulse: 'M1 11 H11 V1 H21', pulsar: 'M1 11 L9 1 V11 H21',
+  spike: 'M1 11 L5 1 L9 11 H21', noise: 'M1 7 H4 V2 H7 V9 H10 V4 H13 V10 H16 V3 H19 V6 H21',
+  lsine: 'M1 6 C4 -2 8 -2 11 6 C14 14 18 14 21 6', ltri: 'M1 6 L6 1 L16 11 L21 6', saw: 'M1 11 L21 1 V11', sq: 'M1 11 V1 H11 V11 H21 V1',
+  sh: 'M1 8 H5 V3 H9 V10 H13 V5 H17 V9 H21', rnd: 'M1 8 C4 2 6 3 8 6 C10 10 13 11 15 6 C17 2 19 4 21 5'
+};
+const WSHAPE_KEYS = ['ramp', 'tri', 'tripm', 'sine', 'pulse', 'pulsar', 'spike', 'noise'];
+// [min, max, default]
+const DEF = {
+  w_pitch: [-64, 130, 0], w_fine: [-1, 1, 0], w_div: [0, 18, 13], w_mult: [1, 128, 1], w_dv: [1, 32, 1], w_sym: [-1, 1, 0],
+  r_pitch: [-64, 130, 0], r_fine: [-1, 1, 0], r_div: [0, 18, 13], r_mult: [1, 128, 1], r_dv: [1, 32, 1], r_spread: [0, 6, 2],
+  l1_rate: [0, 1, 0.42], l1_div: [0, 18, 7], l1_phase: [0, 360, 0], l1_spread: [0, 1, 0.5],
+  l2_rate: [0, 1, 0.25], l2_div: [0, 18, 3], l2_phase: [0, 360, 90], l2_spread: [0, 1, 0.5],
+  env_att: [0, 1, 0.233], env_rel: [0, 1, 0.405], env_gain: [-24, 24, 12],
+  drive: [0, 24, 0], b_center: [0, 1, 0.5], b_width: [0, 1, 1], b_res: [0, 1, 0], fm: [0, 1, 0], b_spread: [0, 1, 0.25],
+  c_freq: [0, 1, 0.35], c_fb: [-0.95, 0.95, 0.5], c_mix: [0, 1, 0.5],
+  transpose: [-48, 48, 0], width: [0, 2, 1], output: [-36, 0, -6],
+  lim_gain: [0, 24, 0], lim_sat: [0, 1, 0], lim_color: [-1, 1, 0], lim_rel: [0, 1, 0.667], lim_ceil: [-12, 0, -0.3],
+  size: [0.001, 1, 0.1]
+};
+const INT_KEYS = { w_div: 1, r_div: 1, w_mult: 1, r_mult: 1, w_dv: 1, r_dv: 1, l1_div: 1, l2_div: 1, transpose: 1, w_pitch: 1, r_pitch: 1 };
+const BIPOLAR = { w_pitch: 1, w_fine: 1, w_sym: 1, r_pitch: 1, r_fine: 1, c_fb: 1, transpose: 1, env_gain: 1, lim_color: 1 };
+const DEMO = { mx_l1_wp: 0.2, mx_l2_rp: -0.15, mx_en_bc: 0.4, mx_vo_wp: 0.08, mx_l2_sz: 0.35, mx_ro_sy: -0.3, mx_dr_wa: 0.55 };
+
+function lfoHz(n) { return 0.01 * Math.pow(2000, n); }
+function freqOf(n) { return 20 * Math.pow(1000, n); }
+function fmtHz(f) { return f >= 1000 ? (f / 1000).toFixed(f >= 10000 ? 0 : 1) + 'k' : Math.round(f) + ''; }
+function logMap(n, lo, hi) { return lo * Math.pow(hi / lo, n); }
+function sgn(v, s) { return (v > 0 ? '+' : v < 0 ? '−' : '') + s; }
+const FMT = {
+  semi: (v) => sgn(v, Math.abs(Math.round(v)) + ' st'), st3: (v) => sgn(v, Math.abs(v).toFixed(3)), sym: (v) => sgn(v, Math.abs(v).toFixed(2)),
+  div: (v) => DIVS[Math.round(v)], spread: (v) => v.toFixed(2) + ' st', lfoHz: (v) => { const f = lfoHz(v); return (f < 1 ? f.toFixed(2) : f.toFixed(1)) + ' Hz'; },
+  deg: (v) => Math.round(v) + '°', pct: (v) => Math.round(v * 100) + ' %', pctB: (v) => sgn(v, Math.abs(Math.round(v * 100)) + ' %'), pct100: (v) => Math.round(v * 100) + ' %',
+  msAtt: (v) => { const m = logMap(v, 0.1, 100); return (m < 10 ? m.toFixed(1) : Math.round(m)) + ' ms'; },
+  msRel: (v) => { const m = logMap(v, 10, 2000); return m >= 1000 ? (m / 1000).toFixed(2) + ' s' : Math.round(m) + ' ms'; },
+  msLim: (v) => { const m = logMap(v, 1, 1000); return (m < 10 ? m.toFixed(1) : Math.round(m)) + ' ms'; },
+  dbB: (v) => sgn(v, Math.abs(v).toFixed(0) + ' dB'), db0: (v) => v.toFixed(1) + ' dB', db1: (v) => v.toFixed(1) + ' dB',
+  hz: (v) => fmtHz(freqOf(v)) + ' Hz', oct: (v) => v >= 0.995 ? 'Open' : (0.2 + v * 9.8).toFixed(1) + ' oct', resHz: (v) => fmtHz(20 * Math.pow(250, v)) + ' Hz',
+  fb: (v) => sgn(v, Math.abs(Math.round(v * 100)) + ' %'), mult: (v) => '×' + Math.round(v), dv: (v) => '÷' + Math.round(v)
+};
+function pt(a, r) { const t = a * Math.PI / 180; return [16 + r * Math.sin(t), 16 - r * Math.cos(t)]; }
+function arc(a0, a1, r) {
+  if (Math.abs(a1 - a0) < 0.5) return '';
+  const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+  const p0 = pt(lo, r), p1 = pt(hi, r);
+  return 'M' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + (hi - lo > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2);
+}
+const TRACK = arc(-135, 135, 12);
+function skewtri(p, a) { a = Math.min(Math.max(a, 1e-6), 1 - 1e-6); return p < a ? p / a : (1 - p) / (1 - a); }
+function rnd01() { return Math.random(); }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const p = {};
+    Object.keys(DEF).forEach((k) => { p[k] = DEF[k][2]; });
+    Object.assign(p, {
+      w_mode: 0, r_mode: 0, w_shape: 1, r_shape: 0, w_active: 1, r_smooth: 0, r_dir: 0,
+      l1_mode: 0, l2_mode: 1, l1_shape: 0, l2_shape: 5, l1_retrig: 0, l2_retrig: 2,
+      b_slope: 1, b_mode: 0, c_track: 1, drive_on: 1, band_on: 1, res_on: 0, lim_on: 1,
+      gate: 0, resync: 0, aa: 0, view: 0, page: 0
+    });
+    const L = buildLayout();
+    L.filter((e) => e.kind === 'cell').forEach((e) => { p[e.key] = 0; });
+    if (props.demoMatrix ?? true) Object.assign(p, DEMO);
+    this.L = L;
+    this.state = { p: p, t: 0 };
+    this.rows = [];
+    for (let v = 0; v < NV; v++) { const r = new Float32Array(CELLS); for (let i = 0; i < CELLS; i++) r[i] = i / CELLS; this.rows.push(r); }
+    this.ph = []; for (let v = 0; v < NV; v++) this.ph.push({ w: v * 0.13, r: v * 0.29, n0: Math.random(), n1: Math.random(), xw: 0, rd: 0, wOn: true });
+    this.eff = [0.1, 0.1, 0.1, 0.1, 0.1];
+    this.zoom = 0.1;
+    this.drag = null; this.draw = null; this.curveDrag = null;
+    this.meter = [0, 0]; this.env = 0; this.clock = 0;
+  }
+  componentDidMount() { this.timer = setInterval(() => this.tick(), 50); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  set(k, v) { this.setState((s) => { const p = Object.assign({}, s.p); p[k] = v; return { p: p }; }); }
+
+  pointerHz(which, p) {
+    if (p[which + '_mode']) return p[which + '_mult'] / p[which + '_dv'] * 2 / DIVBEATS[p[which + '_div']] * Math.pow(2, p[which + '_fine'] / 12);
+    return 261.63 * Math.pow(2, (p[which + '_pitch'] + p[which + '_fine'] + p.transpose) / 12);
+  }
+  lfoVal(k, t, v, p) {
+    const hz = p['l' + k + '_mode'] ? 2 / DIVBEATS[p['l' + k + '_div']] : lfoHz(p['l' + k + '_rate']);
+    const ph = ((t * hz * (1 + p['l' + k + '_spread'] * 0.3 * (v - 2) / 2) + p['l' + k + '_phase'] / 360) % 1 + 1) % 1;
+    const sh = p['l' + k + '_shape'];
+    if (sh === 0) return Math.sin(2 * Math.PI * ph);
+    if (sh === 1) return 1 - 4 * Math.abs(ph - 0.5);
+    if (sh === 2) return 2 * ph - 1;
+    if (sh === 3) return ph < 0.5 ? 1 : -1;
+    const n = Math.floor(t * hz + v * 7.3); const r = Math.sin(n * 12.9898) * 43758.5453;
+    return 2 * (r - Math.floor(r)) - 1;
+  }
+  srcVal(s, t, v, p) {
+    if (s === 'l1') return this.lfoVal(1, t, v, p);
+    if (s === 'l2') return this.lfoVal(2, t, v, p);
+    if (s === 'dr') return Math.sin(t * 0.37 + v * 1.7);
+    if (s === 'en') return this.env;
+    if (s === 've') return 0.7;
+    if (s === 'mw') return 0;
+    if (s === 'ro') return 2 * (this.ph[v].rd || 0) - 1;
+    return Math.sin(t * 9 + v * 2.1) * 0.6;          // voice / neighbour: a stand-in for the audio-rate output
+  }
+  mod(tgt, t, v, p) {
+    let m = 0;
+    for (const s of ['l1', 'l2', 'en', 'dr', 've', 'mw', 'vo', 'nb', 'ro']) { const d = p['mx_' + s + '_' + tgt]; if (d) m += d * this.srcVal(s, t, v, p); }
+    return m;
+  }
+  wpos(shape, ph, sym, st, wrapped) {
+    const a = (1 + sym) / 2;
+    if (shape === 0) return [Math.pow(ph, Math.pow(4, -sym)), true];
+    if (shape === 1) return [skewtri(ph, a), true];
+    if (shape === 2) return [Math.max(0, 2 * skewtri(ph, a) - 1), true];
+    if (shape === 3) { const aa = Math.min(Math.max(a, 0.01), 0.99); const q = ph < aa ? 0.5 * ph / aa : 0.5 + 0.5 * (ph - aa) / (1 - aa); return [0.5 - 0.5 * Math.cos(2 * Math.PI * q), true]; }
+    if (shape === 4) return [ph < Math.min(Math.max(a, 0.01), 0.99) ? 0 : 1, true];
+    if (shape === 5) { const d = Math.min(Math.max(a, 0.02), 1); return ph < d ? [ph / d, true] : [0, false]; }
+    if (shape === 6) { const d = Math.min(Math.max(a, 0.02), 1); return ph < d ? [1 - Math.abs(2 * ph / d - 1), true] : [0, false]; }
+    if (wrapped) { st.n0 = st.n1; st.n1 = rnd01(); }
+    const sm = (1 + sym) / 2;
+    return [st.n0 + (st.n1 - st.n0) * sm * (0.5 - 0.5 * Math.cos(Math.PI * ph)), true];
+  }
+
+  tick() {
+    if (!(this.props.animate ?? true)) return;
+    const p = this.state.p;
+    const t = (this.clock += 0.05);
+    const fw0 = this.pointerHz('w', p), fr0 = this.pointerHz('r', p);
+    let peak = 0;
+    let zt = p.size;
+    for (let v = 0; v < NV; v++) {
+      const sm = (this.props.sizeMod ?? true) ? 0.9 * Math.sin(t * 0.7 + v * 1.3) : 0;
+      const eff = Math.min(1, Math.max(0.001, p.size * Math.pow(2, sm + 3 * this.mod('sz', t, v, p))));
+      this.eff[v] = eff; zt = Math.max(zt, eff);
+      const span = Math.max(1, Math.round(eff * CELLS));
+      const st = this.ph[v];
+      const spreadSt = p.r_spread * ((v + 0.5) / NV - 0.5);
+      const fw = fw0 * Math.pow(2, this.mod('wp', t, v, p) * 2);
+      const fr = fr0 * Math.pow(2, (spreadSt + this.mod('rp', t, v, p) * 24) / 12);
+      const dw = 0.03 * (1 + v * 0.002), dr = dw * fr / fw;
+      const sym = Math.min(1, Math.max(-1, p.w_sym + this.mod('sy', t, v, p)));
+      const wv = (p.w_active >= 1 ? 1 : 0) + this.mod('wa', t, v, p);
+      st.wOn = st.wOn ? wv > 0.48 : wv > 0.52;
+      const row = this.rows[v];
+      for (let i = 0; i < 240; i++) {
+        const nw = st.w + dw / 240; const wrapped = nw >= 1;
+        st.w = nw % 1; st.r = (st.r + dr / 240) % 1;
+        let rd = st.r;
+        if (p.r_shape) { const s2 = p.r_dir ? 0.5 : 1; rd = st.r < s2 ? st.r / s2 : (1 - st.r) / Math.max(1 - s2, 1e-6); }
+        const res = this.wpos(p.w_shape, st.w, sym, st, wrapped);
+        const xw = p.w_active === 2 ? rd : res[0];
+        const writes = st.wOn && (p.w_active === 2 || res[1]);
+        if (writes) row[Math.min(span - 1, Math.floor(xw * span))] = rd;
+        st.rd = rd; st.xw = xw; st.writing = writes;
+      }
+      peak = Math.max(peak, Math.abs(2 * row[Math.min(span - 1, Math.floor(st.rd * span))] - 1));
+    }
+    this.zoom = zt > this.zoom ? zt : this.zoom + (zt - this.zoom) * 0.05;
+    const lvl = Math.pow(10, p.output / 20) * peak;
+    this.meter = [Math.min(100, 100 * lvl * (0.85 + 0.15 * Math.random())), Math.min(100, 100 * lvl * (0.85 + 0.15 * Math.random()))];
+    const target = Math.min(1, lvl * Math.pow(10, p.env_gain / 20) * 0.5);
+    this.env += (target - this.env) * (target > this.env ? 0.6 : 0.15);
+    this.setState((s) => ({ t: s.t + 1 }));
+  }
+
+  visible(e, p) {
+    const pages = ['lfo', 'mod', 'tone', 'out'];
+    if (e.page) { if (e.page === 'tbl') { if (p.page === 2) return false; } else if (pages.indexOf(e.page) !== p.page) return false; }
+    const c = e.cond; if (!c) return true;
+    if (c.indexOf('ws:') === 0) return c.slice(3).split(',').indexOf(WSHAPE_KEYS[p.w_shape]) >= 0;
+    const m = { w_free: !p.w_mode, w_sync: !!p.w_mode, r_free: !p.r_mode, r_sync: !!p.r_mode, l1_hz: !p.l1_mode, l1_sy: !!p.l1_mode, l2_hz: !p.l2_mode, l2_sy: !!p.l2_mode };
+    return !!m[c];
+  }
+  colorOf(role, c) { return role === 'write' ? c.write : role === 'read' ? c.read : role === 'text' ? c.text : role === 'sel' ? c.sel : c.label; }
+
+  dial(e, c) {
+    const key = e.key, d = DEF[key], p = this.state.p, min = d[0], max = d[1];
+    const val = p[key], n = (val - min) / (max - min), a = -135 + 270 * n;
+    const nn = pt(a, 8.5);
+    const kd = Math.min(e.r[2] - 6, e.r[3] - 11);
+    return {
+      x: e.r[0], y: e.r[1], w: e.r[2], h: e.r[3], kd: kd, fs: e.r[2] < 40 ? 8 : 9, label: e.id,
+      text: FMT[e.fmt] ? FMT[e.fmt](val) : val.toFixed(2), color: this.colorOf(e.color || 'text', c),
+      track: TRACK, arc: BIPOLAR[key] ? arc(0, a, 12) : arc(-135, a, 12), nx: nn[0].toFixed(2), ny: nn[1].toFixed(2),
+      down: (ev) => { ev.currentTarget.setPointerCapture(ev.pointerId); this.drag = { key: key, y: ev.clientY, v: val }; },
+      move: (ev) => {
+        if (!this.drag || this.drag.key !== key) return;
+        const dy = (this.drag.y - ev.clientY) * (ev.shiftKey ? 0.15 : 1);
+        let v = Math.min(max, Math.max(min, this.drag.v + dy / 110 * (max - min)));
+        if (INT_KEYS[key]) v = Math.round(v);
+        if (key === 'w_sym') v = Math.round(v * 100) / 100;
+        this.set(key, v);
+      },
+      up: () => { this.drag = null; }, dbl: () => this.set(key, d[2])
+    };
+  }
+  numbox(e, c) {
+    const key = e.key, d = DEF[key], val = this.state.p[key];
+    return {
+      x: e.r[0], y: e.r[1], w: e.r[2], h: e.r[3], label: e.id, text: FMT[e.fmt](val),
+      down: (ev) => { ev.currentTarget.setPointerCapture(ev.pointerId); this.drag = { key: key, y: ev.clientY, v: val }; },
+      move: (ev) => { if (!this.drag || this.drag.key !== key) return; this.set(key, Math.min(d[1], Math.max(d[0], Math.round(this.drag.v + (this.drag.y - ev.clientY) / 4)))); },
+      up: () => { this.drag = null; }, dbl: () => this.set(key, d[2])
+    };
+  }
+  cell(e, c) {
+    const key = e.key, val = this.state.p[key] || 0;
+    const on = Math.abs(val) > 0.004;
+    return {
+      x: e.r[0], y: e.r[1], label: e.param, bg: c.cellBg,
+      left: (val < 0 ? 50 + 50 * val : 50).toFixed(1), width: (Math.abs(val) * 50).toFixed(1), color: this.colorOf(e.role, c),
+      text: on ? (val > 0 ? '+' : '−') + Math.round(Math.abs(val) * 100) : '', fg: c.text,
+      down: (ev) => { ev.currentTarget.setPointerCapture(ev.pointerId); this.drag = { key: key, y: ev.clientY, v: val }; },
+      move: (ev) => { if (!this.drag || this.drag.key !== key) return; this.set(key, Math.min(1, Math.max(-1, Math.round((this.drag.v + (this.drag.y - ev.clientY) / 100 * (ev.shiftKey ? 0.15 : 1)) * 100) / 100))); },
+      up: () => { this.drag = null; }, dbl: () => this.set(key, 0)
+    };
+  }
+  tab(e, c) {
+    const p = this.state.p, key = e.key, list = e.icons || e.items, rows = e.rows || 1;
+    const cols = Math.ceil(list.length / rows);
+    const items = list.map((it, i) => {
+      const sel = p[key] === i, isIcon = !!e.icons;
+      return { label: isIcon ? it[0] : it, isIcon: isIcon, isText: !isIcon, icon: isIcon ? ICON[it[1]] : '', bg: sel ? c.sel : 'transparent', fg: sel ? c.selFg : (isIcon ? c.label : c.text), pick: () => this.set(key, i) };
+    });
+    const cellW = e.r[2] / cols;
+    return { x: e.r[0], y: e.r[1], w: e.r[2], h: e.r[3], cols: cols, rows: rows, rad: rows > 1 ? 4 : Math.floor(e.r[3] / 2), fs: e.r[3] >= 16 ? 9 : 8, iw: Math.min(cellW - 6, 20), ih: Math.min(e.r[3] / rows - 4, 10), items: items };
+  }
+  pill(e, c) {
+    const p = this.state.p, on = !!p[e.key], title = e.kind === 'title';
+    const accent = title ? c.sel : this.colorOf(e.color, c);
+    return {
+      x: e.r[0], y: e.r[1], w: e.r[2], h: e.r[3], rad: Math.floor(e.r[3] / 2), lh: e.r[3] - 2, label: e.id,
+      text: on && e.texton ? e.texton : e.text, bg: on ? accent : 'transparent', fg: on ? c.selFg : c.label, border: on ? accent : c.track,
+      fw: title ? 600 : 400, ls: title ? '0.06em' : 'normal', toggle: () => this.set(e.key, on ? 0 : 1)
+    };
+  }
+  button(e, c) {
+    return { x: e.r[0], y: e.r[1], w: e.r[2], h: e.r[3], rad: Math.floor(e.r[3] / 2), lh: e.r[3] - 2, label: e.id, text: e.text, bg: 'transparent', fg: c.text, border: c.track, fw: 400, ls: 'normal',
+      toggle: () => { this.ph.forEach((s) => { s.w = 0; s.r = 0; }); } };
+  }
+  label(e, c) {
+    return { x: e.r[0], y: e.r[1], w: e.r[2], h: e.r[3], lh: e.vcenter || e.bold ? e.r[3] : e.r[3], fs: e.fs || 8, fw: e.bold ? 600 : 400, ls: e.bold ? '0.06em' : 'normal',
+      align: e.align || 'left', color: this.colorOf(e.role || 'label', c), text: e.text };
+  }
+
+  lane(v, c) {
+    const p = this.state.p, row = this.rows[v], st = this.ph[v];
+    const W = 320, H = 21, zoomSpan = Math.max(1, Math.round(this.zoom * CELLS));
+    const effSpan = Math.max(1, Math.round(this.eff[v] * CELLS));
+    const yOf = (q) => 1.5 + (1 - Math.min(1, Math.max(0, q))) * (H - 3);
+    let fillD = '', stepD = '';
+    if (!p.view) {
+      if (zoomSpan * 2 <= W) {
+        for (let i = 0; i < zoomSpan; i++) { const y = yOf(row[i]).toFixed(1); stepD += (i ? 'L' : 'M') + (i / zoomSpan * W).toFixed(1) + ' ' + y + ' L' + ((i + 1) / zoomSpan * W).toFixed(1) + ' ' + y + ' '; }
+      } else {
+        const hiY = [], loY = [], half = (this.props.lineWeight ?? 1) / 2;
+        for (let x = 0; x < W; x++) {
+          const i0 = Math.floor(x / W * zoomSpan), i1 = Math.max(i0 + 1, Math.floor((x + 1) / W * zoomSpan));
+          let lo = 1, hi = 0;
+          for (let i = i0; i < i1 && i < CELLS; i++) { const q = row[i]; if (q < lo) lo = q; if (q > hi) hi = q; }
+          hiY.push(yOf(hi) - half); loY.push(yOf(lo) + half);
+        }
+        fillD = 'M0 ' + hiY[0].toFixed(1);
+        for (let x = 1; x < W; x++) fillD += ' L' + x + ' ' + hiY[x].toFixed(1);
+        for (let x = W - 1; x >= 0; x--) fillD += ' L' + x + ' ' + loY[x].toFixed(1);
+        fillD += ' Z';
+      }
+    }
+    let grad = 'transparent';
+    if (p.view) {
+      const cols = 64, rgb = (this.props.theme ?? 'Light') === 'Light' ? '40,40,40' : '200,200,200', stops = [];
+      for (let k = 0; k < cols; k++) {
+        const q = row[Math.min(CELLS - 1, Math.floor((k + 0.5) / cols * zoomSpan))];
+        stops.push('rgba(' + rgb + ',' + (0.06 + 0.8 * q).toFixed(2) + ') ' + (k / cols * 100).toFixed(3) + '% ' + ((k + 1) / cols * 100).toFixed(3) + '%');
+      }
+      grad = 'linear-gradient(90deg,' + stops.join(',') + ')';
+    }
+    const edgeX = Math.min(W, effSpan / zoomSpan * W);
+    const xOfPos = (pos) => Math.min(W, pos * effSpan / zoomSpan * W);
+    const cellY = (pos) => yOf(row[Math.min(effSpan - 1, Math.floor(pos * effSpan))]).toFixed(1);
+    const ev = (e) => { const r = e.currentTarget.getBoundingClientRect(); return [Math.min(0.9999, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height))]; };
+    const paint = (x0, y0, x1, y1, all) => {
+      const c0 = Math.floor(x0 * zoomSpan), c1 = Math.floor(x1 * zoomSpan), n = Math.max(1, Math.abs(c1 - c0));
+      (all ? [0, 1, 2, 3, 4] : [v]).forEach((vv) => { for (let k = 0; k <= n; k++) this.rows[vv][c0 + Math.round((c1 - c0) * k / n)] = y0 + (y1 - y0) * k / n; });
+    };
+    return {
+      top: 17 + 22 * v, fillD: fillD, stepD: stepD, grad: grad, rule: v ? c.drule : 'transparent',
+      edgeX: edgeX.toFixed(1), dimW: Math.max(0, W - edgeX).toFixed(1), edgeOp: edgeX < W - 0.5 ? 0.9 : 0,
+      wx: xOfPos(st.xw || 0).toFixed(1), wy: p.view ? 10.5 : cellY(st.xw || 0), rx: xOfPos(st.rd || 0).toFixed(1), ry: p.view ? 10.5 : cellY(st.rd || 0),
+      wColor: st.writing === false && p.w_active !== 2 ? c.track : c.write,
+      down: (e) => { if (e.detail > 1) return; e.currentTarget.setPointerCapture(e.pointerId); const q = ev(e); this.draw = { v: v, x0: q[0], y0: q[1], lx: q[0], ly: q[1], all: e.shiftKey, line: e.altKey }; paint(q[0], q[1], q[0], q[1], e.shiftKey); this.forceUpdate(); },
+      move: (e) => { if (!this.draw || this.draw.v !== v) return; const q = ev(e); if (this.draw.line) paint(this.draw.x0, this.draw.y0, q[0], q[1], this.draw.all); else paint(this.draw.lx, this.draw.ly, q[0], q[1], this.draw.all); this.draw.lx = q[0]; this.draw.ly = q[1]; this.forceUpdate(); },
+      up: () => { this.draw = null; },
+      dbl: (e) => { (e.shiftKey ? [0, 1, 2, 3, 4] : [v]).forEach((vv) => { for (let i = 0; i < CELLS; i++) this.rows[vv][i] = i / CELLS; }); this.forceUpdate(); }
+    };
+  }
+
+  curveModel(c) {
+    const p = this.state.p, W = 320, H = 126;           // Tone: box 157 high, curve rect h = box h - 31
+    const xOf = (f) => Math.log(f / 20) / Math.log(1000) * W;
+    const fOfX = (x) => 20 * Math.pow(1000, Math.min(1, Math.max(0, x / W)));
+    const yOf = (db) => 4 + (18 - db) / 54 * (H - 4);
+    const oct = 0.2 + p.b_width * 9.8, cF = freqOf(p.b_center);
+    const rF = p.c_track ? Math.min(5000, Math.max(20, this.pointerHz('r', p))) : 20 * Math.pow(250, p.c_freq);
+    const Q = 0.707 + p.b_res * 9;
+    const two = (x, q) => 1 / Math.sqrt(Math.pow(1 - x * x, 2) + Math.pow(x / q, 2));
+    const resp = (f, off) => {
+      let a = 1;
+      if (p.band_on) {
+        const ctr = cF * Math.pow(2, off), lo = ctr / Math.pow(2, oct / 2), hi = ctr * Math.pow(2, oct / 2);
+        const h = f / lo, l = f / hi, n = p.b_slope ? 2 : 1;
+        const pass = Math.pow(h * h * two(h, Q) * two(l, Q), n), pass0 = Math.pow(h * h * two(h, 0.707) * two(l, 0.707), n);
+        a = p.b_mode ? Math.max(1e-3, 1 - Math.min(1, pass0)) * Math.max(1, pass / Math.max(pass0, 1e-6)) : pass;
+      }
+      if (p.res_on) { const g = p.c_fb, comb = (1 - Math.abs(g)) / Math.sqrt(1 - 2 * g * Math.cos(2 * Math.PI * f / rF) + g * g); a *= (1 - p.c_mix) + p.c_mix * comb; }
+      return Math.max(-36, Math.min(18, 20 * Math.log10(Math.max(1e-4, a))));
+    };
+    let d = '', voices = '';
+    for (let x = 0; x <= W; x += 2) d += (x ? 'L' : 'M') + x + ' ' + yOf(resp(fOfX(x), 0)).toFixed(1) + ' ';
+    const fill = d + 'L' + W + ' ' + H + ' L0 ' + H + ' Z';
+    for (let v = 0; v < NV; v++) { const off = (v - 2) * (p.b_spread * 0.5 + p.fm * 0.3); for (let x = 0; x <= W; x += 4) voices += (x ? 'L' : 'M') + x + ' ' + yOf(resp(fOfX(x), off)).toFixed(1) + ' '; }
+    let grid = '';
+    [100, 1000, 10000].forEach((f) => { const x = xOf(f).toFixed(1); grid += 'M' + x + ' 0 V' + H + ' '; });
+    [-24, -12, 12].forEach((db) => { const y = yOf(db).toFixed(1); grid += 'M0 ' + y + ' H' + W + ' '; });
+    const xLo = Math.max(0, xOf(cF / Math.pow(2, oct / 2))), xHi = Math.min(W, xOf(cF * Math.pow(2, oct / 2)));
+    const resY = (r) => yOf(2 + r * 14);
+    const ctrX = xOf(cF), ctrY = resY(p.b_res);
+    const rsX = xOf(rF), rsY = 8 + (1 - (p.c_fb + 0.95) / 1.9) * (H - 16);
+    const loc = (e) => { const r = e.currentTarget.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * 140]; };
+    const resOfY = (y) => Math.min(1, Math.max(0, ((18 - (y - 4) / (H - 4) * 54) - 2) / 14));
+    return {
+      d: d, fill: fill, voices: voices, grid: grid, zero: 'M0 ' + yOf(0).toFixed(1) + ' H' + W,
+      band: { x: xLo.toFixed(1), x2: xHi.toFixed(1), w: Math.max(0, xHi - xLo).toFixed(1), gx1: (xLo - 3).toFixed(1), gx2: (xHi - 3).toFixed(1), fill: p.b_mode ? c.read : c.write, op: p.band_on ? 0.09 : 0.03,
+        lx: (Math.min(Math.max(xLo + 4, 2), W - 60)).toFixed(1), label: !p.band_on ? 'BAND OFF' : p.b_mode ? 'REJECT' : (p.b_width >= 0.995 ? 'OPEN' : 'PASS') },
+      ctr: { x: ctrX.toFixed(1), y: ctrY.toFixed(1) },
+      rs: { x0: (rsX - 4.5).toFixed(1), y0: (rsY - 4.5).toFixed(1), tx: (rsX + 7).toFixed(1), ty: (rsY + 3).toFixed(1), op: p.res_on ? 1 : 0.35 },
+      down: (e) => {
+        if (e.detail > 1) return;
+        const m = loc(e); let what = null;
+        if (Math.hypot(rsX - m[0], rsY - m[1]) < 10) what = 'rs';
+        else if (Math.hypot(ctrX - m[0], ctrY - m[1]) < 10) what = 'body';
+        else if (Math.abs(m[0] - xLo) < 6 && xLo > 1) what = 'edge';
+        else if (Math.abs(m[0] - xHi) < 6 && xHi < W - 1) what = 'edge';
+        else if (m[0] > xLo && m[0] < xHi) what = 'body';
+        if (!what) return;
+        e.currentTarget.setPointerCapture(e.pointerId); this.curveDrag = { what: what, x: m[0], c0: p.b_center };
+      },
+      move: (e) => {
+        if (!this.curveDrag) return;
+        const m = loc(e), np = Object.assign({}, this.state.p), dr = this.curveDrag;
+        if (dr.what === 'body') { np.b_center = Math.min(1, Math.max(0, dr.c0 + (m[0] - dr.x) / W)); np.b_res = resOfY(m[1]); }
+        if (dr.what === 'edge') { const o = 2 * Math.abs(Math.log2(fOfX(m[0]) / freqOf(np.b_center))); np.b_width = Math.min(1, Math.max(0, (o - 0.2) / 9.8)); }
+        if (dr.what === 'rs') { np.c_track = 0; np.res_on = 1; np.c_freq = Math.min(1, Math.max(0, Math.log(fOfX(m[0]) / 20) / Math.log(250))); np.c_fb = Math.min(0.95, Math.max(-0.95, 0.95 - (m[1] - 8) / (H - 16) * 1.9)); }
+        this.setState({ p: np });
+      },
+      up: () => { this.curveDrag = null; },
+      dbl: (e) => { const m = loc(e); if (m[0] > xLo && m[0] < xHi) this.set('b_mode', p.b_mode ? 0 : 1); }
+    };
+  }
+
+  renderVals() {
+    const theme = this.props.theme ?? 'Light', pal = PAL[this.props.palette ?? 'Graphite'][theme];
+    const c = Object.assign({}, THEME[theme], { write: pal.write, read: pal.read });
+    const p = this.state.p;
+    const pm = this.props.panels ?? 'Auto';
+    const panelBg = pm === 'Off' ? 'transparent' : pm === 'Darker' ? c.pDark : pm === 'Lighter' ? c.pLight : (theme === 'Light' ? c.pDark : c.pLight);
+    const V = this.L.filter((e) => this.visible(e, p));
+    const of = (k) => V.filter((e) => e.kind === k);
+    const panels = of('panel').map((e) => ({ x: e.r[0], y: e.r[1], w: e.r[2], h: e.r[3], bg: panelBg }));
+    const isTone = p.page === 2;
+    const fw = this.pointerHz('w', p), fr = this.pointerHz('r', p);
+    const hz = (f) => f >= 1000 ? (f / 1000).toFixed(2) + ' kHz' : f.toFixed(f < 10 ? 2 : 1) + ' Hz';
+    const span = Math.max(1, Math.round(p.size * CELLS));
+    const sizeNorm = Math.sqrt((p.size * 100 - 0.1) / 99.9);
+    const sizeBar = {
+      down: (e) => { e.currentTarget.setPointerCapture(e.pointerId); this.drag = { key: 'size' }; sizeBar.move(e); },
+      move: (e) => { if (!this.drag || this.drag.key !== 'size') return; const r = e.currentTarget.getBoundingClientRect(); const n = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); this.set('size', (0.1 + 99.9 * n * n) / 100); },
+      up: () => { this.drag = null; }, dbl: () => this.set('size', DEF.size[2])
+    };
+    const lanes = []; for (let v = 0; v < NV; v++) lanes.push(this.lane(v, c));
+    return {
+      c: c, panels: panels,
+      vlines: of('vline').map((e) => ({ x: e.r[0], y: e.r[1], h: e.r[3] })),
+      labels: of('label').map((e) => this.label(e, c)),
+      tabs: of('tab').map((e) => this.tab(e, c)),
+      pills: of('pill').concat(of('title')).map((e) => this.pill(e, c)).concat(of('button').map((e) => this.button(e, c))),
+      numboxes: of('numbox').map((e) => this.numbox(e, c)),
+      dials: of('dial').map((e) => this.dial(e, c)),
+      cells: of('cell').map((e) => this.cell(e, c)),
+      showSize: !isTone, dispH: isTone ? 157 : 136, sizeBar: sizeBar, sizeFillPct: (sizeNorm * 100).toFixed(1), sizeText: (p.size * 100).toFixed(1) + ' %',
+      isLfo: p.page === 0, isOut: p.page === 3, envPct: (this.env * 100).toFixed(0),
+      showTable: !isTone, showCurve: isTone, showViewIcons: !isTone, curve: this.curveModel(c),
+      dispTitle: isTone ? 'TONE' : 'TABLE',
+      dispInfo: isTone ? 'drag band · edges = width · dbl-click = Pass/Reject · R' : (span + ' cells · W ' + hz(fw) + ' · R ' + hz(fr) + ((this.props.sizeMod ?? true) ? ' · Size mod (demo)' : '')),
+      lanes: lanes, lineWidth: this.props.lineWeight ?? 1,
+      ovPct: (p.size * 100).toFixed(2), ovTicks: this.eff.map((e) => ({ pct: Math.min(99.7, e * 100).toFixed(2) })),
+      lineBg: p.view ? 'transparent' : c.sel, lineFg: p.view ? c.dlabel : c.selFg, twoBg: p.view ? c.sel : 'transparent', twoFg: p.view ? c.selFg : c.dlabel,
+      setLine: () => this.set('view', 0), set2d: () => this.set('view', 1),
+      meterL: this.meter[0].toFixed(0), meterR: this.meter[1].toFixed(0)
+    };
+  }
+}
+</script>
+</body>
+</html>

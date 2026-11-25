@@ -7,20 +7,77 @@ var VOICES = 5;
 var COLUMNS_2D = 64;
 var SIZE_MIN = 1e-3;
 var W = 328;
-var H = 157;
+var H = 136;
 var PAD = 4;
 var HEADER_Y = 3;
 var HEADER_H = 12;
 var LANE_TOP = 17;
-var LANE_H = 24;
-var OVERVIEW_Y = 140;
+var OVERVIEW_H = 5;
 var CURVE_TOP = 17;
-var CURVE_H = 125;
 function clamp(x, lo, hi) {
   return x < lo ? lo : x > hi ? hi : x;
 }
-function laneRect(v, w = W) {
-  return { x: PAD, y: LANE_TOP + v * LANE_H, w: w - 2 * PAD, h: LANE_H };
+function overviewY(h = H) {
+  return h - PAD - OVERVIEW_H + 1;
+}
+function laneHeight(h = H) {
+  return (overviewY(h) - 2 - LANE_TOP) / VOICES;
+}
+function laneRect(v, w = W, h = H) {
+  const lh = laneHeight(h);
+  return { x: PAD, y: LANE_TOP + v * lh, w: w - 2 * PAD, h: lh };
+}
+function curveRect(w = W, h = H) {
+  return { x: PAD, y: CURVE_TOP, w: w - 2 * PAD, h: h - CURVE_TOP - 14 };
+}
+function nextZoom(prev, base, spans, dt, tau = 0.35) {
+  let target = clamp(base, SIZE_MIN, 1);
+  for (let i = 0; i < spans.length; i++) {
+    const s = spans[i];
+    if (s > target) target = clamp(s, SIZE_MIN, 1);
+  }
+  if (!(prev > 0) || target >= prev) return target;
+  const k = 1 - Math.exp(-dt / tau);
+  const z = Math.exp(Math.log(prev) + (Math.log(target) - Math.log(prev)) * k);
+  return z - target < 1e-6 ? target : z;
+}
+function laneOutline(row, span, lane) {
+  const n = Math.max(1, Math.min(span, row.length));
+  const pts = [];
+  if (n * 2 <= lane.w) {
+    for (let c = 0; c < n; c++) {
+      const y = laneY(row[c], lane);
+      pts.push(lane.x + c / n * lane.w, y, lane.x + (c + 1) / n * lane.w, y);
+    }
+    return { pts, filled: false };
+  }
+  const cols = Math.max(1, Math.floor(lane.w));
+  const env = decimateMinMax(row, n, cols);
+  const lo = [];
+  for (let c = 0; c < cols; c++) {
+    const x = lane.x + c + 0.5;
+    const top = laneY(env.max[c], lane) - 0.5;
+    const bot = Math.max(laneY(env.min[c], lane) + 0.5, top + 1);
+    pts.push(x, top);
+    lo.push(x, bot);
+  }
+  for (let k = lo.length - 2; k >= 0; k -= 2) pts.push(lo[k], lo[k + 1]);
+  return { pts, filled: true };
+}
+function copyInto(out, values, n) {
+  if (values === null || values === void 0) {
+    for (let i = 0; i < n; i++) out[i] = 0;
+    return;
+  }
+  if (typeof values === "number") {
+    out[0] = Number.isFinite(values) ? values : 0;
+    for (let i = 1; i < n; i++) out[i] = 0;
+    return;
+  }
+  for (let i = 0; i < n; i++) {
+    const v = i < values.length ? Number(values[i]) : 0;
+    out[i] = Number.isFinite(v) ? v : 0;
+  }
 }
 function iconRects(w = W) {
   return {
@@ -157,8 +214,8 @@ function toneDb(f, t, fs2 = 48e3) {
   const hi = clamp(t.center * Math.pow(2, 0.5 * t.width), 10, nyq);
   const qr = resQ(t.res, t.slope24);
   const edge = (fc, high) => t.slope24 ? cmul(sec(f, fc, 0.5412, high), sec(f, fc, qr, high)) : sec(f, fc, qr, high);
-  let h = t.reject ? cadd(edge(lo, false), edge(hi, true)) : cmul(edge(lo, true), edge(hi, false));
-  if (t.rsMix > 0) {
+  let h = t.bandOn === false ? [1, 0] : t.reject ? cadd(edge(lo, false), edge(hi, true)) : cmul(edge(lo, true), edge(hi, false));
+  if (t.resOn !== false && t.rsMix > 0) {
     const g = clamp(t.rsFb, -95, 95) / 100;
     const d = 1 / clamp(t.rsFreq, 20, 5e3);
     const ph = -2 * Math.PI * f * d;
@@ -193,10 +250,11 @@ function hitCurve(x, y, t, rect, fs2 = 48e3) {
 function widthFromEdge(x, center, rect) {
   return clamp(2 * Math.abs(Math.log2(fOfX(x, rect) / center)), 0.2, 10);
 }
-function laneHit(x, y, w = W) {
-  if (y < LANE_TOP || y >= LANE_TOP + VOICES * LANE_H) return null;
-  const voice = clamp(Math.floor((y - LANE_TOP) / LANE_H), 0, VOICES - 1);
-  const lane = laneRect(voice, w);
+function laneHit(x, y, w = W, h = H) {
+  const lh = laneHeight(h);
+  if (y < LANE_TOP || y >= LANE_TOP + VOICES * lh) return null;
+  const voice = clamp(Math.floor((y - LANE_TOP) / lh), 0, VOICES - 1);
+  const lane = laneRect(voice, w, h);
   if (x < lane.x - 2 || x > lane.x + lane.w + 2) return null;
   return {
     voice,
@@ -267,36 +325,36 @@ function palette(dark) {
   if (dark) {
     return {
       dark: true,
-      text: hex("#c9c9c9"),
-      label: hex("#969696"),
-      track: hex("#424242"),
-      rule: hex("#2e2e2e"),
-      field: hex("#1b1b1b"),
+      text: hex("#d2d2d2"),
+      label: hex("#b0b0b0"),
+      track: hex("#5c5c5c"),
+      rule: hex("#2a2a2a"),
+      field: hex("#262626"),
       sel: hex("#d6d6d6"),
       selFg: hex("#1b1b1b"),
-      sizeFill: hex("#3a3a3a"),
+      sizeFill: hex("#4c4c4c"),
       write: hex("#e4e4e4"),
-      read: hex("#8fa6b6"),
-      disp: hex("#151515"),
-      voice: hex("#a3a3a3"),
+      read: hex("#8fb0c4"),
+      disp: hex("#161616"),
+      voice: hex("#a6a6a6"),
       meter: hex("#9a9a9a")
     };
   }
   return {
     dark: false,
-    text: hex("#1e1e1e"),
-    label: hex("#4d4d4d"),
-    track: hex("#9e9e9e"),
-    rule: hex("#c9c9c9"),
-    field: hex("#e6e6e6"),
-    sel: hex("#2a2a2a"),
+    text: hex("#111111"),
+    label: hex("#262626"),
+    track: hex("#6e6e6e"),
+    rule: hex("#d0d0d0"),
+    field: hex("#dedede"),
+    sel: hex("#1f1f1f"),
     selFg: hex("#efefef"),
     sizeFill: hex("#bdbdbd"),
-    write: hex("#242424"),
-    read: hex("#41627a"),
+    write: hex("#1c1c1c"),
+    read: hex("#2f5873"),
     disp: hex("#ececec"),
-    voice: hex("#555555"),
-    meter: hex("#555555")
+    voice: hex("#4a4a4a"),
+    meter: hex("#3c3c3c")
   };
 }
 function themeIsDark(getcolor) {
@@ -310,6 +368,12 @@ function themeIsDark(getcolor) {
 }
 function roleOf(varname) {
   var v = String(varname || "");
+  if (v.indexOf("mod_") === 0) {
+    var t = v.substring(v.lastIndexOf("_") + 1);
+    if (t === "wp" || t === "sy" || t === "wa") return "write";
+    if (t === "rp" || t === "sp") return "read";
+    return "neutral";
+  }
   if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
   if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
   return "neutral";
@@ -408,7 +472,33 @@ function enumLabelsFrom(range, type) {
   for (var i = 0; i < range.length; i++) out.push(String(range[i]));
   return out.length ? out : null;
 }
-function iconPath(label2) {
+function writeIcon(label2) {
+  switch (label2) {
+    case "Ramp":
+      return [[1, 11], [21, 1], [21, 11]];
+    case "Tri":
+      return [[1, 11], [11, 1], [21, 11]];
+    case "Tri \xB1":
+      return [[1, 11], [6, 11], [11, 1], [16, 11], [21, 11]];
+    case "Sine": {
+      var pts = [];
+      for (var i = 0; i <= 20; i++) pts.push([1 + i, 11 - 10 * (0.5 - 0.5 * Math.cos(i / 20 * 2 * Math.PI))]);
+      return pts;
+    }
+    case "Pulse":
+      return [[1, 11], [11, 11], [11, 1], [21, 1]];
+    case "Pulsar":
+      return [[1, 11], [9, 1], [9, 11], [21, 11]];
+    case "Spike":
+      return [[1, 11], [5, 1], [9, 11], [21, 11]];
+    case "Noise":
+      return [[1, 7], [4, 7], [4, 2], [7, 2], [7, 9], [10, 9], [10, 4], [13, 4], [13, 10], [16, 10], [16, 3], [19, 3], [19, 6], [21, 6]];
+    default:
+      return null;
+  }
+}
+function iconPath(label2, family) {
+  if (family === "write") return writeIcon(label2);
   switch (label2) {
     case "Ramp":
     case "Saw":
@@ -417,8 +507,6 @@ function iconPath(label2) {
       return [[1, 11], [11, 1], [21, 11]];
     case "Tri \xB1":
       return [[1, 6], [6, 1], [16, 11], [21, 6]];
-    case "=Read":
-      return [[1, 11], [7, 5], [13, 9], [21, 1]];
     case "Square":
       return [[1, 11], [1, 1], [11, 1], [11, 11], [21, 11], [21, 1]];
     case "S&H":
@@ -471,9 +559,12 @@ var params = {
   bmode: 0,
   rsfreq: 140,
   rsfb: 50,
-  rsmix: 0,
-  rstrack: 1
+  rsmix: 50,
+  rstrack: 1,
+  bandon: 1,
+  reson: 0
 };
+var zoom = 0.1;
 var gesture = null;
 var storeDict = new Dict();
 var expectEcho = false;
@@ -481,11 +572,13 @@ var pendingRestore = null;
 var timer = new Task(tick);
 timer.interval = FPS_INTERVAL_MS;
 function readData() {
-  if (tableBuf && !gesture) {
-    for (let v = 0; v < VOICES; v++) rows[v] = normalizeRow(tableBuf.peek(v + 1, 0, CELLS), CELLS);
-  }
   if (headsBuf) {
-    for (let c = 0; c < NCH; c++) heads[c] = normalizeRow(headsBuf.peek(c + 1, 0, VOICES), VOICES);
+    for (let c = 0; c < NCH; c++) copyInto(heads[c], headsBuf.peek(c + 1, 0, VOICES), VOICES);
+  }
+  zoom = nextZoom(zoom, params.size / 100, heads[3], FPS_INTERVAL_MS / 1e3);
+  if (tableBuf && !gesture) {
+    const n = Math.min(CELLS, spanCells(zoom) + 1);
+    for (let v = 0; v < VOICES; v++) copyInto(rows[v], tableBuf.peek(v + 1, 0, n), n);
   }
 }
 function tick() {
@@ -504,6 +597,8 @@ function fs() {
 }
 function tone() {
   return {
+    bandOn: params.bandon > 0.5,
+    resOn: params.reson > 0.5,
     center: params.center,
     width: params.bwidth,
     res: params.bres,
@@ -513,9 +608,6 @@ function tone() {
     rsFb: params.rsfb,
     rsMix: params.rsmix
   };
-}
-function curveRect(w) {
-  return { x: PAD, y: CURVE_TOP, w: w - 2 * PAD, h: CURVE_H };
 }
 function storeTable() {
   if (!tableBuf) return;
@@ -588,6 +680,9 @@ function bang() {
   readData();
   mgraphics.redraw();
 }
+function onresize(_w, _h) {
+  mgraphics.redraw();
+}
 function notifydeleted() {
   timer.cancel();
 }
@@ -610,11 +705,11 @@ function onclick(x, y, _but, _cmd, shift, _caps, option) {
   }
   if (pageValue === PAGE_TONE) {
     const t = tone();
-    const what = hitCurve(x, y, t, curveRect(w), fs());
+    const what = hitCurve(x, y, t, curveRect(w, mgraphics.size[1]), fs());
     gesture = what ? { kind: "curve", what, x0: x, c0: params.center } : null;
     return;
   }
-  const hit = laneHit(x, y, w);
+  const hit = laneHit(x, y, w, mgraphics.size[1]);
   if (!hit) {
     gesture = null;
     return;
@@ -635,7 +730,7 @@ function ondrag(x, y, but) {
     return;
   }
   if (gesture.kind === "draw") {
-    const lane = laneRect(gesture.voice, w);
+    const lane = laneRect(gesture.voice, w, mgraphics.size[1]);
     const xn = clamp((x - lane.x) / lane.w, 0, 0.99999);
     const value = clamp(1 - (y - lane.y - 1.5) / (lane.h - 4), 0, 1);
     if (gesture.line) {
@@ -648,7 +743,7 @@ function ondrag(x, y, but) {
     gesture.lv = value;
     return;
   }
-  const rect = curveRect(w);
+  const rect = curveRect(w, mgraphics.size[1]);
   if (gesture.what === "body") {
     const center = fOfX(xOfF(gesture.c0, rect) + (x - gesture.x0), rect);
     send("center", clamp(center, 20, 2e4));
@@ -659,6 +754,7 @@ function ondrag(x, y, but) {
     if (params.rstrack > 0.5) send("rstrack", 0);
     send("rsfreq", clamp(fOfX(x, rect), 20, 5e3));
     send("rsfb", fbOfY(y, rect));
+    if (params.reson < 0.5) send("reson", 1);
     if (params.rsmix <= 0) send("rsmix", 50);
   }
 }
@@ -667,11 +763,11 @@ function ondblclick(x, y, _but, _cmd, shift) {
   gesture = null;
   if (pageValue === PAGE_TONE) {
     const e = bandEdges(tone(), fs());
-    const rect = curveRect(w);
+    const rect = curveRect(w, mgraphics.size[1]);
     if (x > xOfF(e.lo, rect) && x < xOfF(e.hi, rect)) send("bmode", params.bmode > 0.5 ? 0 : 1);
     return;
   }
-  const hit = laneHit(x, y, w);
+  const hit = laneHit(x, y, w, mgraphics.size[1]);
   if (!hit || !tableBuf) return;
   const ident = identityRow();
   for (const v of shift ? [0, 1, 2, 3, 4] : [hit.voice]) {
@@ -688,8 +784,8 @@ function restoreSnapshot(voices, snap) {
   });
 }
 function drawSegment(x0, v0, x1, v1, voices) {
+  const span = spanCells(zoom);
   for (const v of voices) {
-    const span = spanCells(effSize(v));
     const seg = segmentCells(x0, v0, x1, v1, span);
     for (let k = 0; k < seg.values.length; k++) rows[v][seg.start + k] = seg.values[k];
     if (tableBuf) tableBuf.poke(v + 1, seg.start, seg.values);
@@ -719,7 +815,7 @@ function drawHeader(w, p) {
   const icons = iconRects(w);
   const infoX = PAD + tw + 6;
   const maxw = (tonePage ? w - PAD : icons.line.x - 4) - infoX;
-  const info = tonePage ? "drag band \xB7 edges = width \xB7 dbl-click = Pass/Reject \xB7 R" : tableInfo(spanCells(effSize(0)), heads[4][0], heads[5][2], fs());
+  const info = tonePage ? "drag band \xB7 edges = width \xB7 dbl-click = Pass/Reject \xB7 R" : tableInfo(spanCells(params.size / 100), heads[4][0], heads[5][2], fs());
   mgraphics.select_font_face(FONT);
   mgraphics.set_font_size(8);
   label(fitted(info, maxw), infoX, HEADER_Y + 9, p.label, 8);
@@ -748,11 +844,10 @@ function drawHeader(w, p) {
   }
   mgraphics.fill();
 }
-function drawLanes(w, p, lw) {
+function drawLanes(w, h, p, lw) {
+  const span = spanCells(zoom);
   for (let v = 0; v < VOICES; v++) {
-    const lane = laneRect(v, w);
-    const size = effSize(v);
-    const span = spanCells(size);
+    const lane = laneRect(v, w, h);
     if (v > 0) {
       rgba(p.rule);
       mgraphics.rectangle(lane.x, lane.y, lane.w, 1);
@@ -767,35 +862,46 @@ function drawLanes(w, p, lw) {
         mgraphics.fill();
       }
     } else {
-      const cols = Math.max(1, Math.floor(lane.w));
-      const env = decimateMinMax(rows[v], span, cols);
+      const o = laneOutline(rows[v], span, lane);
       const path = () => {
-        for (let c = 0; c < cols; c++) {
-          const x = lane.x + c + 0.5;
-          const yh = laneY(env.max[c], lane);
-          const yl = laneY(env.min[c], lane);
-          if (c === 0) mgraphics.move_to(x, yh);
-          else mgraphics.line_to(x, yh);
-          if (yl - yh > 0.5) mgraphics.line_to(x, yl);
-        }
+        mgraphics.move_to(o.pts[0], o.pts[1]);
+        for (let k = 2; k < o.pts.length; k += 2) mgraphics.line_to(o.pts[k], o.pts[k + 1]);
       };
-      mgraphics.set_line_join("round");
-      rgba(withAlpha(p.voice, 0.14));
-      mgraphics.set_line_width(lw * 4);
-      path();
-      mgraphics.stroke();
-      rgba(p.voice);
-      mgraphics.set_line_width(lw);
-      path();
-      mgraphics.stroke();
+      if (o.filled) {
+        rgba(p.voice);
+        path();
+        mgraphics.close_path();
+        mgraphics.fill();
+      } else {
+        mgraphics.set_line_join("miter");
+        if (span <= 64) {
+          rgba(withAlpha(p.voice, 0.14));
+          mgraphics.set_line_width(lw * 3);
+          path();
+          mgraphics.stroke();
+        }
+        rgba(p.voice);
+        mgraphics.set_line_width(lw);
+        path();
+        mgraphics.stroke();
+      }
+    }
+    const xe = headX(effSize(v), zoom, lane);
+    if (xe < lane.x + lane.w - 0.5) {
+      rgba(withAlpha(p.disp, 0.6));
+      mgraphics.rectangle(xe, lane.y + 1, lane.x + lane.w - xe, lane.h - 1);
+      mgraphics.fill();
+      rgba(withAlpha(p.label, 0.8));
+      mgraphics.rectangle(Math.round(xe) - 0.5, lane.y + 1, 1, lane.h - 1);
+      mgraphics.fill();
     }
     const wOn = heads[2][v] > 0.5;
     const wc = wOn ? p.write : p.track;
-    const xw = headX(heads[0][v], size, lane);
-    const xr = headX(heads[1][v], size, lane);
+    const xw = headX(heads[0][v], zoom, lane);
+    const xr = headX(heads[1][v], zoom, lane);
     const midY = lane.y + lane.h / 2;
-    const yw = modeValue ? midY : laneY(rows[v][headCell(heads[0][v], size)], lane);
-    const yr = modeValue ? midY : laneY(rows[v][headCell(heads[1][v], size)], lane);
+    const yw = modeValue ? midY : laneY(rows[v][headCell(heads[0][v], zoom)], lane);
+    const yr = modeValue ? midY : laneY(rows[v][headCell(heads[1][v], zoom)], lane);
     mgraphics.set_line_width(1);
     rgba(withAlpha(wc, 0.35));
     mgraphics.move_to(xw, lane.y + 1);
@@ -814,22 +920,31 @@ function drawLanes(w, p, lw) {
     mgraphics.stroke();
   }
   const ow = w - 2 * PAD;
+  const oy = overviewY(h);
   rgba(p.rule);
-  mgraphics.rectangle_rounded(PAD, OVERVIEW_Y, ow, 3, 2, 2);
+  mgraphics.rectangle_rounded(PAD, oy + 1, ow, 3, 2, 2);
   mgraphics.fill();
   rgba(p.label);
-  mgraphics.rectangle_rounded(PAD, OVERVIEW_Y, Math.max(2, ow * clamp(params.size / 100, 1e-3, 1)), 3, 2, 2);
+  mgraphics.rectangle_rounded(PAD, oy + 1, Math.max(2, ow * clamp(params.size / 100, 1e-3, 1)), 3, 2, 2);
+  mgraphics.fill();
+  rgba(withAlpha(p.label, 0.45));
+  mgraphics.rectangle(PAD + Math.min(ow - 1, ow * zoom), oy, 1, OVERVIEW_H);
+  mgraphics.fill();
+  rgba(p.voice);
+  for (let v = 0; v < VOICES; v++) mgraphics.rectangle(PAD + Math.min(ow - 1, ow * effSize(v)), oy, 1, OVERVIEW_H);
   mgraphics.fill();
 }
-function drawCurve(w, p, lw) {
-  const rect = curveRect(w);
+function drawCurve(w, h, p, lw) {
+  const rect = curveRect(w, h);
   const t = tone();
   const sr = fs();
   const e = bandEdges(t, sr);
   const xl = xOfF(e.lo, rect);
   const xh = xOfF(e.hi, rect);
-  const bandCol = t.reject ? p.read : p.write;
-  rgba(withAlpha(bandCol, 0.09));
+  const bandOn = t.bandOn !== false;
+  const resOn = t.resOn !== false;
+  const bandCol = withAlpha(t.reject ? p.read : p.write, bandOn ? 1 : 0.4);
+  rgba(withAlpha(bandCol, bandOn ? 0.09 : 0.04));
   mgraphics.rectangle(xl, rect.y, Math.max(0, xh - xl), rect.h);
   mgraphics.fill();
   mgraphics.set_line_width(1);
@@ -917,12 +1032,12 @@ function drawCurve(w, p, lw) {
   rgba(p.disp);
   mgraphics.rectangle_rounded(xr - 4.5, yr - 4.5, 9, 9, 2, 2);
   mgraphics.fill();
-  rgba(t.rsMix > 0 ? p.read : withAlpha(p.read, 0.45));
+  rgba(resOn && t.rsMix > 0 ? p.read : withAlpha(p.read, 0.45));
   mgraphics.set_line_width(1.4);
   mgraphics.rectangle_rounded(xr - 4.5, yr - 4.5, 9, 9, 2, 2);
   mgraphics.stroke();
   label("R", xr + 7, yr + 3, p.label, 8);
-  const bandLabel = t.reject ? "REJECT" : t.width >= 9.95 ? "OPEN" : "PASS";
+  const bandLabel = !bandOn ? "BAND OFF" : t.reject ? "REJECT" : t.width >= 9.95 ? "OPEN" : "PASS";
   label(bandLabel, clamp(xl + 4, rect.x + 2, rect.x + rect.w - 40), rect.y + 22, p.label, 8);
   for (const [f, s] of [[20, "20"], [200, "200"], [2e3, "2k"], [2e4, "20k"]]) {
     const x = clamp(xOfF(f, rect) - (f === 2e4 ? 14 : f === 20 ? 0 : 6), rect.x, rect.x + rect.w - 14);
@@ -935,7 +1050,7 @@ function paint() {
   const h = mgraphics.size[1];
   if (!announced) {
     announced = true;
-    post(`aliasing_display: v0.2 ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}
+    post(`aliasing_display: v0.3 ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}
 `);
   }
   let getcolor = null;
@@ -950,8 +1065,8 @@ function paint() {
   mgraphics.rectangle_rounded(0, 0, w, h, 8, 8);
   mgraphics.fill();
   drawHeader(w, p);
-  if (pageValue === PAGE_TONE) drawCurve(w, p, lw);
-  else drawLanes(w, p, lw);
+  if (pageValue === PAGE_TONE) drawCurve(w, h, p, lw);
+  else drawLanes(w, h, p, lw);
   if (!tableBuf) {
     rgba([0, 0, 0, 0.5]);
     mgraphics.rectangle_rounded(0, 0, w, h, 8, 8);

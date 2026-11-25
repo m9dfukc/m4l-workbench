@@ -1,24 +1,23 @@
 // Pure display logic for aliasing_display (v8ui): geometry, decimation, the fs fraction hint,
 // the tone curve and the mouse gestures. No Max globals here, so it runs and is tested in Node
-// (js/test/display_model.test.ts). Spec: docs/redesign-t1.md R9-R11, R19; the approved mock-up;
-// docs/v0.2-build.md section 4.
+// (js/test/display_model.test.ts). Spec: docs/redesign-t1.md R9-R11, R19; docs/v0.2-build.md
+// section 4; docs/v0.3-design.md D7-D9 (zoom to the Size control, fast line view, slider below).
 
 export const CELLS = 1024;
 export const VOICES = 5;
 export const COLUMNS_2D = 64;
 export const SIZE_MIN = 0.001;
 
-/** Display box 328 x 157 (shell). The Size live.slider is overlaid at y 144..155. */
+/** Display box 328 x 136 (shell, v0.3): the Size live.slider sits below it, never overlapping (D9).
+ *  Lane and curve geometry follow the box height, so the shell may change it. */
 export const W = 328;
-export const H = 157;
+export const H = 136;
 export const PAD = 4;
 export const HEADER_Y = 3;
 export const HEADER_H = 12;
 export const LANE_TOP = 17;
-export const LANE_H = 24;
-export const OVERVIEW_Y = 140;
+export const OVERVIEW_H = 5;
 export const CURVE_TOP = 17;
-export const CURVE_H = 125;
 
 export interface Rect {
 	x: number;
@@ -31,8 +30,83 @@ export function clamp(x: number, lo: number, hi: number): number {
 	return x < lo ? lo : x > hi ? hi : x;
 }
 
-export function laneRect(v: number, w = W): Rect {
-	return { x: PAD, y: LANE_TOP + v * LANE_H, w: w - 2 * PAD, h: LANE_H };
+/** Top of the span overview (the 5 voices' spans over the whole row) at the bottom of the display. */
+export function overviewY(h = H): number {
+	return h - PAD - OVERVIEW_H + 1;
+}
+
+export function laneHeight(h = H): number {
+	return (overviewY(h) - 2 - LANE_TOP) / VOICES;
+}
+
+export function laneRect(v: number, w = W, h = H): Rect {
+	const lh = laneHeight(h);
+	return { x: PAD, y: LANE_TOP + v * lh, w: w - 2 * PAD, h: lh };
+}
+
+/** The tone curve area (frequency labels below it). */
+export function curveRect(w = W, h = H): Rect {
+	return { x: PAD, y: CURVE_TOP, w: w - 2 * PAD, h: h - CURVE_TOP - 14 };
+}
+
+/** Display zoom (D7): the Size control, opened at once to a larger modulated voice span, closed again
+ *  slowly (in the log domain, time constant tau seconds, so about 1 s for tau 0.35). */
+export function nextZoom(prev: number, base: number, spans: ArrayLike<number>, dt: number, tau = 0.35): number {
+	let target = clamp(base, SIZE_MIN, 1);
+	for (let i = 0; i < spans.length; i++) {
+		const s = spans[i];
+		if (s > target) target = clamp(s, SIZE_MIN, 1);
+	}
+	if (!(prev > 0) || target >= prev) return target;
+	const k = 1 - Math.exp(-dt / tau);
+	const z = Math.exp(Math.log(prev) + (Math.log(target) - Math.log(prev)) * k);
+	return z - target < 1e-6 ? target : z;
+}
+
+/** Line view outline of a lane (D8), as x/y pairs.
+ *  - span <= half the lane width: cell-exact steps (2 points per cell), to be stroked thinly;
+ *  - wider spans: a closed per-pixel min/max band (upper edge forward, lower edge back, at least
+ *    1 px thick), to be filled. Filling one polygon is far cheaper in Max than stroking a dense
+ *    zigzag with round joins (the v0.2 slowdown at large Size, t3). */
+export function laneOutline(row: ArrayLike<number>, span: number, lane: Rect): { pts: number[]; filled: boolean } {
+	const n = Math.max(1, Math.min(span, row.length));
+	const pts: number[] = [];
+	if (n * 2 <= lane.w) {
+		for (let c = 0; c < n; c++) {
+			const y = laneY(row[c], lane);
+			pts.push(lane.x + (c / n) * lane.w, y, lane.x + ((c + 1) / n) * lane.w, y);
+		}
+		return { pts, filled: false };
+	}
+	const cols = Math.max(1, Math.floor(lane.w));
+	const env = decimateMinMax(row, n, cols);
+	const lo: number[] = [];
+	for (let c = 0; c < cols; c++) {
+		const x = lane.x + c + 0.5;
+		const top = laneY(env.max[c], lane) - 0.5;
+		const bot = Math.max(laneY(env.min[c], lane) + 0.5, top + 1);
+		pts.push(x, top);
+		lo.push(x, bot);
+	}
+	for (let k = lo.length - 2; k >= 0; k -= 2) pts.push(lo[k], lo[k + 1]);
+	return { pts, filled: true };
+}
+
+/** Copy finite numbers into an existing row (no allocation per frame); missing values become 0. */
+export function copyInto(out: number[], values: ArrayLike<number> | number | null | undefined, n: number): void {
+	if (values === null || values === undefined) {
+		for (let i = 0; i < n; i++) out[i] = 0;
+		return;
+	}
+	if (typeof values === "number") {
+		out[0] = Number.isFinite(values) ? values : 0;
+		for (let i = 1; i < n; i++) out[i] = 0;
+		return;
+	}
+	for (let i = 0; i < n; i++) {
+		const v = i < values.length ? Number(values[i]) : 0;
+		out[i] = Number.isFinite(v) ? v : 0;
+	}
 }
 
 /** The Line / 2D icons in the header, right-aligned. */
@@ -202,6 +276,8 @@ export interface Tone {
 	rsFreq: number; // Hz (effective)
 	rsFb: number; // %
 	rsMix: number; // %
+	bandOn?: boolean; // section switches (D17); undefined = on for the band, on for the resonator
+	resOn?: boolean;
 }
 
 type C = [number, number];
@@ -233,8 +309,8 @@ export function toneDb(f: number, t: Tone, fs = 48000): number {
 	const qr = resQ(t.res, t.slope24);
 	const edge = (fc: number, high: boolean): C =>
 		t.slope24 ? cmul(sec(f, fc, 0.5412, high), sec(f, fc, qr, high)) : sec(f, fc, qr, high);
-	let h: C = t.reject ? cadd(edge(lo, false), edge(hi, true)) : cmul(edge(lo, true), edge(hi, false));
-	if (t.rsMix > 0) {
+	let h: C = t.bandOn === false ? [1, 0] : t.reject ? cadd(edge(lo, false), edge(hi, true)) : cmul(edge(lo, true), edge(hi, false));
+	if (t.resOn !== false && t.rsMix > 0) {
 		const g = clamp(t.rsFb, -95, 95) / 100;
 		const d = 1 / clamp(t.rsFreq, 20, 5000); // seconds
 		const ph = -2 * Math.PI * f * d;
@@ -281,10 +357,11 @@ export function widthFromEdge(x: number, center: number, rect: Rect): number {
 // ---- drawing into the table (R10) ----------------------------------------------------------------
 
 /** Lane and value under (x, y), or null outside the lanes. */
-export function laneHit(x: number, y: number, w = W): { voice: number; xn: number; value: number } | null {
-	if (y < LANE_TOP || y >= LANE_TOP + VOICES * LANE_H) return null;
-	const voice = clamp(Math.floor((y - LANE_TOP) / LANE_H), 0, VOICES - 1);
-	const lane = laneRect(voice, w);
+export function laneHit(x: number, y: number, w = W, h = H): { voice: number; xn: number; value: number } | null {
+	const lh = laneHeight(h);
+	if (y < LANE_TOP || y >= LANE_TOP + VOICES * lh) return null;
+	const voice = clamp(Math.floor((y - LANE_TOP) / lh), 0, VOICES - 1);
+	const lane = laneRect(voice, w, h);
 	if (x < lane.x - 2 || x > lane.x + lane.w + 2) return null;
 	return {
 		voice,

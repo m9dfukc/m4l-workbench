@@ -1,12 +1,42 @@
-// aliasing_paint_toggle: jspainter for every live.text of the Aliasing face (R12 pill toggles and
-// the Sync button). Bundled (ES5) by tools/js-build.mjs into devices/aliasing/aliasing_paint_toggle.js.
-// On = filled with the role accent (write/read) or the selection colour; off = outlined.
-// The texts come from the box's text / texton attributes. ES5 ONLY (see paint_kit.ts).
+// aliasing_paint_toggle: jspainter for every live.text of the Aliasing face (R12 pill toggles, the
+// Sync button, and the section power switches, D17/D19/D32). Bundled (ES5) by tools/js-build.mjs into
+// devices/aliasing/aliasing_paint_toggle.js. The texts come from the box's text / texton attributes.
+// - Pills: on = filled with the role accent (write/read) or the selection colour; off = outlined.
+// - Section power switches (scripting names ending in _on, D32 = mock-up variant E): a plain bold
+//   section title with a power symbol right after it, measured in Live's own font; on = filled symbol,
+//   off = outlined symbol and a dimmed title. The whole box is the click area.
+// ES5 ONLY (see paint_kit.ts).
 
-import { fitText, roleOf } from "./paint_kit.ts";
+import { fitText, roleOf, withAlpha, type Palette, type RGBA } from "./paint_kit.ts";
 import { attrStr, currentPalette, dim, enableAutomationDots, font, isActive, measure, setColor, text, value, varnameOf } from "./paint_max.ts";
 
 enableAutomationDots();
+
+/** Power symbol (ring with a gap at the top and a short stem) centred at cx, cy; 9 px (user, D32). */
+var POWER_R = 4.5;
+
+function powerSymbol(cx: number, cy: number, on: boolean, active: boolean, p: Palette): void {
+	var r = POWER_R;
+	mgraphics.ellipse(cx - r, cy - r, 2 * r, 2 * r);
+	if (on) {
+		setColor(dim(p.sel, active, p));
+		mgraphics.fill();
+	} else {
+		mgraphics.set_line_width(1);
+		setColor(dim(p.track, active, p));
+		mgraphics.stroke();
+	}
+	var g: RGBA = on ? p.selFg : p.track;
+	setColor(dim(g, active, p));
+	mgraphics.set_line_width(1.1);
+	mgraphics.set_line_cap("round");
+	// arc from 1 o'clock clockwise to 11 o'clock (Max arcs: radians, 0 = 3 o'clock, clockwise)
+	mgraphics.arc(cx, cy, 2.3, -Math.PI / 2 + 0.75, Math.PI * 1.5 - 0.75);
+	mgraphics.stroke();
+	mgraphics.move_to(cx, cy - 3.1);
+	mgraphics.line_to(cx, cy - 0.7);
+	mgraphics.stroke();
+}
 
 function paint(): void {
 	var w = mgraphics.size[0];
@@ -14,11 +44,21 @@ function paint(): void {
 	var p = currentPalette();
 	var active = isActive();
 	var on = value() > 0.5;
-	var role = roleOf(varnameOf());
-	var accent = role === "write" ? p.write : role === "read" ? p.read : p.sel;
-	var rad = Math.min(h - 1, 16);
+	var name = varnameOf();
 	var label = attrStr(on ? "texton" : "text") || attrStr("text");
 
+	if (name.length > 3 && name.substring(name.length - 3) === "_on") {
+		font(9, true);
+		var title = fitText(label, w - 16, measure);
+		var tw = measure(title);
+		text(title, 0, h / 2 + 3.5, dim(on ? p.text : withAlpha(p.text, 0.45), active, p), "left");
+		powerSymbol(Math.min(w - POWER_R - 0.5, tw + 4 + POWER_R), h / 2, on, active, p);
+		return;
+	}
+
+	var role = roleOf(name);
+	var accent = role === "write" ? p.write : role === "read" ? p.read : p.sel;
+	var rad = Math.min(h - 1, 16);
 	if (on) {
 		setColor(dim(accent, active, p));
 		mgraphics.rectangle_rounded(0.5, 0.5, w - 1, h - 1, rad, rad);

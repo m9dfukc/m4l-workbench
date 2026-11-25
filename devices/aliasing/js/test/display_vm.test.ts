@@ -237,3 +237,31 @@ test("tone page gestures send parameter values", async () => {
 	d.call("onclick", 328 - 4 - 14 + 5, 6, 1, 0, 0, 0, 0, 0);
 	assert.deepEqual(d.outs[0], [0, "mode", 1]);
 });
+
+test("line view at Size 100 % with a jagged table stays cheap (D8, t3 slowdown)", async () => {
+	const d = await load();
+	(d.ctx.mgraphics as { size: number[] }).size = [328, 136];
+	d.call("buffers", "atab", "aheads");
+	const tab = d.buffers.get("atab")!;
+	const heads = d.buffers.get("aheads")!;
+	let seed = 1;
+	for (let i = 0; i < tab.data.length; i++) {
+		seed = (seed * 16807) % 2147483647;
+		tab.data[i] = seed / 2147483647; // worst case: every pixel column spans most of the lane
+	}
+	for (let v = 0; v < 5; v++) heads.data[v * 10 + 3] = 1;
+	d.call("pv", "size", 100);
+	d.call("page", 0);
+	d.call("mode", 0);
+	d.call("tick");
+	d.calls.length = 0;
+	d.call("paint");
+	const n = d.calls.length;
+	const strokes = d.calls.filter((c) => c === "stroke").length;
+	// v0.2 stroked each lane's zigzag twice (4-px glow with round joins + line): about 6400 path calls
+	// and 10 wide strokes per frame here. v0.3 fills one band per lane.
+	assert.ok(n < 4000, `mgraphics calls per frame at Size 100 % (${n})`);
+	assert.ok(d.calls.filter((c) => c === "set_line_join").length === 0, "no round-join strokes of the band");
+	assert.ok(strokes <= 3 * 5 + 2, `only the short head lines and rings are stroked (${strokes})`);
+	console.log(`  mgraphics calls per frame at Size 100 %: ${n}, strokes ${strokes}`);
+});

@@ -3,13 +3,14 @@ import { test } from "node:test";
 
 import {
 	CELLS,
-	CURVE_H,
-	CURVE_TOP,
+	H,
 	LANE_TOP,
 	PAD,
 	VOICES,
 	W,
 	bandEdges,
+	copyInto,
+	curveRect,
 	decimateMinMax,
 	fOfX,
 	fbOfY,
@@ -22,10 +23,14 @@ import {
 	iconRects,
 	identityRow,
 	inRect,
+	laneHeight,
 	laneHit,
+	laneOutline,
 	laneRect,
 	laneY,
+	nextZoom,
 	normalizeRow,
+	overviewY,
 	resOfY,
 	rowsFromStored,
 	sampleColumns,
@@ -40,14 +45,50 @@ import {
 	type Tone,
 } from "../src/display_model.ts";
 
-const curve = { x: PAD, y: CURVE_TOP, w: W - 2 * PAD, h: CURVE_H };
+const curve = curveRect();
 const open: Tone = { center: 632, width: 10, res: 0, slope24: true, reject: false, rsFreq: 140, rsFb: 50, rsMix: 0 };
 
-test("lanes stack under the header and stay above the overview", () => {
-	const last = laneRect(VOICES - 1);
-	assert.equal(laneRect(0).y, LANE_TOP);
-	assert.ok(last.y + last.h <= 140, "lanes end above the overview bar");
+test("lanes stack under the header and stay above the overview, for any display height", () => {
+	for (const h of [H, 120, 157]) {
+		const last = laneRect(VOICES - 1, W, h);
+		assert.equal(laneRect(0, W, h).y, LANE_TOP);
+		assert.ok(last.y + last.h <= overviewY(h), `lanes end above the overview (h ${h})`);
+		assert.ok(overviewY(h) + 5 <= h, `overview inside the box (h ${h})`);
+		assert.ok(laneHeight(h) >= 18, `lanes stay usable (h ${h}: ${laneHeight(h)})`);
+	}
 	assert.equal(laneRect(0).x, PAD);
+	assert.ok(curve.y + curve.h + 10 <= H, "frequency labels fit below the curve");
+});
+
+test("zoom follows the Size control, opens at once, closes slowly (D7)", () => {
+	assert.equal(nextZoom(0.1, 0.1, [0.1, 0.1, 0.1, 0.1, 0.1], 1 / 30), 0.1);
+	assert.equal(nextZoom(0.1, 0.1, [0.1, 0.4, 0.1, 0.1, 0.1], 1 / 30), 0.4, "opens at once to a wider voice");
+	let z = 0.4;
+	z = nextZoom(z, 0.1, [0.1, 0.1, 0.1, 0.1, 0.1], 1 / 30);
+	assert.ok(z < 0.4 && z > 0.3, `closes slowly (${z})`);
+	for (let i = 0; i < 60; i++) z = nextZoom(z, 0.1, [0.1, 0.1, 0.1, 0.1, 0.1], 1 / 30);
+	assert.ok(Math.abs(z - 0.1) < 0.01, `about 2 s later back at the control (${z})`);
+	assert.equal(nextZoom(0, 0.2, [], 1 / 30), 0.2, "first frame takes the target");
+});
+
+test("line outline: cell-exact steps for short spans, a filled band for long ones (D8)", () => {
+	const lane = laneRect(0);
+	const row = identityRow();
+	const few = laneOutline(row, 13, lane);
+	assert.equal(few.filled, false);
+	assert.equal(few.pts.length, 13 * 4, "2 points per cell");
+	const many = laneOutline(row, CELLS, lane);
+	assert.equal(many.filled, true);
+	const cols = Math.floor(lane.w);
+	assert.equal(many.pts.length, cols * 4, "upper edge forward + lower edge back, one point per column each");
+	for (let k = 0; k < cols; k++) {
+		const top = many.pts[2 * k + 1];
+		const bot = many.pts[many.pts.length - 2 * k - 1];
+		assert.ok(bot - top >= 1 - 1e-9, "at least 1 px thick");
+	}
+	const buf = [9, 9, 9];
+	copyInto(buf, [0.5, Number.NaN], 3);
+	assert.deepEqual(buf, [0.5, 0, 0]);
 });
 
 test("span, heads and the zoom to the active span", () => {
@@ -114,7 +155,7 @@ test("curve mapping round trips and hit tests", () => {
 });
 
 test("drawing: lane hit, segments, stored tables", () => {
-	const hit = laneHit(PAD + 0.5 * (W - 2 * PAD), LANE_TOP + 24 * 2 + 12);
+	const hit = laneHit(PAD + 0.5 * (W - 2 * PAD), LANE_TOP + laneHeight() * 2.5);
 	assert.ok(hit);
 	assert.equal(hit!.voice, 2);
 	assert.ok(Math.abs(hit!.xn - 0.5) < 1e-9);

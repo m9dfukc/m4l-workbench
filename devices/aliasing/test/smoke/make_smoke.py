@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Smoke-test patch for standalone Max: the v0.2 device's own boxes (from scripts/bootstrap_shell.py)
+"""Smoke-test patch for standalone Max: the device's own boxes (v0.3) (from scripts/bootstrap_shell.py)
 with plugout~ replaced by sfrecord~, plus a runner that switches to the NonRealTime driver,
-records a few seconds while it pages through the face and flips modes, restores the audio driver
+records a few seconds while it pages through the face, flips modes, write shapes and states, section
+switches and a few matrix cells (Voice / Read Osc / Env feedback), restores the audio driver
 and quits Max. Written to OUTDIR/smoke.maxpat next to copies of the runtime files.
 
 Never Live, never the user's patches, no sound (NonRealTime driver). See run_smoke.sh.
@@ -87,6 +88,10 @@ def main(argv: list[str]) -> int:
         (800, "page", "2"), (1200, "w_mode", "1"), (1500, "r_mode", "1"), (1800, "page", "3"),
         (2100, "lfo_l1mode", "1"), (2300, "page", "0"), (2600, "w_mode", "0"), (2800, "r_mode", "0"),
         (3000, "out_gate", "1"), (3300, "out_gate", "0"), (3500, "page", "1"), (3700, "tone_res_track", "0"),
+        # v0.3: write shapes and states, section switches, feedback sources in the matrix
+        (900, "w_shape", "5"), (1300, "w_shape", "7"), (1600, "w_active", "2"), (2000, "w_active", "1"),
+        (1000, "tone_res_on", "1"), (1700, "out_lim_on", "0"), (2400, "out_lim_on", "1"), (1100, "mod_vo_wp", "50"),
+        (1400, "mod_ro_sz", "60"), (1900, "mod_en_ou", "-50"), (2200, "mod_l1_wa", "-80"), (2500, "tone_band_on", "0"),
     ]
     for k, (t, var, val) in enumerate(steps):
         d = obj(f"delay {t}", x0, y0 + 120 + 30 * k, 2, ["bang"])

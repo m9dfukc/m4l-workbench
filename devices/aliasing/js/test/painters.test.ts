@@ -116,6 +116,7 @@ async function runPainter(
 test("every painter entry exists and paints without errors", async () => {
 	const entries = readdirSync(src).filter((f) => f.startsWith("aliasing_paint_") && f.endsWith(".ts"));
 	assert.deepEqual(entries.sort(), [
+		"aliasing_paint_cell.ts",
 		"aliasing_paint_dial.ts",
 		"aliasing_paint_menu.ts",
 		"aliasing_paint_number.ts",
@@ -144,12 +145,20 @@ test("dial painter: float, Hz with exponent, bipolar, enum, inactive, both theme
 	await runPainter("aliasing_paint_dial.ts", [36, 36], cases[1][0], 632, "tone_band_center", true, false);
 });
 
-test("tab painter: icons, text, end and middle selections, single segment", async () => {
-	const shapes = { _parameter_type: 2, _parameter_range: ["Ramp", "Tri", "Tri ±", "=Read"] };
-	for (const sel of [0, 1, 2, 3, 7, -1]) {
-		const calls = await runPainter("aliasing_paint_tab.ts", [104, 18], shapes, sel, "w_shape", true);
+test("tab painter: icon grid, text, end and middle selections, single segment", async () => {
+	const shapes = { _parameter_type: 2, _parameter_range: ["Ramp", "Tri", "Tri ±", "Sine", "Pulse", "Pulsar", "Spike", "Noise"], num_lines_presentation: 2 };
+	for (const sel of [0, 3, 4, 7, 9, -1]) {
+		const calls = await runPainter("aliasing_paint_tab.ts", [108, 32], shapes, sel, "w_shape", sel % 2 === 0);
 		assert.ok(calls.names.includes("rectangle_rounded"));
+		assert.equal(calls.names.filter((n) => n === "stroke").length, 9, "frame + 8 icons");
 	}
+	const state = { _parameter_type: 2, _parameter_range: ["Freeze", "Write", "Clean"] };
+	for (const sel of [0, 1, 2]) {
+		const calls = await runPainter("aliasing_paint_tab.ts", [108, 14], state, sel, "w_active", false);
+		assert.equal(calls.names.filter((n) => n === "show_text").length, 3);
+	}
+	const lfo = { _parameter_type: 2, _parameter_range: ["Sine", "Tri", "Saw", "Square", "S&H", "Random"] };
+	await runPainter("aliasing_paint_tab.ts", [102, 16], lfo, 0, "lfo_l1shape", true);
 	const words = { _parameter_type: 2, _parameter_range: ["Off", "1", "2", "4", "8"] };
 	const calls = await runPainter("aliasing_paint_tab.ts", [118, 16], words, 2, "out_resync", false);
 	assert.ok(calls.names.includes("show_text"));
@@ -161,8 +170,16 @@ test("toggle, slider, menu and number painters", async () => {
 	for (const v of [0, 1]) {
 		await runPainter("aliasing_paint_toggle.ts", [50, 14], { text: "Active", texton: "Active", mode: 1 }, v, "w_active", true);
 		await runPainter("aliasing_paint_toggle.ts", [118, 16], { text: "Sync now" }, v, "out_sync", false);
+		const pw = await runPainter("aliasing_paint_toggle.ts", [80, 13], { text: "RESONATOR", texton: "RESONATOR", mode: 1 }, v, "tone_res_on", v === 0);
+		assert.ok(pw.names.includes("arc") && pw.names.includes("ellipse"), "section switch draws the power symbol (D32)");
+		assert.ok(!pw.names.includes("rectangle_rounded"), "no pill frame around a section title");
 	}
-	await runPainter("aliasing_paint_slider.ts", [320, 11], { _parameter_type: 0, _parameter_range: [0.1, 100], _parameter_exponent: 2, _parameter_unitstyle: 5, _parameter_shortname: "Size" }, 10, "tbl_size", true);
+	for (const [v, name] of [[0, "mod_l1_wp"], [35, "mod_vo_rp"], [-100, "mod_en_ou"], [100, "mod_ro_sz"]] as [number, string][]) {
+		const calls = await runPainter("aliasing_paint_cell.ts", [20, 12], { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 }, v, name, v >= 0);
+		assert.equal(calls.names.includes("show_text"), v !== 0, `depth text only when not 0 (${name} ${v})`);
+	}
+	await runPainter("aliasing_paint_cell.ts", [20, 12], {}, "garbage", "", true);
+	await runPainter("aliasing_paint_slider.ts", [328, 18], { _parameter_type: 0, _parameter_range: [0.1, 100], _parameter_exponent: 2, _parameter_unitstyle: 5, _parameter_shortname: "Size" }, 10, "tbl_size", true);
 	await runPainter("aliasing_paint_slider.ts", [100, 14], { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 }, -35, "mod_m1depth", true);
 	await runPainter("aliasing_paint_slider.ts", [100, 14], { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 }, 0, "mod_m1depth", false);
 	const src = { _parameter_type: 2, _parameter_range: ["None", "LFO 1", "LFO 2", "Drift", "Velocity", "Mod Wheel"] };
@@ -204,11 +221,20 @@ test("paint_kit: ranges, roles, theme, icons, fitting", () => {
 	}), true);
 	assert.deepEqual(enumLabelsFrom(["a", "b"], 2), ["a", "b"]);
 	assert.equal(enumLabelsFrom([0, 1], 0), null);
-	for (const l of ["Ramp", "Tri", "Tri ±", "=Read", "Sine", "Saw", "Square", "S&H", "Random"]) {
+	for (const l of ["Ramp", "Tri", "Tri ±", "Sine", "Saw", "Square", "S&H", "Random"]) {
 		const pts = iconPath(l);
 		assert.ok(pts && pts.length >= 3, l);
 		for (const [x, y] of pts!) assert.ok(x >= 0 && x <= 22 && y >= 0 && y <= 12, `${l} inside 22x12`);
 	}
+	for (const l of ["Ramp", "Tri", "Tri ±", "Sine", "Pulse", "Pulsar", "Spike", "Noise"]) {
+		const pts = iconPath(l, "write");
+		assert.ok(pts && pts.length >= 3, `write ${l}`);
+		for (const [x, y] of pts!) assert.ok(x >= 0 && x <= 22 && y >= 0 && y <= 12, `write ${l} inside 22x12`);
+	}
+	assert.notDeepEqual(iconPath("Sine", "write"), iconPath("Sine"), "the write Sine is a position hump, not the LFO sine");
+	assert.equal(roleOf("mod_l1_wp"), "write");
+	assert.equal(roleOf("mod_vo_sp"), "read");
+	assert.equal(roleOf("mod_en_bc"), "neutral");
 	assert.equal(iconPath("Off"), null);
 	const m = (s: string) => s.length * 5;
 	assert.equal(fitText("Velocity", 100, m), "Velocity");

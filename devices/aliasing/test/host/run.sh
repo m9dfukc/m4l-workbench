@@ -28,21 +28,29 @@ R="$OUT/render"
 echo "== render"
 # 1 off: MIDI gate mode, no note -> silent
 $R "$OUT/off.wav" --seconds 2 --set gatemode=1
-# 2 drone: the init state (Drone gate) -> audible from the start
+# 2 drone: the init state (Drone gate, write = read = 0 st, D1) -> audible from the start
 $R "$OUT/drone.wav" --seconds 4 --heads "$OUT/drone.heads.f32" --table "$OUT/drone.table.f32"
+# 2b alias: the v0.2 init sound (R21: write 71 + 0.217 st = fs/3 + 4 Hz, read -30 st)
+$R "$OUT/alias.wav" --seconds 2 --set wpitch=71 --set wfine=0.217 --set rpitch=-30 \
+  --heads "$OUT/alias.heads.f32" --table "$OUT/alias.table.f32"
 # 3 gate: MIDI gate mode, note held 0.5 .. 2.5 s
 $R "$OUT/gate.wav" --seconds 3.5 --set gatemode=1 --gate 0.5:2.5 --note 0.5
-# 4 stress: extremes of every section, all shapes cycled, syncs and notes, two sample rates
+# 4 stress: extremes of every section, all 8 write shapes and 3 write states, the matrix with every
+#   source incl. Voice / Neighbour / Read Osc / Env feedback, limiter extremes, section switches
 STRESS=(--set wpitch=130 --set rpitch=-64 --set wsym=-1 --set rdir=1 --set rspread=6
-        --set width=2 --set output=0 --set smoothread=1 --set aaramp=1 --set softclip=0
-        --set m1src=1 --set m1tgt=1 --set m1depth=100 --set m2src=2 --set m2tgt=3 --set m2depth=-100
-        --set m3src=3 --set m3tgt=6 --set m3depth=100 --set m4src=1 --set m4tgt=10 --set m4depth=100
+        --set width=2 --set output=0 --set smoothread=1 --set aaramp=1 --set velocity=1 --set modwheel=1
+        --set mx_l1_wp=100 --set mx_l2_sz=-100 --set mx_dr_bc=100 --set mx_l1_ou=100 --set mx_vo_wp=100
+        --set mx_nb_rp=-100 --set mx_ro_sz=100 --set mx_en_bc=100 --set mx_vo_wa=-100 --set mx_ro_rb=100
+        --set mx_ve_dv=100 --set mx_mw_bw=100 --set mx_nb_sy=100 --set mx_en_rf=-100 --set mx_dr_sp=100
         --set l1rate=20 --set l1shape=3 --set l2mode=0 --set l2rate=13 --set l2shape=4
         --set drive=24 --set bcenter=3000 --set bwidth=0.2 --set bres=100 --set bfm=100 --set bspread=100
-        --set rsmix=100 --set rsfb=95 --set rstrack=0 --set rsfreq=5000
-        --at 0.5 wshape=0 --at 1.0 wshape=2 --at 1.5 wshape=3 --at 1.5 rshape=1 --at 2.0 size=0.001
+        --set reson=1 --set rsmix=100 --set rsfb=95 --set rstrack=0 --set rsfreq=5000
+        --set limgain=24 --set limsat=100 --set limcolor=100 --set limrel=1 --set limceil=0
+        --at 0.4 wshape=0 --at 0.8 wshape=3 --at 1.2 wshape=4 --at 1.6 wshape=5 --at 2.0 wshape=6
+        --at 2.4 wshape=7 --at 2.8 wshape=2 --at 1.5 rshape=1 --at 2.0 size=0.001 --at 2.0 limcolor=-100
         --at 2.0 bmode=1 --at 2.0 bslope=0 --at 2.5 wpitch=-64 --at 2.5 rpitch=64 --at 2.5 rsfb=-95
-        --at 3.0 size=1 --at 3.0 smoothread=0 --at 3.0 aaramp=0 --at 3.0 rsfreq=20
+        --at 2.5 drvon=0 --at 2.5 bandon=0 --at 3.0 size=1 --at 3.0 smoothread=0 --at 3.0 aaramp=0
+        --at 3.0 rsfreq=20 --at 3.0 wsym=1 --at 3.2 wactive=2 --at 3.6 wactive=0 --at 3.6 limon=0
         --sync 0.75 --sync 2.25 --note 1.25 --note 3.5)
 $R "$OUT/stress.wav" --seconds 4 "${STRESS[@]}" --table "$OUT/stress.table.f32" --heads "$OUT/stress.heads.f32"
 $R "$OUT/stress2.wav" --seconds 4 "${STRESS[@]}"
@@ -50,11 +58,17 @@ $R "$OUT/stress44.wav" --sr 44100 --seconds 4 "${STRESS[@]}"
 # 5 sync: equal pitches, no spread, ramp, synced -> the table stays within one cell value of identity
 $R "$OUT/sync.wav" --seconds 2 --set wpitch=0 --set rpitch=0 --set wfine=0 --set rspread=0 --set wshape=0 \
   --set size=1 --sync 0.5 --table "$OUT/sync.table.f32"
-# 6 frozen: Write Active off -> the table stays exactly the identity ramp
+# 6 frozen: write state Freeze -> the table stays exactly the identity ramp
 $R "$OUT/frozen.wav" --seconds 1 --set wactive=0 --table "$OUT/frozen.table.f32"
-# 7 tempo: both pointers synced at 120 BPM: write x64 on 1/16 = 512 Hz, read x1 on 1/4 = 2 Hz
-$R "$OUT/tempo.wav" --seconds 2 --transport 120 --set wmode=1 --set wnote=13 --set wmult=64 --set wfine=0 \
-  --set rmode=1 --set rnote=7 --set rmult=1 --set rspread=0 --heads "$OUT/tempo.heads.f32"
+# 6b clean: 1 s of aliasing (v0.2 init sound), then Clean for 1.5 s over the whole row -> identity again
+$R "$OUT/clean.wav" --seconds 2.5 --set wpitch=71 --set wfine=0.217 --set rpitch=-30 --set size=1 \
+  --at 1.0 wactive=2 --table "$OUT/clean.table.f32"
+# 6c write gate (D15): Freeze + Velocity -> Write at +100 %: velocity 1 opens writing, 0.4 does not
+$R "$OUT/wgate_open.wav" --seconds 1 --set wactive=0 --set mx_ve_wa=100 --set velocity=1 --table "$OUT/wgate_open.table.f32"
+$R "$OUT/wgate_shut.wav" --seconds 1 --set wactive=0 --set mx_ve_wa=100 --set velocity=0.4 --table "$OUT/wgate_shut.table.f32"
+# 7 tempo: both pointers synced at 120 BPM: write x64 / 4 on 1/16 = 128 Hz, read x1 on 1/4 = 2 Hz (D3)
+$R "$OUT/tempo.wav" --seconds 2 --transport 120 --set wmode=1 --set wnote=13 --set wmult=64 --set wden=4 \
+  --set wfine=0 --set rmode=1 --set rnote=7 --set rmult=1 --set rspread=0 --heads "$OUT/tempo.heads.f32"
 # 8 band: open vs narrow Pass vs narrow Reject at 1 kHz (spectral energy around the centre)
 BAND=(--set rpitch=12 --set rspread=0 --set bcenter=1000 --set bspread=0 --set bres=0)
 $R "$OUT/band_open.wav" --seconds 3 "${BAND[@]}"
@@ -63,11 +77,25 @@ $R "$OUT/band_reject.wav" --seconds 3 "${BAND[@]}" --set bwidth=1 --set bmode=1
 # 9 aa: anti-aliased ramps differ from naive ones and stay finite
 $R "$OUT/aa.wav" --seconds 2 --set aaramp=1 --set wshape=0
 $R "$OUT/naive.wav" --seconds 2 --set aaramp=0 --set wshape=0
+# 10 exact bypasses (D17, D19): limiter not limiting with Saturation 0, Color alone, Drive section off
+ALIAS=(--set wpitch=71 --set wfine=0.217 --set rpitch=-30)
+$R "$OUT/lim_off.wav" --seconds 2 "${ALIAS[@]}" --set limon=0
+$R "$OUT/lim_idle.wav" --seconds 2 "${ALIAS[@]}" --set limon=1 --set limceil=0
+$R "$OUT/lim_color.wav" --seconds 2 "${ALIAS[@]}" --set limon=1 --set limceil=0 --set limcolor=100
+$R "$OUT/drv_zero.wav" --seconds 2 "${ALIAS[@]}" --set drive=0
+$R "$OUT/drv_off.wav" --seconds 2 "${ALIAS[@]}" --set drive=24 --set drvon=0
+# 11 limiter ceiling: +24 dB into a -6 dB ceiling with full saturation
+$R "$OUT/lim_ceil.wav" --seconds 2 "${ALIAS[@]}" --set output=0 --set limgain=24 --set limsat=100 --set limceil=-6
+# 12 envelope follower (D16): Env -> Output at -100 % pulls the level down against the same patch without it
+$R "$OUT/env_ref.wav" --seconds 2 "${ALIAS[@]}"
+$R "$OUT/env_duck.wav" --seconds 2 "${ALIAS[@]}" --set mx_en_ou=-100 --set engain=24
+# 13 resonator section switch: off (default) vs on at Mix 100 % differ
+$R "$OUT/res_on.wav" --seconds 2 "${ALIAS[@]}" --set reson=1 --set rsmix=100
 
 echo "== m4l-analyze"
 cd "$ROOT/tools"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-$ROOT/.uv-cache}"
-uv run m4l-analyze "$OUT"/{off,drone,gate,stress,stress44,sync,frozen,tempo,band_open,band_pass,band_reject,aa}.wav
+uv run m4l-analyze "$OUT"/{off,drone,alias,gate,stress,stress44,sync,frozen,clean,tempo,band_open,band_pass,band_reject,aa,lim_ceil,env_duck,res_on}.wav
 uv run m4l-analyze --null "$OUT/stress.wav" "$OUT/stress2.wav"
 
 echo "== checks"

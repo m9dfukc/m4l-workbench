@@ -158,11 +158,14 @@ int main(int argc, char **argv) {
 	for (auto &t : ats) parse_assign(s, t.second, long(t.first * sr), changes);
 
 	long frames = long(seconds * sr);
-	std::vector<t_sample> in1(vs), in2(vs), in3(vs), in4(vs), o1(vs), o2(vs);
+	std::vector<t_sample> in1(vs), in2(vs), in3(vs), in4(vs), o1(vs), o2(vs), o3(vs);
 	t_sample *ins[4] = {in1.data(), in2.data(), in3.data(), in4.data()};
 	const int nin = int(aliasing::num_inputs());
 	if (nin != 4) die("the export has " + std::to_string(nin) + " inputs, expected 4");
-	t_sample *outs[2] = {o1.data(), o2.data()};
+	// out1/out2 stereo; out3 = the envelope follower value (v0.3), not written to the WAV
+	const int nout = int(aliasing::num_outputs());
+	if (nout < 2 || nout > 3) die("the export has " + std::to_string(nout) + " outputs, expected 2 or 3");
+	t_sample *outs[3] = {o1.data(), o2.data(), o3.data()};
 	std::vector<float> inter;
 	inter.reserve(size_t(frames) * 2);
 
@@ -181,7 +184,7 @@ int main(int argc, char **argv) {
 			double bar = bpm > 0 ? std::fmod(double(fr) * bpm / (60.0 * 4.0 * sr), 1.0) : 0.0;
 			in1[k] = g; in2[k] = y; in3[k] = nt; in4[k] = bar;
 		}
-		int err = aliasing::perform(s, ins, 4, outs, 2, n);
+		int err = aliasing::perform(s, ins, 4, outs, nout, n);
 		if (err) die("perform returned error " + std::to_string(err));
 		for (long k = 0; k < n; ++k) { inter.push_back(float(o1[k])); inter.push_back(float(o2[k])); }
 	}

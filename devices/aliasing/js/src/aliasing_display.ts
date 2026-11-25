@@ -1,11 +1,15 @@
-// aliasing_display: the display of the Aliasing device (v8ui, mgraphics), v0.2.
+// aliasing_display: the display of the Aliasing device (v8ui, mgraphics), v0.3.
 // Bundled by tools/js-build.mjs into devices/aliasing/aliasing_display.js (never edit that file).
-// Spec: docs/redesign-t1.md R9-R11, R19, the approved mock-up, docs/v0.2-build.md section 4.
+// Spec: docs/redesign-t1.md R9-R11, R19, the approved mock-up, docs/v0.2-build.md section 4,
+// docs/v0.3-design.md D7-D9 (lanes zoom to the Size control with each voice's modulated span as an
+// edge, filled min/max band instead of stroked zigzags, Size slider below the display).
 // Pure logic lives in display_model.ts (geometry, curve, gestures) and paint_kit.ts (palette).
 //
-// Table pages (LFO, Mod, Out): 5 stacked lanes, each zoomed to its voice's active span (effective
-// Size from gen~), Line or 2D view (icons top right), write head (dot) and read head (ring), a thin
-// overview of the span above the Size slider (a painted live.slider overlaid on the display).
+// Table pages (LFO · Env, Mod, Global): 5 stacked lanes zoomed to the Size control (opened at once to
+// a larger modulated voice span, closed again slowly); each voice's own span (effective Size from
+// gen~) is an edge, the cells beyond it dimmed; Line or 2D view (icons top right), write head (dot,
+// dimmed while the voice does not write) and read head (ring); at the bottom an overview of the whole
+// row with the Size control and the 5 voices' spans as ticks.
 // Mouse: drag in a lane draws that voice's row, Shift = all voices, Alt = straight line from the
 // press point, double-click = identity ramp (Shift: all). The table is stored after each gesture.
 // Tone page: the Band + Resonator curve with handles (drag the band = Center x / Res y, drag an
@@ -17,11 +21,12 @@
 //   page <0..3>               LFO, Mod, Tone, Out (from the Page live.tab)
 //   mode <0|1>                Line, 2D (from the stored Display Mode live.tab)
 //   pv <name> <value>         parameter values the display needs: size center bwidth bres bslope
-//                             bmode rsfreq rsfb rsmix rstrack
+//                             bmode rsfreq rsfb rsmix rstrack bandon reson
 //   dictionary <name>         the stored table (dict Blob parameter "Table"): recall or echo
 //   bang                      redraw once
 // Outlets:
 //   0  <name> <value> for the patch's route: mode center bwidth bres bmode rsfreq rsfb rsmix rstrack
+//      reson
 //   1  dictionary <name> -> dict ---atable (stores the table with the Live Set)
 //
 // Max calls handlers by message name: they stay top-level function declarations (js-build checks).
@@ -29,16 +34,13 @@
 import {
 	CELLS,
 	COLUMNS_2D,
-	CURVE_H,
-	CURVE_TOP,
 	HEADER_Y,
-	OVERVIEW_Y,
+	OVERVIEW_H,
 	PAD,
 	VOICES,
 	bandEdges,
 	cellAlpha,
 	clamp,
-	decimateMinMax,
 	fOfX,
 	fbOfY,
 	hitCurve,
@@ -47,10 +49,15 @@ import {
 	iconRects,
 	identityRow,
 	inRect,
+	copyInto,
+	curveRect,
 	laneHit,
+	laneOutline,
 	laneRect,
 	laneY,
+	nextZoom,
 	normalizeRow,
+	overviewY,
 	resOfY,
 	rowsFromStored,
 	sampleColumns,
@@ -97,9 +104,13 @@ const params: Record<string, number> = {
 	bmode: 0,
 	rsfreq: 140,
 	rsfb: 50,
-	rsmix: 0,
+	rsmix: 50,
 	rstrack: 1,
+	bandon: 1,
+	reson: 0,
 };
+// display zoom in Size units (D7), advanced once per frame
+let zoom = 0.1;
 
 // mouse state
 type Gesture =
@@ -119,11 +130,14 @@ timer.interval = FPS_INTERVAL_MS;
 // ---- data ---------------------------------------------------------------------------------------
 
 function readData(): void {
-	if (tableBuf && !gesture) {
-		for (let v = 0; v < VOICES; v++) rows[v] = normalizeRow(tableBuf.peek(v + 1, 0, CELLS), CELLS);
-	}
 	if (headsBuf) {
-		for (let c = 0; c < NCH; c++) heads[c] = normalizeRow(headsBuf.peek(c + 1, 0, VOICES), VOICES);
+		for (let c = 0; c < NCH; c++) copyInto(heads[c], headsBuf.peek(c + 1, 0, VOICES), VOICES);
+	}
+	zoom = nextZoom(zoom, params.size / 100, heads[3], FPS_INTERVAL_MS / 1000);
+	// only the zoomed span is drawn: read just that part of each row (D8)
+	if (tableBuf && !gesture) {
+		const n = Math.min(CELLS, spanCells(zoom) + 1);
+		for (let v = 0; v < VOICES; v++) copyInto(rows[v], tableBuf.peek(v + 1, 0, n), n);
 	}
 }
 
@@ -147,6 +161,8 @@ function fs(): number {
 
 function tone(): Tone {
 	return {
+		bandOn: params.bandon > 0.5,
+		resOn: params.reson > 0.5,
 		center: params.center,
 		width: params.bwidth,
 		res: params.bres,
@@ -156,10 +172,6 @@ function tone(): Tone {
 		rsFb: params.rsfb,
 		rsMix: params.rsmix,
 	};
-}
-
-function curveRect(w: number): Rect {
-	return { x: PAD, y: CURVE_TOP, w: w - 2 * PAD, h: CURVE_H };
 }
 
 // ---- storage ------------------------------------------------------------------------------------
@@ -247,6 +259,11 @@ function bang(): void {
 	mgraphics.redraw();
 }
 
+/** The pages script resizes the box on the Tone page (D31); the geometry follows mgraphics.size. */
+function onresize(_w: number, _h: number): void {
+	mgraphics.redraw();
+}
+
 function notifydeleted(): void {
 	timer.cancel();
 }
@@ -273,11 +290,11 @@ function onclick(x: number, y: number, _but: number, _cmd: number, shift: number
 	}
 	if (pageValue === PAGE_TONE) {
 		const t = tone();
-		const what = hitCurve(x, y, t, curveRect(w), fs());
+		const what = hitCurve(x, y, t, curveRect(w, mgraphics.size[1]), fs());
 		gesture = what ? { kind: "curve", what, x0: x, c0: params.center } : null;
 		return;
 	}
-	const hit = laneHit(x, y, w);
+	const hit = laneHit(x, y, w, mgraphics.size[1]);
 	if (!hit) {
 		gesture = null;
 		return;
@@ -299,7 +316,7 @@ function ondrag(x: number, y: number, but: number): void {
 		return;
 	}
 	if (gesture.kind === "draw") {
-		const lane = laneRect(gesture.voice, w);
+		const lane = laneRect(gesture.voice, w, mgraphics.size[1]);
 		const xn = clamp((x - lane.x) / lane.w, 0, 0.99999);
 		const value = clamp(1 - (y - lane.y - 1.5) / (lane.h - 4), 0, 1);
 		if (gesture.line) {
@@ -312,7 +329,7 @@ function ondrag(x: number, y: number, but: number): void {
 		gesture.lv = value;
 		return;
 	}
-	const rect = curveRect(w);
+	const rect = curveRect(w, mgraphics.size[1]);
 	if (gesture.what === "body") {
 		// the centre follows the horizontal mouse movement from the press, Res the vertical position
 		const center = fOfX(xOfF(gesture.c0, rect) + (x - gesture.x0), rect);
@@ -324,6 +341,7 @@ function ondrag(x: number, y: number, but: number): void {
 		if (params.rstrack > 0.5) send("rstrack", 0);
 		send("rsfreq", clamp(fOfX(x, rect), 20, 5000));
 		send("rsfb", fbOfY(y, rect));
+		if (params.reson < 0.5) send("reson", 1);
 		if (params.rsmix <= 0) send("rsmix", 50);
 	}
 }
@@ -333,11 +351,11 @@ function ondblclick(x: number, y: number, _but: number, _cmd: number, shift: num
 	gesture = null;
 	if (pageValue === PAGE_TONE) {
 		const e = bandEdges(tone(), fs());
-		const rect = curveRect(w);
+		const rect = curveRect(w, mgraphics.size[1]);
 		if (x > xOfF(e.lo, rect) && x < xOfF(e.hi, rect)) send("bmode", params.bmode > 0.5 ? 0 : 1);
 		return;
 	}
-	const hit = laneHit(x, y, w);
+	const hit = laneHit(x, y, w, mgraphics.size[1]);
 	if (!hit || !tableBuf) return;
 	const ident = identityRow();
 	for (const v of shift ? [0, 1, 2, 3, 4] : [hit.voice]) {
@@ -357,8 +375,8 @@ function restoreSnapshot(voices: number[], snap: number[][]): void {
 }
 
 function drawSegment(x0: number, v0: number, x1: number, v1: number, voices: number[]): void {
+	const span = spanCells(zoom); // the lanes show the zoomed span (D7)
 	for (const v of voices) {
-		const span = spanCells(effSize(v));
 		const seg = segmentCells(x0, v0, x1, v1, span);
 		for (let k = 0; k < seg.values.length; k++) rows[v][seg.start + k] = seg.values[k];
 		if (tableBuf) tableBuf.poke(v + 1, seg.start, seg.values);
@@ -396,7 +414,7 @@ function drawHeader(w: number, p: Palette): void {
 	const maxw = (tonePage ? w - PAD : icons.line.x - 4) - infoX;
 	const info = tonePage
 		? "drag band · edges = width · dbl-click = Pass/Reject · R"
-		: tableInfo(spanCells(effSize(0)), heads[4][0], heads[5][2], fs());
+		: tableInfo(spanCells(params.size / 100), heads[4][0], heads[5][2], fs());
 	mgraphics.select_font_face(FONT);
 	mgraphics.set_font_size(8);
 	label(fitted(info, maxw), infoX, HEADER_Y + 9, p.label, 8);
@@ -427,11 +445,10 @@ function drawHeader(w: number, p: Palette): void {
 	mgraphics.fill();
 }
 
-function drawLanes(w: number, p: Palette, lw: number): void {
+function drawLanes(w: number, h: number, p: Palette, lw: number): void {
+	const span = spanCells(zoom);
 	for (let v = 0; v < VOICES; v++) {
-		const lane = laneRect(v, w);
-		const size = effSize(v);
-		const span = spanCells(size);
+		const lane = laneRect(v, w, h);
 		if (v > 0) {
 			rgba(p.rule);
 			mgraphics.rectangle(lane.x, lane.y, lane.w, 1);
@@ -446,36 +463,49 @@ function drawLanes(w: number, p: Palette, lw: number): void {
 				mgraphics.fill();
 			}
 		} else {
-			const cols = Math.max(1, Math.floor(lane.w));
-			const env = decimateMinMax(rows[v], span, cols);
+			const o = laneOutline(rows[v], span, lane);
 			const path = (): void => {
-				for (let c = 0; c < cols; c++) {
-					const x = lane.x + c + 0.5;
-					const yh = laneY(env.max[c], lane);
-					const yl = laneY(env.min[c], lane);
-					if (c === 0) mgraphics.move_to(x, yh);
-					else mgraphics.line_to(x, yh);
-					if (yl - yh > 0.5) mgraphics.line_to(x, yl);
-				}
+				mgraphics.move_to(o.pts[0], o.pts[1]);
+				for (let k = 2; k < o.pts.length; k += 2) mgraphics.line_to(o.pts[k], o.pts[k + 1]);
 			};
-			mgraphics.set_line_join("round");
-			rgba(withAlpha(p.voice, 0.14));
-			mgraphics.set_line_width(lw * 4);
-			path();
-			mgraphics.stroke();
-			rgba(p.voice);
-			mgraphics.set_line_width(lw);
-			path();
-			mgraphics.stroke();
+			if (o.filled) {
+				rgba(p.voice);
+				path();
+				mgraphics.close_path();
+				mgraphics.fill();
+			} else {
+				// few cells: thin steps; a light glow only for short spans (cheap: few right angles)
+				mgraphics.set_line_join("miter");
+				if (span <= 64) {
+					rgba(withAlpha(p.voice, 0.14));
+					mgraphics.set_line_width(lw * 3);
+					path();
+					mgraphics.stroke();
+				}
+				rgba(p.voice);
+				mgraphics.set_line_width(lw);
+				path();
+				mgraphics.stroke();
+			}
 		}
-		// heads: write = line + dot, read = line + ring
+		// the voice's own (modulated) span: the cells beyond it dimmed, an edge line (D7)
+		const xe = headX(effSize(v), zoom, lane);
+		if (xe < lane.x + lane.w - 0.5) {
+			rgba(withAlpha(p.disp, 0.6));
+			mgraphics.rectangle(xe, lane.y + 1, lane.x + lane.w - xe, lane.h - 1);
+			mgraphics.fill();
+			rgba(withAlpha(p.label, 0.8));
+			mgraphics.rectangle(Math.round(xe) - 0.5, lane.y + 1, 1, lane.h - 1);
+			mgraphics.fill();
+		}
+		// heads: write = line + dot (dimmed while this voice does not write), read = line + ring
 		const wOn = heads[2][v] > 0.5;
 		const wc = wOn ? p.write : p.track;
-		const xw = headX(heads[0][v], size, lane);
-		const xr = headX(heads[1][v], size, lane);
+		const xw = headX(heads[0][v], zoom, lane);
+		const xr = headX(heads[1][v], zoom, lane);
 		const midY = lane.y + lane.h / 2;
-		const yw = modeValue ? midY : laneY(rows[v][headCell(heads[0][v], size)], lane);
-		const yr = modeValue ? midY : laneY(rows[v][headCell(heads[1][v], size)], lane);
+		const yw = modeValue ? midY : laneY(rows[v][headCell(heads[0][v], zoom)], lane);
+		const yr = modeValue ? midY : laneY(rows[v][headCell(heads[1][v], zoom)], lane);
 		mgraphics.set_line_width(1);
 		rgba(withAlpha(wc, 0.35));
 		mgraphics.move_to(xw, lane.y + 1);
@@ -493,26 +523,36 @@ function drawLanes(w: number, p: Palette, lw: number): void {
 		mgraphics.ellipse(xr - 3, yr - 3, 6, 6);
 		mgraphics.stroke();
 	}
-	// overview of the span in the whole row (above the Size slider)
+	// overview of the whole row: the Size control as a bar, the zoom window as a faint tick, the voices'
+	// spans as ticks (D7)
 	const ow = w - 2 * PAD;
+	const oy = overviewY(h);
 	rgba(p.rule);
-	mgraphics.rectangle_rounded(PAD, OVERVIEW_Y, ow, 3, 2, 2);
+	mgraphics.rectangle_rounded(PAD, oy + 1, ow, 3, 2, 2);
 	mgraphics.fill();
 	rgba(p.label);
-	mgraphics.rectangle_rounded(PAD, OVERVIEW_Y, Math.max(2, ow * clamp(params.size / 100, 0.001, 1)), 3, 2, 2);
+	mgraphics.rectangle_rounded(PAD, oy + 1, Math.max(2, ow * clamp(params.size / 100, 0.001, 1)), 3, 2, 2);
+	mgraphics.fill();
+	rgba(withAlpha(p.label, 0.45));
+	mgraphics.rectangle(PAD + Math.min(ow - 1, ow * zoom), oy, 1, OVERVIEW_H);
+	mgraphics.fill();
+	rgba(p.voice);
+	for (let v = 0; v < VOICES; v++) mgraphics.rectangle(PAD + Math.min(ow - 1, ow * effSize(v)), oy, 1, OVERVIEW_H);
 	mgraphics.fill();
 }
 
-function drawCurve(w: number, p: Palette, lw: number): void {
-	const rect = curveRect(w);
+function drawCurve(w: number, h: number, p: Palette, lw: number): void {
+	const rect = curveRect(w, h);
 	const t = tone();
 	const sr = fs();
 	const e = bandEdges(t, sr);
 	const xl = xOfF(e.lo, rect);
 	const xh = xOfF(e.hi, rect);
-	const bandCol = t.reject ? p.read : p.write;
-	// band shading
-	rgba(withAlpha(bandCol, 0.09));
+	const bandOn = t.bandOn !== false;
+	const resOn = t.resOn !== false;
+	const bandCol = withAlpha(t.reject ? p.read : p.write, bandOn ? 1 : 0.4);
+	// band shading (faint while the band section is off, D17)
+	rgba(withAlpha(bandCol, bandOn ? 0.09 : 0.04));
 	mgraphics.rectangle(xl, rect.y, Math.max(0, xh - xl), rect.h);
 	mgraphics.fill();
 	// grid
@@ -604,12 +644,12 @@ function drawCurve(w: number, p: Palette, lw: number): void {
 	rgba(p.disp);
 	mgraphics.rectangle_rounded(xr - 4.5, yr - 4.5, 9, 9, 2, 2);
 	mgraphics.fill();
-	rgba(t.rsMix > 0 ? p.read : withAlpha(p.read, 0.45));
+	rgba(resOn && t.rsMix > 0 ? p.read : withAlpha(p.read, 0.45));
 	mgraphics.set_line_width(1.4);
 	mgraphics.rectangle_rounded(xr - 4.5, yr - 4.5, 9, 9, 2, 2);
 	mgraphics.stroke();
 	label("R", xr + 7, yr + 3, p.label, 8);
-	const bandLabel = t.reject ? "REJECT" : t.width >= 9.95 ? "OPEN" : "PASS";
+	const bandLabel = !bandOn ? "BAND OFF" : t.reject ? "REJECT" : t.width >= 9.95 ? "OPEN" : "PASS";
 	label(bandLabel, clamp(xl + 4, rect.x + 2, rect.x + rect.w - 40), rect.y + 22, p.label, 8);
 	// axis
 	for (const [f, s] of [[20, "20"], [200, "200"], [2000, "2k"], [20000, "20k"]] as [number, string][]) {
@@ -625,7 +665,7 @@ function paint(): void {
 	const h = mgraphics.size[1];
 	if (!announced) {
 		announced = true;
-		post(`aliasing_display: v0.2 ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}\n`);
+		post(`aliasing_display: v0.3 ready, ${w}x${h}, table ${tableBuf ? "bound" : "not bound yet"}\n`);
 	}
 	let getcolor: ((id: string) => any) | null = null;
 	try {
@@ -639,8 +679,8 @@ function paint(): void {
 	mgraphics.rectangle_rounded(0, 0, w, h, 8, 8);
 	mgraphics.fill();
 	drawHeader(w, p);
-	if (pageValue === PAGE_TONE) drawCurve(w, p, lw);
-	else drawLanes(w, p, lw);
+	if (pageValue === PAGE_TONE) drawCurve(w, h, p, lw);
+	else drawLanes(w, h, p, lw);
 	if (!tableBuf) {
 		rgba([0, 0, 0, 0.5]);
 		mgraphics.rectangle_rounded(0, 0, w, h, 8, 8);

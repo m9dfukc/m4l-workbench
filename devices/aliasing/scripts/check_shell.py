@@ -7,7 +7,9 @@
   is driven by one
 - the gen~ box has as many inlets as the GenExpr uses (in1..inN)
 - presentation rects lie inside the device (968 x 169) and visible objects do not overlap in any
-  page / Hz|Sync state (rules of js/src/pages_model.ts; the Size bar over the display is intended)
+  page / Hz|Sync / write-shape state (rules of js/src/pages_model.ts); the theme panels (D22) lie
+  behind everything (first in the box order) and every visible control lies inside one of them;
+  nothing overlaps the v8ui display (it would cover the object in Live, t3)
 - every painted live.* object names an existing aliasing_paint_*.js; referenced JS files exist
 
 Usage: python3 devices/aliasing/scripts/check_shell.py [AMXD]
@@ -28,7 +30,21 @@ from bootstrap_shell import WIDTH, read_amxd  # noqa: E402
 
 HEIGHT = 169.0
 PAGES = ["lfo", "mod", "tone", "out"]
-ALLOWED_OVERLAP = {frozenset({"display", "tbl_size"})}
+ALLOWED_OVERLAP: set[frozenset[str]] = set()
+# The pages script grows the display on the Tone page (pages_model.ts displayRectFor, D31).
+DISPLAY_RECT_TONE = [308.0, 6.0, 328.0, 157.0]
+
+
+def rect_in(b: dict, st: dict) -> list[float]:
+    if b.get("varname") == "display" and st["page"] == 2:
+        return DISPLAY_RECT_TONE
+    return b["presentation_rect"]
+
+
+def sym_label_of(shape: int) -> str:
+    """pages_model.ts symLabelOf (D6)."""
+    return "curve" if shape <= 0 else "skew" if shape <= 3 else "duty" if shape == 5 else \
+        "smooth" if shape == 7 else "width"
 
 
 def visible(varname: str, hidden: bool, st: dict) -> bool:
@@ -52,6 +68,8 @@ def visible(varname: str, hidden: bool, st: dict) -> bool:
         c = (st["l1mode"] == 0) == (cond == "hz1")
     elif cond in ("hz2", "sy2"):
         c = (st["l2mode"] == 0) == (cond == "hz2")
+    elif cond == "symlbl" and area == "w":
+        c = sym_label_of(st["wshape"]) == (parts[2] if len(parts) > 2 else "")
     else:
         c = True
     return ok and c
@@ -91,7 +109,7 @@ def main(argv: list[str]) -> int:
 
     # gen~ Params and inlets
     src = (DEVICE / "gen" / "aliasing.genexpr").read_text()
-    params = set(re.findall(r"^Param\s+(\w+)\s*\(", src, re.M))
+    params = set(re.findall(r"\bParam\s+(\w+)\s*\(", src))  # several Params per line are fine
     nin = max(int(n) for n in re.findall(r"\bin(\d+)\b", src))
     gen_id = next(i for i, b in boxes.items() if str(b.get("text", "")).startswith("gen~ "))
     if boxes[gen_id]["numinlets"] != nin:
@@ -115,14 +133,30 @@ def main(argv: list[str]) -> int:
         x, y, w, h = b["presentation_rect"]
         if x < 0 or y < 0 or x + w > WIDTH + 0.01 or y + h > HEIGHT + 0.01:
             errors.append(f"{b.get('varname', b['maxclass'])} outside the device: {b['presentation_rect']}")
-    states = [dict(page=p, wmode=wm, rmode=rm, l1mode=l1, l2mode=l2)
-              for p, wm, rm, l1, l2 in itertools.product(range(4), (0, 1), (0, 1), (0, 1), (0, 1))]
+    states = [dict(page=p, wmode=wm, rmode=rm, l1mode=l1, l2mode=l2, wshape=ws)
+              for p, wm, rm, l1, l2, ws in itertools.product(range(4), (0, 1), (0, 1), (0, 1), (0, 1),
+                                                             (0, 1, 4, 5, 7))]
+    panels = [b for b in pres if b["maxclass"] == "panel"]
+    order = [b["box"]["id"] for b in pat["patcher"]["boxes"]]
+    first_other = min(order.index(i) for i, b in boxes.items() if b["maxclass"] != "panel")
+    for b in panels:
+        if order.index(b["id"]) > first_other:
+            errors.append(f"panel {b.get('varname')} is not behind the controls (box order)")
+
+    def inside(a: list[float], o: list[float]) -> bool:
+        return a[0] >= o[0] - 0.01 and a[1] >= o[1] - 0.01 and a[0] + a[2] <= o[0] + o[2] + 0.01 and \
+            a[1] + a[3] <= o[1] + o[3] + 0.01
+    for b in pres:
+        rects = [b["presentation_rect"]] + ([DISPLAY_RECT_TONE] if b.get("varname") == "display" else [])
+        if b["maxclass"] != "panel" and not all(any(inside(rc, o["presentation_rect"]) for o in panels) for rc in rects):
+            errors.append(f"{b.get('varname', b['maxclass'])} lies in no panel: {b['presentation_rect']}")
     overlaps: set[tuple[str, str]] = set()
     for st in states:
-        vis = [b for b in pres if visible(str(b.get("varname", "")), bool(b.get("hidden")), st)]
+        vis = [b for b in pres if b["maxclass"] != "panel"
+               and visible(str(b.get("varname", "")), bool(b.get("hidden")), st)]
         for a, c in itertools.combinations(vis, 2):
-            ax, ay, aw, ah = a["presentation_rect"]
-            cx, cy, cw, ch = c["presentation_rect"]
+            ax, ay, aw, ah = rect_in(a, st)
+            cx, cy, cw, ch = rect_in(c, st)
             if ax < cx + cw - 0.5 and cx < ax + aw - 0.5 and ay < cy + ch - 0.5 and cy < ay + ah - 0.5:
                 pair = tuple(sorted((str(a.get("varname", a["maxclass"])), str(c.get("varname", c["maxclass"])))))
                 if frozenset(pair) not in ALLOWED_OVERLAP:
@@ -147,7 +181,7 @@ def main(argv: list[str]) -> int:
 
     n_params = len(longnames)
     print(f"check_shell: {len(boxes)} boxes, {len(lines)} cords, {n_params} parameters, {len(params)} gen~ Params, "
-          f"{len(states)} page/mode states")
+          f"{len(states)} page/mode/shape states, {len(panels)} panels")
     for e in errors:
         print("FAIL", e)
     print("check_shell: OK" if not errors else f"check_shell: {len(errors)} problems")

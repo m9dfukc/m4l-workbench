@@ -19,36 +19,36 @@ function palette(dark) {
   if (dark) {
     return {
       dark: true,
-      text: hex("#c9c9c9"),
-      label: hex("#969696"),
-      track: hex("#424242"),
-      rule: hex("#2e2e2e"),
-      field: hex("#1b1b1b"),
+      text: hex("#d2d2d2"),
+      label: hex("#b0b0b0"),
+      track: hex("#5c5c5c"),
+      rule: hex("#2a2a2a"),
+      field: hex("#262626"),
       sel: hex("#d6d6d6"),
       selFg: hex("#1b1b1b"),
-      sizeFill: hex("#3a3a3a"),
+      sizeFill: hex("#4c4c4c"),
       write: hex("#e4e4e4"),
-      read: hex("#8fa6b6"),
-      disp: hex("#151515"),
-      voice: hex("#a3a3a3"),
+      read: hex("#8fb0c4"),
+      disp: hex("#161616"),
+      voice: hex("#a6a6a6"),
       meter: hex("#9a9a9a")
     };
   }
   return {
     dark: false,
-    text: hex("#1e1e1e"),
-    label: hex("#4d4d4d"),
-    track: hex("#9e9e9e"),
-    rule: hex("#c9c9c9"),
-    field: hex("#e6e6e6"),
-    sel: hex("#2a2a2a"),
+    text: hex("#111111"),
+    label: hex("#262626"),
+    track: hex("#6e6e6e"),
+    rule: hex("#d0d0d0"),
+    field: hex("#dedede"),
+    sel: hex("#1f1f1f"),
     selFg: hex("#efefef"),
     sizeFill: hex("#bdbdbd"),
-    write: hex("#242424"),
-    read: hex("#41627a"),
+    write: hex("#1c1c1c"),
+    read: hex("#2f5873"),
     disp: hex("#ececec"),
-    voice: hex("#555555"),
-    meter: hex("#555555")
+    voice: hex("#4a4a4a"),
+    meter: hex("#3c3c3c")
   };
 }
 function themeIsDark(getcolor) {
@@ -62,6 +62,12 @@ function themeIsDark(getcolor) {
 }
 function roleOf(varname) {
   var v = String(varname || "");
+  if (v.indexOf("mod_") === 0) {
+    var t = v.substring(v.lastIndexOf("_") + 1);
+    if (t === "wp" || t === "sy" || t === "wa") return "write";
+    if (t === "rp" || t === "sp") return "read";
+    return "neutral";
+  }
   if (v.indexOf("w_") === 0 || v.indexOf("tone_band") === 0) return "write";
   if (v.indexOf("r_") === 0 || v.indexOf("tone_res") === 0) return "read";
   return "neutral";
@@ -160,7 +166,33 @@ function enumLabelsFrom(range, type) {
   for (var i = 0; i < range.length; i++) out.push(String(range[i]));
   return out.length ? out : null;
 }
-function iconPath(label) {
+function writeIcon(label) {
+  switch (label) {
+    case "Ramp":
+      return [[1, 11], [21, 1], [21, 11]];
+    case "Tri":
+      return [[1, 11], [11, 1], [21, 11]];
+    case "Tri \xB1":
+      return [[1, 11], [6, 11], [11, 1], [16, 11], [21, 11]];
+    case "Sine": {
+      var pts = [];
+      for (var i = 0; i <= 20; i++) pts.push([1 + i, 11 - 10 * (0.5 - 0.5 * Math.cos(i / 20 * 2 * Math.PI))]);
+      return pts;
+    }
+    case "Pulse":
+      return [[1, 11], [11, 11], [11, 1], [21, 1]];
+    case "Pulsar":
+      return [[1, 11], [9, 1], [9, 11], [21, 11]];
+    case "Spike":
+      return [[1, 11], [5, 1], [9, 11], [21, 11]];
+    case "Noise":
+      return [[1, 7], [4, 7], [4, 2], [7, 2], [7, 9], [10, 9], [10, 4], [13, 4], [13, 10], [16, 10], [16, 3], [19, 3], [19, 6], [21, 6]];
+    default:
+      return null;
+  }
+}
+function iconPath(label, family) {
+  if (family === "write") return writeIcon(label);
   switch (label) {
     case "Ramp":
     case "Saw":
@@ -169,8 +201,6 @@ function iconPath(label) {
       return [[1, 11], [11, 1], [21, 11]];
     case "Tri \xB1":
       return [[1, 6], [6, 1], [16, 11], [21, 6]];
-    case "=Read":
-      return [[1, 11], [7, 5], [13, 9], [21, 1]];
     case "Square":
       return [[1, 11], [1, 1], [11, 1], [11, 11], [21, 11], [21, 1]];
     case "S&H":
@@ -328,20 +358,30 @@ function paint() {
   var labels = info.labels || ["0", "1"];
   var n = labels.length;
   var sel = Math.round(value());
-  var seg = (w - 1) / n;
-  var rad = Math.min(h - 1, 16);
+  var rows = Math.max(1, Math.min(n, Math.round(attrNum("num_lines_presentation", 1))));
+  var cols = Math.ceil(n / rows);
+  var segw = (w - 1) / cols;
+  var segh = (h - 1) / rows;
+  var family = varnameOf() === "w_shape" ? "write" : "";
+  var rad = rows > 1 ? 4 : Math.min(h - 1, 16);
   setColor(dim(p.sel, active, p));
   if (sel >= 0 && sel < n) {
-    var x0 = 0.5 + sel * seg;
-    if (n === 1 || sel === 0 || sel === n - 1) {
-      mgraphics.rectangle_rounded(x0, 0.5, seg, h - 1, rad, rad);
+    var sr = Math.floor(sel / cols);
+    var sc = sel % cols;
+    var x0 = 0.5 + sc * segw;
+    var y0 = 0.5 + sr * segh;
+    if (rows > 1) {
+      mgraphics.rectangle_rounded(x0 + 1, y0 + 1, segw - 2, segh - 2, 3, 3);
+      mgraphics.fill();
+    } else if (n === 1 || sel === 0 || sel === n - 1) {
+      mgraphics.rectangle_rounded(x0, 0.5, segw, h - 1, rad, rad);
       mgraphics.fill();
       if (n > 1) {
-        mgraphics.rectangle(sel === 0 ? x0 + seg / 2 : x0, 0.5, seg / 2, h - 1);
+        mgraphics.rectangle(sel === 0 ? x0 + segw / 2 : x0, 0.5, segw / 2, h - 1);
         mgraphics.fill();
       }
     } else {
-      mgraphics.rectangle(x0, 0.5, seg, h - 1);
+      mgraphics.rectangle(x0, 0.5, segw, h - 1);
       mgraphics.fill();
     }
   }
@@ -349,23 +389,24 @@ function paint() {
   setColor(dim(p.track, active, p));
   mgraphics.rectangle_rounded(0.5, 0.5, w - 1, h - 1, rad, rad);
   mgraphics.stroke();
-  font(h <= 14 ? 8 : 9, false);
+  font(segh <= 14 ? 8 : 9, false);
   for (var i = 0; i < n; i++) {
     var on = i === sel;
     var fg = dim(on ? p.selFg : p.text, active, p);
-    var cx = 0.5 + seg * (i + 0.5);
-    var icon = iconPath(labels[i]);
+    var cx = 0.5 + segw * (i % cols + 0.5);
+    var cy = 0.5 + segh * (Math.floor(i / cols) + 0.5);
+    var icon = iconPath(labels[i], family);
     if (icon) {
-      var iw = Math.min(seg - 6, 22);
-      var ih = Math.min(h - 6, 12);
+      var iw = Math.min(segw - 6, 22);
+      var ih = Math.min(segh - 5, 12);
       mgraphics.set_line_width(1.4);
       mgraphics.set_line_join("round");
       setColor(on ? fg : dim(p.label, active, p));
-      polyline(icon, cx - iw / 2, h / 2 - ih / 2, iw / 22, ih / 12);
+      polyline(icon, cx - iw / 2, cy - ih / 2, iw / 22, ih / 12);
       mgraphics.stroke();
     } else {
-      var s = fitText(labels[i], seg - 4, measure);
-      text(s, cx, h / 2 + 3, fg, "center");
+      var s = fitText(labels[i], segw - 4, measure);
+      text(s, cx, cy + 3, fg, "center");
     }
   }
 }

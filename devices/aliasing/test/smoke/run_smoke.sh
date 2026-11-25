@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test of the v0.2 device in standalone Max (CLAUDE.md exception: a test patch from this repo,
+# Smoke test of the device in standalone Max (CLAUDE.md exception: a test patch from this repo,
 # NonRealTime driver, Max quits itself; never Live). Builds build/aliasing/smoke/, runs Max, restores
 # the audio driver preference if Max left it changed, then reports Max.log errors and the recording.
 #
