@@ -6,7 +6,8 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 
 - [ ] **aliasing t5 (user, in Live):** v0.3b, both faces side by side (`Aliasing.amxd` hybrid,
       `Aliasing B.amxd` option (b)) — handover 2026-11-25, `v0.3-design.md` §6b; the user picks the
-      face that stays (then delete the other shell and its generator branch). Includes the still open
+      face that stays (then delete the other shell and its generator branch). Re-handed over after
+      D46–D49 (user's first look: State drop-down, 918 px, menu dots, Clear). Includes the still open
       t3/t4 items: bundled Max 9.1.5 round, table storage, hot reload. Harness pre-check PASS (t5-auto).
 - [x] aliasing t4 (v0.3, 9b1d5d7 + e0b2b59): the user looked at it in Live and sent screenshots and a
       critique instead of the checklist → face review, D33–D44, v0.3b (2026-11-25).

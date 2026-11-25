@@ -4,17 +4,21 @@
 // Mod Target (D36); greys out the write controls in Clean (D5), the resonator Freq while Track is on,
 // the controls of switched-off sections (D17, D19), Transpose without a Hz pointer and Sync Rate without
 // a synced one (D37); on the hybrid's Tone page it grows the display (D31). Colours the panel_* surfaces
-// (D22), the matrix row markers mod_mark_<target> and the live.meter~s (D39) from Live's theme.
+// (D22), the matrix row markers mod_mark_<target> and the live.meter~s (D39) from Live's theme. Face b:
+// marks the modulated targets in the Mod Target menu with a dot (D48, from the mx_* values the shell
+// copies here) and resets the shown target's eight depths on "clear" (D49).
 // Bundled by tools/js-build.mjs into devices/aliasing/aliasing_pages.js. Rules: pages_model.ts
 // (scripting names set by scripts/bootstrap_shell.py).
 //
 // Argument: the face (v8 aliasing_pages.js hybrid | b). Messages in: face <hybrid|b> (also applies) |
 //   page n | target n | wmode n | rmode n | l1mode n | l2mode n | wshape n | track n | wactive n |
 //   drvon n | bandon n | reson n | limon n | bang (re-apply all) |
-//   surface <name> r g b a (Live's device background from live.colors).
+//   surface <name> r g b a (Live's device background from live.colors) |
+//   mx_<source>_<target> v (face b: a matrix depth) | clearmod (face b: reset the shown target).
 
 import {
 	activeFor,
+	cellsOf,
 	clampPage,
 	clampTarget,
 	displayRectFor,
@@ -25,6 +29,7 @@ import {
 	meterColors,
 	panelColor,
 	surfaceIsDark,
+	targetLabels,
 	targetRole,
 	visibilityFor,
 } from "./pages_model.ts";
@@ -36,6 +41,8 @@ const state = initialState(faceOf(typeof jsarguments !== "undefined" ? jsargumen
 const act = initialActive();
 
 let announced = false;
+const depths: { [k: string]: number } = {};
+let menuLabels = targetLabels(depths).join("|");
 
 function apply(): void {
 	let obj = patcher.firstobject;
@@ -58,16 +65,43 @@ function apply(): void {
 
 /** The display's box rect for the current page (only touched on change: a rect change repaints). */
 function setDisplayRect(obj: Maxobj): void {
-	const want = displayRectFor(state.page, state.face);
-	if (!want) return;
 	let cur: number[] = [];
 	try {
 		cur = (obj.getboxattr("presentation_rect") as number[]) || [];
 	} catch (e) {
 		cur = [];
 	}
-	const same = cur.length === 4 && want.every((x, i) => Math.abs(Number(cur[i]) - x) < 0.5);
+	const want = displayRectFor(state.page, state.face, cur);
+	if (!want) return;
+	const same = want.every((x, i) => Math.abs(Number(cur[i]) - x) < 0.5);
 	if (!same) obj.setboxattr("presentation_rect", want[0], want[1], want[2], want[3]);
+}
+
+function findNamed(name: string): Maxobj | null {
+	let obj = patcher.firstobject;
+	while (obj) {
+		if (obj.varname === name) return obj;
+		obj = obj.nextobject;
+	}
+	return null;
+}
+
+/** Face b: the Mod Target menu's items with a dot on every modulated target (D48); only on change. */
+function updateMenu(): void {
+	const labels = targetLabels(depths);
+	const key = labels.join("|");
+	if (key === menuLabels) return;
+	menuLabels = key;
+	const menu = findNamed("mod_target");
+	if (!menu) return;
+	menu.message("_parameter_range", ...labels);
+	let back = "";
+	try {
+		back = String(menu.getattr("_parameter_range"));
+	} catch (e) {
+		back = "(not readable)";
+	}
+	post(`aliasing_pages: mod targets ${labels.filter((l) => l.indexOf("\u2022") >= 0).length} marked; menu reads back: ${back}\n`);
 }
 
 function face(v: string): void {
@@ -145,6 +179,27 @@ function limon(v: number): void {
 
 function bang(): void {
 	apply();
+}
+
+/** Face b: a matrix depth mx_<source>_<target> (copied from the shell's prepend to gen~). */
+function anything(...args: number[]): void {
+	const name = String(messagename);
+	if (name.indexOf("mx_") !== 0) return;
+	depths[name] = Number(args[0]) || 0;
+	if (state.face === "b") updateMenu();
+}
+
+/** Face b: the eight depths of the shown target back to 0 (D49); each cell outputs to gen~ and here. */
+function clearmod(): void {
+	let n = 0;
+	for (const name of cellsOf(state.target)) {
+		const obj = findNamed(name);
+		if (obj) {
+			obj.message("float", 0);
+			n++;
+		}
+	}
+	post(`aliasing_pages: clear target ${state.target}, ${n} cells\n`);
 }
 
 function surface(_name: string, r: number, g: number, b: number, _a: number): void {

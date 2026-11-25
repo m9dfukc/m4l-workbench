@@ -105,7 +105,14 @@ def main(argv: list[str]) -> int:
             (2300, "page", "0"), (3500, "page", "5"), (3700, "res_res_track", "0"), (1050, "res_res_on", "1"),
             (1700, "lim_lim_on", "0"), (2400, "lim_lim_on", "1"), (2500, "band_band_on", "0"),
             (1150, "mod_target", "5"), (2250, "mod_target", "8"), (2700, "out_syncrate", "6"), (3100, "page", "2"),
+            # D48/D49: the cells set above mark Write Pitch, Size, Output and Write Gate in the menu; Clear at
+            # 1.65 s, with Size shown (1.15 s), resets mod_ro_sz (set at 1.4 s): the Size dot goes
+            (1650, "pages_script", "clearmod"), (2350, "mod_ve_ou", "40"),
         ]
+    # D49: a button-mode live.text cannot be clicked by a message (build/aliasing/btnprobe), so the step
+    # sends the button's message, clearmod, straight to the pages script
+    pages_id = next(b["box"]["id"] for b in boxes if str(b["box"].get("text", "")).startswith("v8 aliasing_pages.js"))
+    by_var["pages_script"] = pages_id
     for k, (t, var, val) in enumerate(steps):
         d = obj(f"delay {t}", x0, y0 + 120 + 30 * k, 2, ["bang"])
         m = msg(val, x0 + 120, y0 + 120 + 30 * k)

@@ -34,8 +34,14 @@ sys.path.insert(0, str(HERE))
 from bootstrap_shell import FACE_PAGES, FACE_WIDTH, TGTS, initial_state, read_amxd, visible_in  # noqa: E402
 
 HEIGHT = 169.0
-# The pages script grows the hybrid's display on its Tone page (pages_model.ts displayRectFor, D31).
-DISPLAY_RECT_TONE = [308.0, 6.0, 328.0, 157.0]
+# The pages script grows the hybrid's display on its Tone page to this height, keeping x, y and width
+# (pages_model.ts displayRectFor, D31).
+DISPLAY_H_TONE = 157.0
+
+
+def tone_rect(b: dict) -> list[float]:
+    x, y, w, _ = b["presentation_rect"]
+    return [x, y, w, DISPLAY_H_TONE]
 
 
 def face_of(boxes: dict) -> str:
@@ -49,7 +55,7 @@ def face_of(boxes: dict) -> str:
 
 def rect_in(b: dict, st: dict) -> list[float]:
     if b.get("varname") == "display" and st["face"] == "hybrid" and st["page"] == 2:
-        return DISPLAY_RECT_TONE
+        return tone_rect(b)
     return b["presentation_rect"]
 
 
@@ -198,7 +204,7 @@ def check(amxd: Path) -> int:
         return a[0] >= o[0] - 0.01 and a[1] >= o[1] - 0.01 and a[0] + a[2] <= o[0] + o[2] + 0.01 and \
             a[1] + a[3] <= o[1] + o[3] + 0.01
     for b in pres:
-        rects = [b["presentation_rect"]] + ([DISPLAY_RECT_TONE] if b.get("varname") == "display" and face == "hybrid" else [])
+        rects = [b["presentation_rect"]] + ([tone_rect(b)] if b.get("varname") == "display" and face == "hybrid" else [])
         if b["maxclass"] != "panel" and not all(any(inside(rc, o["presentation_rect"]) for o in panels) for rc in rects):
             errors.append(f"{b.get('varname', b['maxclass'])} lies in no panel: {b['presentation_rect']}")
     overlaps: set[tuple[str, str]] = set()

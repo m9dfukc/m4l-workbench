@@ -39,6 +39,25 @@ export const PAGE_TONE = 2;
 
 /** Matrix targets in the order of the Mod Target menu (D36) = the gen~ Param suffixes. */
 export const TARGETS = ["wp", "sy", "wa", "rp", "sp", "sz", "bc", "rf", "ou"];
+export const TARGET_NAMES = ["Write Pitch", "Write Sym", "Write Gate", "Read Pitch", "Read Spread", "Size", "Band Center",
+	"Res Freq", "Output"];
+export const SOURCES = ["l1", "l2", "en", "ve", "mw", "vo", "nb", "ro"];
+export const MOD_MARK = " \u2022";
+
+/** Mod Target menu items (D48): a target with any depth != 0 gets a dot after its name. depths maps the
+ *  gen~ Param names mx_<source>_<target> to their values; missing names count as 0. */
+export function targetLabels(depths: { [k: string]: number }): string[] {
+	return TARGETS.map((t, k) => {
+		const used = SOURCES.some((s) => Math.abs(Number(depths["mx_" + s + "_" + t]) || 0) >= 0.5);
+		return TARGET_NAMES[k] + (used ? MOD_MARK : "");
+	});
+}
+
+/** The eight matrix cells (scripting names) of a target index: what Clear resets (D49). */
+export function cellsOf(target: number): string[] {
+	const t = TARGETS[clampTarget(target)];
+	return SOURCES.map((s) => "mod_" + s + "_" + t);
+}
 
 export function faceOf(name: unknown): Face {
 	return String(name) === "b" ? "b" : "hybrid";
@@ -216,11 +235,12 @@ export function meterColors(dark: boolean): { fill: RGBA4; bg: RGBA4; over: RGBA
 }
 
 /** Presentation rect of the hybrid's v8ui display: on the Tone page the Size slider is hidden, so the
- *  tone curve takes the height of the table display + the slider (D31). Face b keeps its rect (null). */
-export const DISPLAY_RECT = [308, 6, 328, 136];
-export const DISPLAY_RECT_TONE = [308, 6, 328, 157];
+ *  tone curve takes the height of the table display + the slider (D31); x, y and width stay as the shell
+ *  saved them (`cur`). Face b keeps its rect (null). */
+export const DISPLAY_H = 136;
+export const DISPLAY_H_TONE = 157;
 
-export function displayRectFor(page: number, face: Face = "hybrid"): number[] | null {
-	if (!FACES[face].resize) return null;
-	return isTonePage(page, face) ? DISPLAY_RECT_TONE : DISPLAY_RECT;
+export function displayRectFor(page: number, face: Face, cur: number[]): number[] | null {
+	if (!FACES[face].resize || !cur || cur.length !== 4 || !cur.every((x) => Number.isFinite(Number(x)))) return null;
+	return [Number(cur[0]), Number(cur[1]), Number(cur[2]), isTonePage(page, face) ? DISPLAY_H_TONE : DISPLAY_H];
 }

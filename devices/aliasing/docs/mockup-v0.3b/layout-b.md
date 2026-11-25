@@ -15,6 +15,8 @@ Deviations from b.2 (all measured against the mock-up in the canvas preview, 202
 - The read pointer has × N ÷ D in Sync like the write pointer (b.2 drew only Write in Sync).
 - Section switches are D32's bold title + power symbol at 15 px (D43), not the mock-up's pills.
 - Fine/Detune and Sym names are name-row overlays (h.2), as in the hybrid.
+- D48/D49 (user, 2026-11-25): Mod menu 80 px (dots on modulated targets), a Clear button at 117 98 30 15,
+  so the sources step by 80 px (labels end at x 182 + 80·i, depth boxes at 188 + 80·i).
 - The 72 strip cells are `mod_<source>_<target>`; the nine of one source share one rect and the pages
   script shows the one of the Mod Target (pages_model.ts, face b).
 
@@ -48,15 +50,16 @@ Deviations from b.2 (all measured against the mock-up in the canvas preview, 202
 | `row_size` | live.dial | 618 119 48 48 | always | Size (Live draws 48) |
 | `row_width` | live.dial | 666 119 48 48 | always | Width (Live draws 48) |
 | `row_output` | live.dial | 714 119 48 48 | always | Output (Live draws 48) |
-| `mod_target` | live.menu | 34 98 86 15 | always | Mod Target |
-| `mod_l1_<t>` | live.numbox | 169 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
-| `mod_l2_<t>` | live.numbox | 252 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
-| `mod_en_<t>` | live.numbox | 335 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
-| `mod_ve_<t>` | live.numbox | 418 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
-| `mod_mw_<t>` | live.numbox | 501 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
-| `mod_vo_<t>` | live.numbox | 584 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
-| `mod_nb_<t>` | live.numbox | 667 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
-| `mod_ro_<t>` | live.numbox | 750 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_target` | live.menu | 34 98 80 15 | always | Mod Target |
+| `strip_clear` | live.text | 117 98 30 15 | always | Mod Clear |
+| `mod_l1_<t>` | live.numbox | 188 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_l2_<t>` | live.numbox | 268 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_en_<t>` | live.numbox | 348 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_ve_<t>` | live.numbox | 428 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_mw_<t>` | live.numbox | 508 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_vo_<t>` | live.numbox | 588 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_nb_<t>` | live.numbox | 668 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
+| `mod_ro_<t>` | live.numbox | 748 98 39 15 | always | 9 cells at this rect, one per target; visible while Mod Target = t |
 | `page` | live.tab | 512 6 280 15 | always | Page |
 | `lfo1_l1mode` | live.tab | 514 25 48 15 | shown at load | LFO 1 Mode |
 | `lfo1_l1shape` | live.tab | 566 25 108 15 | shown at load | LFO 1 Shape |
@@ -114,14 +117,14 @@ Deviations from b.2 (all measured against the mock-up in the canvas preview, 202
 | `r_free_lblfine` | live.comment overlay | 446 118 48 15 | shown at load | "Fine", centred |
 | `r_sync_lbldetune` | live.comment overlay | 446 118 48 15 | hidden at load | "Detune", centred |
 | `strip_title` | live.comment | 6 98 28 15 | always | "Mod" |
-| `strip_lbl_l1` | live.comment | 126 98 43 15 | always | "LFO 1", right |
-| `strip_lbl_l2` | live.comment | 209 98 43 15 | always | "LFO 2", right |
-| `strip_lbl_en` | live.comment | 292 98 43 15 | always | "Env", right |
-| `strip_lbl_ve` | live.comment | 375 98 43 15 | always | "Vel", right |
-| `strip_lbl_mw` | live.comment | 458 98 43 15 | always | "Wheel", right |
-| `strip_lbl_vo` | live.comment | 541 98 43 15 | always | "Voice", right |
-| `strip_lbl_nb` | live.comment | 624 98 43 15 | always | "Next", right |
-| `strip_lbl_ro` | live.comment | 707 98 43 15 | always | "R Osc", right |
+| `strip_lbl_l1` | live.comment | 150 98 36 15 | always | "LFO 1", right |
+| `strip_lbl_l2` | live.comment | 230 98 36 15 | always | "LFO 2", right |
+| `strip_lbl_en` | live.comment | 310 98 36 15 | always | "Env", right |
+| `strip_lbl_ve` | live.comment | 390 98 36 15 | always | "Vel", right |
+| `strip_lbl_mw` | live.comment | 470 98 36 15 | always | "Wheel", right |
+| `strip_lbl_vo` | live.comment | 550 98 36 15 | always | "Voice", right |
+| `strip_lbl_nb` | live.comment | 630 98 36 15 | always | "Next", right |
+| `strip_lbl_ro` | live.comment | 710 98 36 15 | always | "R Osc", right |
 | `lfo1_retriglbl` | live.comment | 674 25 38 15 | shown at load | "Retrig", right |
 | `lfo2_retriglbl` | live.comment | 674 25 38 15 | hidden at load | "Retrig", right |
 | `env_lbllevel` | live.comment | 512 25 34 15 | hidden at load | "Level" |
@@ -133,4 +136,4 @@ Deviations from b.2 (all measured against the mock-up in the canvas preview, 202
 | `row_meterr` | live.meter~ | 782 122 8 42 | always | output R |
 | `env_meter` | live.meter~ | 548 29 120 7 | hidden at load | follower (gen~ out3) |
 
-139 controls (72 matrix cells), 27 comments, 6 panels, 0 markers, 3 meters, 0 dividers.
+140 controls (72 matrix cells), 27 comments, 6 panels, 0 markers, 3 meters, 0 dividers.

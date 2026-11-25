@@ -10,7 +10,9 @@
 // embedded in the HTML (the output stays local, in build/); the browser's rasteriser still differs
 // from Live's, so this is for layout review.
 //
-//   node devices/aliasing/test/preview/make_preview.mjs OUT.html [SHELL.amxd]
+//   node devices/aliasing/test/preview/make_preview.mjs OUT.html [SHELL.amxd ...] [--only TEXT]
+// Several shells: one block per shell, titles prefixed with the file name (compare variants side by
+// side). --only TEXT keeps the canvases whose title contains TEXT (also ?only=TEXT in the browser).
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,9 +20,12 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const dev = join(here, "..", "..");
 const root = join(dev, "..", "..");
-const out = process.argv[2];
+const args = process.argv.slice(2);
+const oi = args.indexOf("--only");
+const ONLY = oi >= 0 ? args.splice(oi, 2)[1] : null;
+const out = args[0];
 if (!out) {
-	console.error("usage: node make_preview.mjs OUT.html [SHELL.amxd]");
+	console.error("usage: node make_preview.mjs OUT.html [SHELL.amxd ...] [--only TEXT]");
 	process.exit(2);
 }
 
@@ -30,16 +35,29 @@ function readAmxd(path) {
 	const n = buf.readUInt32LE(i + 4);
 	return JSON.parse(buf.subarray(i + 8, i + 8 + n).toString("utf8").replace(/\0+$/, ""));
 }
-const pat = readAmxd(process.argv[3] || join(dev, "Aliasing.amxd")).patcher;
-const all = pat.boxes.map((b) => b.box);
-const pagesBox = all.find((b) => String(b.text || "").startsWith("v8 aliasing_pages.js"));
-const FACE = pagesBox && String(pagesBox.text).split(/\s+/)[2] === "b" ? "b" : "hybrid";
-const boxes = all.filter((b) => b.presentation && b.presentation_rect);
 const painters = {};
-for (const b of boxes) {
-	const f = b.jspainterfile;
-	if (f && !(f in painters)) painters[f] = readFileSync(join(dev, f), "utf8");
-}
+const shells = (args.length > 1 ? args.slice(1) : [join(dev, "Aliasing.amxd")]).map((path) => {
+	const pat = readAmxd(path).patcher;
+	const all = pat.boxes.map((b) => b.box);
+	const pagesBox = all.find((b) => String(b.text || "").startsWith("v8 aliasing_pages.js"));
+	const face = pagesBox && String(pagesBox.text).split(/\s+/)[2] === "b" ? "b" : "hybrid";
+	// only what the preview draws (keeps a multi-shell file small): no annotations, no patching rects
+	const boxes = all.filter((b) => b.presentation && b.presentation_rect).map((b) => {
+		const { annotation, patching_rect, ...rest } = b;
+		const vo = rest.saved_attribute_attributes && rest.saved_attribute_attributes.valueof;
+		if (vo) {
+			const { parameter_info, ...v } = vo;
+			rest.saved_attribute_attributes = { valueof: v };
+		}
+		return rest;
+	});
+	for (const b of boxes) {
+		const f = b.jspainterfile;
+		if (f && !(f in painters)) painters[f] = readFileSync(join(dev, f), "utf8");
+	}
+	return { label: path.split("/").pop().replace(/\.amxd$/, ""), face, boxes, w: Number(pat.devicewidth) || 968 };
+});
+const FACE = shells[0].face;
 const display = readFileSync(join(dev, "aliasing_display.js"), "utf8");
 function f32(p) {
 	if (!existsSync(p)) return null;
@@ -58,13 +76,13 @@ body{background:#111;color:#bbb;font:12px -apple-system,Helvetica,sans-serif;mar
 h2{font-size:12px;font-weight:600;margin:14px 0 4px}canvas{display:block;border-radius:2px;image-rendering:pixelated}</style></head><body>
 <div id="root"></div>
 <script>
-const FACE = ${JSON.stringify(FACE)};
-const BOXES = ${JSON.stringify(boxes)};
+const SHELLS = ${JSON.stringify(shells)};
+let FACE = SHELLS[0].face, BOXES = SHELLS[0].boxes, W = SHELLS[0].w, PREFIX = "";
 const PAINTERS = ${JSON.stringify(painters)};
 const DISPLAY = ${JSON.stringify(display)};
 const TABLE = ${JSON.stringify(table)};
 const HEADS = ${JSON.stringify(heads)};
-const W = ${Number(pat.devicewidth) || 968}, H = 169;
+const H = 169;
 const S = Number(new URLSearchParams(location.search).get("scale") || 1);
 const fam = (n) => (String(n).includes("Bold") ? "AbletonSansBold" : "AbletonSansMedium");
 function mgFor(ctx, w, h) {
@@ -94,7 +112,7 @@ function boxMock(b) {
   const enumL = vo.parameter_enum;
   const attrs = {
     _parameter_type: vo.parameter_type ?? 0,
-    _parameter_range: enumL ? enumL : [vo.parameter_mmin ?? 0, vo.parameter_mmax ?? 1],
+    _parameter_range: b.__range ? b.__range : enumL ? enumL : [vo.parameter_mmin ?? 0, vo.parameter_mmax ?? 1],
     _parameter_exponent: vo.parameter_exponent ?? 1,
     _parameter_unitstyle: vo.parameter_unitstyle ?? 1,
     _parameter_units: vo.parameter_units ?? "",
@@ -152,6 +170,11 @@ function markerCol(t, dark, panel) {
   const l = dark ? [0.69, 0.69, 0.69] : [0.149, 0.149, 0.149];
   return rgb(panel.map((x, i) => x + (l[i] - x) * 0.45));
 }
+const NAMES = ["Write Pitch", "Write Sym", "Write Gate", "Read Pitch", "Read Spread", "Size", "Band Center", "Res Freq", "Output"];
+function menuLabels(st) {
+  const v = st.values || {};
+  return TARGETS.map((t, k) => NAMES[k] + (Object.keys(v).some((n) => n.startsWith("mod_") && n.endsWith("_" + t) && Math.abs(v[n]) >= 0.5) ? " \u2022" : ""));
+}
 const BG = { dark: [0x36 / 255, 0x36 / 255, 0x36 / 255], light: [0xa5 / 255, 0xa5 / 255, 0xa5 / 255] }; // Live 12 Neutral Medium
 function dialH(b, h) {
   if (b.maxclass !== "live.dial") return h;
@@ -159,10 +182,10 @@ function dialH(b, h) {
   return sn && nb ? 48 : nb ? 36 : 28;
 }
 function render(title, st, dark) {
-  if (only !== null && !title.toLowerCase().includes(only.toLowerCase())) return;
+  if (only !== null && !(PREFIX + title).toLowerCase().includes(only.toLowerCase())) return;
   const rootEl = document.getElementById("root");
   const cell = document.createElement("div"); rootEl.appendChild(cell);
-  const h2 = document.createElement("h2"); h2.textContent = title; cell.appendChild(h2);
+  const h2 = document.createElement("h2"); h2.textContent = PREFIX + title; cell.appendChild(h2);
   const cv = document.createElement("canvas"); const R = 2;
   cv.width = W * R; cv.height = H * R; cv.style.width = W * S + "px"; cv.style.height = H * S + "px"; cell.appendChild(cv);
   const ctx = cv.getContext("2d"); ctx.scale(R, R);
@@ -173,8 +196,10 @@ function render(title, st, dark) {
   for (const b0 of BOXES) {
     let b = st.values && b0.varname in st.values ? { ...b0, __value: st.values[b0.varname] } : b0;
     if (idle(b, st)) b = { ...b, __active: 0 };
+    if (b.varname === "mod_target") b = { ...b, __range: menuLabels(st) }; // D48, as the pages script sets it
     if (!visible(b, st)) continue;
-    let [x, y, w, h] = b.varname === "display" && FACE === "hybrid" && st.page === 2 ? [308, 6, 328, 157] : b.presentation_rect; // D31
+    let [x, y, w, h] = b.presentation_rect;
+    if (b.varname === "display" && FACE === "hybrid" && st.page === 2) h = 157; // D31: x, y, width stay
     h = dialH(b, h);
     ctx.save(); ctx.translate(x, y); ctx.beginPath();
     const mg = mgFor(ctx, w, h);
@@ -218,10 +243,12 @@ function render(title, st, dark) {
   }
 }
 const base = { page: 0, target: 0, wmode: 0, rmode: 0, l1mode: 0, l2mode: 1, wshape: 1 };
-const only = new URLSearchParams(location.search).get("only");
+const only = new URLSearchParams(location.search).get("only") ?? ${JSON.stringify(ONLY)};
 const mx = { mod_l1_wp: 35, mod_l2_rp: 20, mod_vo_rp: -60, mod_nb_wa: -100, mod_en_ou: -100, mod_ro_sz: 45, mod_l1_bc: 70, mod_l2_wa: 100, mod_ve_ou: 60 };
 // document.fonts.ready resolves before canvas-only fonts load: load them explicitly
 Promise.all([document.fonts.load("10px AbletonSansMedium"), document.fonts.load("10px AbletonSansBold")]).catch(() => null).then(() => {
+ for (const sh of SHELLS) {
+  FACE = sh.face; BOXES = sh.boxes; W = sh.w; PREFIX = SHELLS.length > 1 ? sh.label + " - " : "";
   for (const [name, dark] of [["dark", true], ["light", false]]) {
     const pages = FACES[FACE].pages;
     const label = FACE === "b" ? ["LFO 1", "LFO 2", "Env", "Band", "Res", "Limit", "Global"] : ["LFO · Env", "Mod", "Tone", "Global"];
@@ -235,7 +262,8 @@ Promise.all([document.fonts.load("10px AbletonSansMedium"), document.fonts.load(
   } else {
     render("Tone page, Reject, 12 dB, band off (light)", { ...base, page: 2, pv: { center: 900, bwidth: 1, bres: 30, bmode: 1, bslope: 0, bandon: 0 }, values: { tone_band_on: 0 } }, false);
   }
+ }
 });
 </script></body></html>`;
 writeFileSync(out, html);
-console.log(`wrote ${out} (face ${FACE})`);
+console.log(`wrote ${out} (${shells.map((x) => x.label + ": " + x.face).join(", ")})`);

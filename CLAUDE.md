@@ -183,8 +183,9 @@ Only upgrade a marker with a reference to the test/source.
 ## Status (2026-11-25)
 
 - `aliasing` **v0.3b** built (2026-11-25): two faces for an A/B in Live on one DSP (D33–D44 in
-  `devices/aliasing/docs/v0.3-design.md`): `Aliasing.amxd` = hybrid, `Aliasing B.amxd` = option (b),
-  both from `scripts/bootstrap_shell.py --face hybrid|b`. Dial probe PASS (a `showname 1` dial is 48 px
+  `devices/aliasing/docs/v0.3-design.md`): `Aliasing.amxd` = hybrid (918 px since D47), `Aliasing B.amxd`
+  = option (b) (800 px), both from `scripts/bootstrap_shell.py --face hybrid|b`; D46–D49 after the user's
+  first look (State drop-down, menu dots + Clear in (b)). Dial probe PASS (a `showname 1` dial is 48 px
   whatever the saved rect); offline chain, host test, smoke test (standalone Max 9.2.1) and the Live
   harness (both devices) pass. **Next: test t5 in Live** (§6b there): look and feel of both faces, the
   user picks one. Earlier: 9c23f87 (Write Shape fix, face review), 9b1d5d7 v0.3, …

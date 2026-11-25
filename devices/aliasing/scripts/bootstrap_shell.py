@@ -45,7 +45,7 @@ FONT_BOLD = "Ableton Sans Bold"
 FS = 9.5  # Ableton's label size (research note summary 2), D33
 VERSION = "v0.3b"
 FACES = ("hybrid", "b")
-FACE_WIDTH = {"hybrid": 968.0, "b": 800.0}
+FACE_WIDTH = {"hybrid": 918.0, "b": 800.0}  # hybrid: 968 - 50 since the compact pointer rows (D47)
 FACE_FILE = {"hybrid": "Aliasing.amxd", "b": "Aliasing B.amxd"}
 FACE_TITLE = {"hybrid": "Aliasing", "b": "Aliasing B"}
 WIDTH = FACE_WIDTH["hybrid"]  # the hybrid's width (older importers)
@@ -361,7 +361,12 @@ def specs(face: str) -> dict[str, Ctl]:
     if face == "b":
         add("mod_target", "live.menu", valueof(
             "Mod Target", "Mod Target", T_ENUM, enum=[t[1] for t in TGTS], invisible=STORED_ONLY,
-            info="The target whose eight modulation depths the strip shows."), pages="target")
+            info="The target whose eight modulation depths the strip shows; a dot marks the modulated "
+                 "targets (D48)."), pages="target")
+        clear_vo = enum("Mod Clear", "Clear", ["Off", "On"], 0,
+                        "Sets the eight modulation depths of the shown target to 0 (D49).")
+        clear_vo["parameter_invisible"] = 2  # hidden: a momentary action, neither automated nor stored
+        add("mod_clear", "live.text", clear_vo, extra={"mode": 0, "text": "Clear", "texton": "Clear"})
 
     # ---- tone (R16-R18, D17); section power switches = bold title + power symbol (D32, D43) ----
     def power(key, long, init, text, gen, pv=None, pages=None):
@@ -412,7 +417,8 @@ def specs(face: str) -> dict[str, Ctl]:
         extra={"mode": 0, "text": "Sync now", "texton": "Sync now"})
     pill("aa", onoff("Ramp AA", "Ramp AA", 0, "Anti-aliased ramps (PolyBLEP) for both pointers, like the "
                      "original's oscillators; off = naive."), "aaramp", "Ramp AA")
-    dial("transpose", int_param("Transpose", "Transpose", -48, 48, 0, unitstyle=U_ST, modmode=MOD_ABSOLUTE,
+    # short name "Transp" so the hybrid's "Tune" label starts left of it (user, 2026-11-25, D46)
+    dial("transpose", int_param("Transpose", "Transp", -48, 48, 0, unitstyle=U_ST, modmode=MOD_ABSOLUTE,
                                 info="Transposes both pointers in Hz mode (D21); greyed while both are synced."),
          "transpose")
     dial("syncrate", enum("Sync Rate", "Rate", ["÷16", "÷8", "÷4", "÷2", "×1", "×2", "×4", "×8", "×16"], 4,
@@ -484,8 +490,18 @@ def place(sp: dict[str, Ctl], out: list[Ctl], key: str, var: str, rect: list[flo
     return rect
 
 
+# D47 (user, 2026-11-25): the pointer rows end 50 px earlier (Freeze / Write / Clean stacked next to the
+# dials), and everything right of them moves left by this much: the hybrid is 918 px wide. The rects below
+# keep face review h.1's numbers; shift_x() moves every rect at x >= 300.
+HYBRID_SHIFT = -50.0
+
+
+def shift_x(rect: list[float]) -> list[float]:
+    return [rect[0] + HYBRID_SHIFT, rect[1], rect[2], rect[3]] if rect[0] >= 300 else rect
+
+
 def layout_hybrid() -> Layout:
-    """Face review "Hybrid" h.1: (a)'s structure (968 x 169) with (b)'s measures."""
+    """Face review "Hybrid" h.1: (a)'s structure with (b)'s measures; compact pointer rows (D47)."""
     sp = specs("hybrid")
     C: list[Ctl] = []
     L: list[Label] = []
@@ -504,11 +520,15 @@ def layout_hybrid() -> Layout:
             d2 = place(sp, C, "w.sym", "w_sym", r(148, y0 + 4, 42, DIAL_H))
             for g in SYM_GROUPS:
                 L.append(overlay(g.capitalize(), d2, f"w_symlbl_{g}"))
-            place(sp, C, "w.active", "w_active", r(194, y0 + 20, 104, LINE_H))
+            # D47: a drop-down next to the dials, its name in their name row (user, 2026-11-25: the 3-row
+            # switch read as a hamburger menu)
+            sp["w.active"].cls = "live.menu"
+            L.append(comment_at("State", 198, y0 + 14, 56, "w_statelbl"))
+            place(sp, C, "w.active", "w_active", r(194, y0 + 20, 56, LINE_H))
             place(sp, C, "w.shape", "w_shape", r(64, y0 + 58, 24 * len(W_SHAPES), LINE_H))
         else:
             place(sp, C, "r.spread", "r_spread", r(148, y0 + 4, 42, DIAL_H))
-            place(sp, C, "r.smooth", "r_smooth", r(194, y0 + 20, 60, LINE_H))
+            place(sp, C, "r.smooth", "r_smooth", r(194, y0 + 20, 56, LINE_H))  # D47: same column and height
             place(sp, C, "r.shape", "r_shape", r(64, y0 + 58, 56, LINE_H))
     place(sp, C, "size", "tbl_size", r(308, 145, 328, 18))
     place(sp, C, "page", "page", r(646, 8, 314, LINE_H))
@@ -555,15 +575,16 @@ def layout_hybrid() -> Layout:
     for i, key in enumerate(("freq", "fb", "mix")):
         place(sp, C, f"res.{key}", f"tone_res_{key}", r(646 + 44 * i, 113, 44, DIAL_H))
 
-    # Global
-    L.append(comment_at("Gate", 648, 38, 100, "out_lgate"))
-    place(sp, C, "gate", "out_gate", r(646, 42, 100, LINE_H))
-    L.append(comment_at("Resync (bars)", 648, 71, 100, "out_lresync"))
-    place(sp, C, "resync", "out_resync", r(646, 75, 100, LINE_H))
-    place(sp, C, "syncnow", "out_syncnow", r(646, 98, 48, LINE_H))
-    place(sp, C, "aa", "out_aa", r(698, 98, 48, LINE_H))
-    L.append(comment_at(f"Aliasing {VERSION}", 648, 141, 104, "out_info1", h=13))
-    L.append(comment_at("after D. Pank", 648, 154, 104, "out_info2", h=13))
+    # Global: the version lines on top, Gate / Resync / buttons aligned to the bottom of the dial rows
+    # (y 161) (user, 2026-11-25, D46)
+    L.append(comment_at(f"Aliasing {VERSION}", 648, 38, 104, "out_info1", h=13))
+    L.append(comment_at("after D. Pank", 648, 51, 104, "out_info2", h=13))
+    L.append(comment_at("Gate", 648, 86, 100, "out_lgate"))
+    place(sp, C, "gate", "out_gate", r(646, 90, 100, LINE_H))
+    L.append(comment_at("Resync (bars)", 648, 119, 100, "out_lresync"))
+    place(sp, C, "resync", "out_resync", r(646, 123, 100, LINE_H))
+    place(sp, C, "syncnow", "out_syncnow", r(646, 146, 48, LINE_H))
+    place(sp, C, "aa", "out_aa", r(698, 146, 48, LINE_H))
     place(sp, C, "lim.on", "out_lim_on", r(754, 27, 52, LINE_H))
     for i, key in enumerate(("gain", "sat", "color", "rel", "ceil")):
         place(sp, C, f"lim.{key}", f"out_lim_{key}", r(754 + 36 * i, 44, 36, DIAL_H))
@@ -573,15 +594,23 @@ def layout_hybrid() -> Layout:
     L.append(comment_at("Output", 864, 107, 70, "out_lout"))
     place(sp, C, "width", "out_width", r(862, 113, 36, DIAL_H))
     place(sp, C, "output", "out_output", r(898, 113, 36, DIAL_H))
+    for c in C:
+        c.rect = shift_x(c.rect)
+    for lb in L:
+        lb.rect = shift_x(lb.rect)
     return Layout(
         "hybrid", FACE_WIDTH["hybrid"], C, L,
-        lines=[(r(749, 30, 3, 114), "lfo_div1"), (r(855, 30, 3, 114), "lfo_div2"), (r(748, 30, 3, 130), "out_div")],
-        panels=[(r(4, 4, 300, 79), "panel_w"), (r(4, 86, 300, 79), "panel_r"), (r(306, 4, 332, 161), "panel_disp"),
-                (r(642, 4, 322, 161), "panel_page")],
-        markers=markers,
-        meters=[(r(942, 29, 8, 132), "out_meterl", 0), (r(952, 29, 8, 132), "out_meterr", 1),
-                (r(864, 54, 90, 7), "lfo_envmeter", 2)],
-        display=r(308, 6, 328, 136))
+        lines=[(shift_x(rc), v) for rc, v in [(r(749, 30, 3, 114), "lfo_div1"), (r(855, 30, 3, 114), "lfo_div2"),
+                                              (r(748, 30, 3, 130), "out_div")]],
+        panels=[(r(4, 4, 250, 79), "panel_w"), (r(4, 86, 250, 79), "panel_r"),  # D47: 300 -> 250
+                (shift_x(r(306, 4, 332, 161)), "panel_disp"), (shift_x(r(642, 4, 322, 161)), "panel_page")],
+        markers=[(shift_x(rc), v) for rc, v in markers],
+        meters=[(shift_x(rc), v, o) for rc, v, o in [
+            (r(942, 29, 8, 132), "out_meterl", 0), (r(952, 29, 8, 132), "out_meterr", 1),
+            # from the "E" of "Env Follower" (text x 862) to the right edge of the Gain ring (943 + 12.5
+            # + 1.25 = 957) (user, 2026-11-25, D46)
+            (r(862, 54, 95, 7), "lfo_envmeter", 2)]],
+        display=shift_x(r(308, 6, 328, 136)))
 
 
 def layout_b() -> Layout:
@@ -615,13 +644,15 @@ def layout_b() -> Layout:
     place(sp, C, "width", "row_width", r(666, 119, 48, DIAL_H))
     place(sp, C, "output", "row_output", r(714, 119, 48, DIAL_H))
 
-    # band 2: the modulation strip (D36)
+    # band 2: the modulation strip (D36); the menu marks modulated targets with a dot (D48) and a Clear
+    # button resets the shown target's eight depths (D49), so the sources step by 80 px instead of 83
     L.append(comment_at("Mod", 10, 109, 28, "strip_title"))
-    place(sp, C, "mod_target", "mod_target", r(34, 98, 86, LINE_H))
+    place(sp, C, "mod_target", "mod_target", r(34, 98, 80, LINE_H))
+    place(sp, C, "mod_clear", "strip_clear", r(117, 98, 30, LINE_H))
     for i, (s, _, _, slabel) in enumerate(SRCS):
-        L.append(comment_at(slabel, 165 + 83 * i, 109, 43, f"strip_lbl_{s}", just=2))
+        L.append(comment_at(slabel, 182 + 80 * i, 109, 36, f"strip_lbl_{s}", just=2))
         for t, _, _ in TGTS:
-            place(sp, C, f"mx.{s}.{t}", f"mod_{s}_{t}", r(169 + 83 * i, 98, 39, LINE_H))
+            place(sp, C, f"mx.{s}.{t}", f"mod_{s}_{t}", r(188 + 80 * i, 98, 39, LINE_H))
 
     # band 1: side pages
     place(sp, C, "page", "page", r(512, 6, 280, LINE_H))
@@ -894,6 +925,8 @@ def build(template: dict, face: str = "hybrid") -> dict:
             pre = p.obj(f"prepend {ctl_.gen}", x + (50.0 if ctl_.scale else 0.0), y, 1, [""])
             p.wire(src, 0, pre, 0)
             p.wire(pre, 0, gen, 0)
+            if face == "b" and ctl_.gen.startswith("mx_"):
+                p.wire(pre, 0, pages, 0)  # the pages script marks modulated targets in the menu (D48)
         if ctl_.pv:
             x, y = logic_xy()
             pre = p.obj(f"prepend pv {ctl_.pv}", x, y, 1, [""])
@@ -914,6 +947,16 @@ def build(template: dict, face: str = "hybrid") -> dict:
     for k, name in enumerate(route_names):
         if name in targets:
             p.wire(route, k, by_key[targets[name]], 0)
+
+    # face b: Clear -> the pages script resets the shown target's eight depths (D49). Any output of the button
+    # clears (twice is harmless): what a button-mode live.text sends on a click is not measured, and it sends
+    # nothing on bang / int / float messages [measured: build/aliasing/btnprobe/Max.log, Max 9.2.1]
+    if "mod_clear" in by_key:
+        csel = p.obj("t b", 1260.0, 640.0, 1, ["bang"])
+        cmsg = p.msg("clearmod", 1260.0, 670.0)
+        p.wire(by_key["mod_clear"], 0, csel, 0)
+        p.wire(csel, 0, cmsg, 0)
+        p.wire(cmsg, 0, pages, 0)
 
     # Sync button -> click~ -> gen~ in2
     ssel = p.obj("sel 1", 1100.0, 600.0, 2, ["bang", ""])

@@ -14,6 +14,8 @@ import {
 	surfaceIsDark,
 	symLabelOf,
 	TARGETS,
+	cellsOf,
+	targetLabels,
 	visibilityFor,
 	type ActiveState,
 	type PageState,
@@ -127,7 +129,8 @@ test("face b: seven side pages, the strip shows the cells of one target (D33, D3
 	});
 	for (const n of ["strip_lbl_l1", "row_size", "row_meterl", "mod_target"]) assert.equal(visibilityFor(n, b({})), null, n);
 	assert.ok(isTonePage(3, "b") && isTonePage(4, "b") && !isTonePage(2, "b"), "Band and Res show the tone curve");
-	assert.equal(displayRectFor(3, "b"), null, "face b keeps its display rect (no D31)");
+	assert.equal(displayRectFor(3, "b", [6, 6, 496, 85]), null, "face b keeps its display rect (no D31)");
+	assert.equal(visibilityFor("strip_clear", b({})), null, "Clear is always visible");
 	const a = initialActive();
 	assert.equal(activeFor("band_band_center", { ...a, bandon: 0 }), false, "same greying rules as the hybrid");
 	assert.equal(activeFor("band_drive", { ...a, drvon: 0 }), false);
@@ -163,9 +166,22 @@ test("panels: darker on Live's light device background, lighter on the dark one 
 	assert.deepEqual(panelColor(Number.NaN, 0, 0), [0, 0, 0, 0.07]);
 });
 
-test("the display grows to table + Size height on the Tone page (D31)", () => {
-	assert.deepEqual(displayRectFor(2), [308, 6, 328, 157]);
-	for (const p of [0, 1, 3]) assert.deepEqual(displayRectFor(p), [308, 6, 328, 136]);
-	const [x, y, w, h] = displayRectFor(2) as number[];
-	assert.ok(y + h <= 165 && x >= 306 && x + w <= 638, "inside the display panel");
+test("the display grows to table + Size height on the Tone page, keeping its x, y, width (D31, D47)", () => {
+	const cur = [258, 6, 328, 136];
+	assert.deepEqual(displayRectFor(2, "hybrid", cur), [258, 6, 328, 157]);
+	for (const p of [0, 1, 3]) assert.deepEqual(displayRectFor(p, "hybrid", [258, 6, 328, 157]), [258, 6, 328, 136]);
+	assert.equal(displayRectFor(2, "hybrid", []), null, "no rect read: leave the box alone");
+	assert.equal(displayRectFor(3, "b", [6, 6, 496, 85]), null);
+});
+
+test("face b: modulated targets get a dot in the Mod Target menu, Clear knows its eight cells (D48, D49)", () => {
+	assert.deepEqual(targetLabels({}), ["Write Pitch", "Write Sym", "Write Gate", "Read Pitch", "Read Spread", "Size",
+		"Band Center", "Res Freq", "Output"]);
+	const l = targetLabels({ mx_l1_sz: 50, mx_ro_ou: -3, mx_vo_wp: 0, mx_en_bc: 0.2 });
+	assert.equal(l[5], "Size \u2022");
+	assert.equal(l[8], "Output \u2022");
+	assert.equal(l[0], "Write Pitch", "a depth of 0 is no modulation");
+	assert.equal(l[6], "Band Center", "below half a percent counts as 0 (the cells step in 0.1 %)");
+	assert.deepEqual(cellsOf(5), ["mod_l1_sz", "mod_l2_sz", "mod_en_sz", "mod_ve_sz", "mod_mw_sz", "mod_vo_sz", "mod_nb_sz", "mod_ro_sz"]);
+	assert.equal(cellsOf(99)[0], "mod_l1_ou", "clamped to the last target");
 });

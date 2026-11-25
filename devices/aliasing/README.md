@@ -3,7 +3,7 @@
 Max for Live instrument **inspired by** the Reaktor User Library ensemble **aliasing Synth** by
 **Dietrich Pank** (2008-09-18, UL version 1.0, Reaktor 5): the same mechanism, our own DSP,
 GUI and presets — not an emulation. Status: **v0.3b built** as two faces for an A/B in Live:
-`Aliasing.amxd` (hybrid, 968 px) and `Aliasing B.amxd` (option (b), 800 px), same DSP and parameters
+`Aliasing.amxd` (hybrid, 918 px) and `Aliasing B.amxd` (option (b), 800 px), same DSP and parameters
 (`docs/v0.3-design.md` D33–D44; earlier decisions `docs/port-decisions.md`, `docs/redesign-t1.md`,
 `docs/v0.2-build.md`). One face stays after the Live test.
 

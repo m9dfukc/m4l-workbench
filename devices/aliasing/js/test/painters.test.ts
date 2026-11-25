@@ -218,6 +218,10 @@ test("toggle, slider, menu and number painters", async () => {
 		assert.ok(pw.names.includes("ellipse"), "15-px power switch (D43)");
 	}
 	await runPainter("aliasing_paint_menu.ts", [86, 15], { _parameter_type: 2, _parameter_range: ["Write Pitch", "Write Sym", "Write Gate"] }, 1, "mod_target", false);
+	const marked = await runPainter("aliasing_paint_menu.ts", [80, 15], { _parameter_type: 2, _parameter_range: ["Write Pitch", "Size \u2022"] }, 1, "mod_target", true);
+	assert.ok(marked.names.includes("ellipse"), "a modulated target gets a dot (D48)");
+	const plain = await runPainter("aliasing_paint_menu.ts", [80, 15], { _parameter_type: 2, _parameter_range: ["Write Pitch", "Size"] }, 1, "mod_target", true);
+	assert.ok(!plain.names.includes("ellipse"));
 	await runPainter("aliasing_paint_slider.ts", [328, 18], { _parameter_type: 0, _parameter_range: [0.1, 100], _parameter_exponent: 2, _parameter_unitstyle: 5, _parameter_shortname: "Size" }, 10, "tbl_size", true);
 	await runPainter("aliasing_paint_slider.ts", [100, 14], { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 }, -35, "mod_m1depth", true);
 	await runPainter("aliasing_paint_slider.ts", [100, 14], { _parameter_type: 0, _parameter_range: [-100, 100], _parameter_unitstyle: 5 }, 0, "mod_m1depth", false);

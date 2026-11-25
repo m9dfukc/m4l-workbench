@@ -9,6 +9,29 @@ var FACES = {
 var PAGES = FACES.hybrid.pages;
 var PAGE_TONE = 2;
 var TARGETS = ["wp", "sy", "wa", "rp", "sp", "sz", "bc", "rf", "ou"];
+var TARGET_NAMES = [
+  "Write Pitch",
+  "Write Sym",
+  "Write Gate",
+  "Read Pitch",
+  "Read Spread",
+  "Size",
+  "Band Center",
+  "Res Freq",
+  "Output"
+];
+var SOURCES = ["l1", "l2", "en", "ve", "mw", "vo", "nb", "ro"];
+var MOD_MARK = " \u2022";
+function targetLabels(depths2) {
+  return TARGETS.map((t, k) => {
+    const used = SOURCES.some((s) => Math.abs(Number(depths2["mx_" + s + "_" + t]) || 0) >= 0.5);
+    return TARGET_NAMES[k] + (used ? MOD_MARK : "");
+  });
+}
+function cellsOf(target2) {
+  const t = TARGETS[clampTarget(target2)];
+  return SOURCES.map((s) => "mod_" + s + "_" + t);
+}
 function faceOf(name) {
   return String(name) === "b" ? "b" : "hybrid";
 }
@@ -127,11 +150,11 @@ function targetRole(t) {
 function meterColors(dark) {
   return dark ? { fill: hex("#9a9a9a"), bg: hex("#262626"), over: hex("#d2d2d2") } : { fill: hex("#3c3c3c"), bg: hex("#dedede"), over: hex("#111111") };
 }
-var DISPLAY_RECT = [308, 6, 328, 136];
-var DISPLAY_RECT_TONE = [308, 6, 328, 157];
-function displayRectFor(page2, face2 = "hybrid") {
-  if (!FACES[face2].resize) return null;
-  return isTonePage(page2, face2) ? DISPLAY_RECT_TONE : DISPLAY_RECT;
+var DISPLAY_H = 136;
+var DISPLAY_H_TONE = 157;
+function displayRectFor(page2, face2, cur) {
+  if (!FACES[face2].resize || !cur || cur.length !== 4 || !cur.every((x) => Number.isFinite(Number(x)))) return null;
+  return [Number(cur[0]), Number(cur[1]), Number(cur[2]), isTonePage(page2, face2) ? DISPLAY_H_TONE : DISPLAY_H];
 }
 
 // devices/aliasing/js/src/aliasing_pages.ts
@@ -140,6 +163,8 @@ outlets = 0;
 var state = initialState(faceOf(typeof jsarguments !== "undefined" ? jsarguments[1] : "hybrid"));
 var act = initialActive();
 var announced = false;
+var depths = {};
+var menuLabels = targetLabels(depths).join("|");
 function apply() {
   let obj = patcher.firstobject;
   let touched = 0;
@@ -160,16 +185,41 @@ function apply() {
   }
 }
 function setDisplayRect(obj) {
-  const want = displayRectFor(state.page, state.face);
-  if (!want) return;
   let cur = [];
   try {
     cur = obj.getboxattr("presentation_rect") || [];
   } catch (e) {
     cur = [];
   }
-  const same = cur.length === 4 && want.every((x, i) => Math.abs(Number(cur[i]) - x) < 0.5);
+  const want = displayRectFor(state.page, state.face, cur);
+  if (!want) return;
+  const same = want.every((x, i) => Math.abs(Number(cur[i]) - x) < 0.5);
   if (!same) obj.setboxattr("presentation_rect", want[0], want[1], want[2], want[3]);
+}
+function findNamed(name) {
+  let obj = patcher.firstobject;
+  while (obj) {
+    if (obj.varname === name) return obj;
+    obj = obj.nextobject;
+  }
+  return null;
+}
+function updateMenu() {
+  const labels = targetLabels(depths);
+  const key = labels.join("|");
+  if (key === menuLabels) return;
+  menuLabels = key;
+  const menu = findNamed("mod_target");
+  if (!menu) return;
+  menu.message("_parameter_range", ...labels);
+  let back = "";
+  try {
+    back = String(menu.getattr("_parameter_range"));
+  } catch (e) {
+    back = "(not readable)";
+  }
+  post(`aliasing_pages: mod targets ${labels.filter((l) => l.indexOf("\u2022") >= 0).length} marked; menu reads back: ${back}
+`);
 }
 function face(v) {
   state.face = faceOf(v);
@@ -232,6 +282,24 @@ function limon(v) {
 }
 function bang() {
   apply();
+}
+function anything(...args) {
+  const name = String(messagename);
+  if (name.indexOf("mx_") !== 0) return;
+  depths[name] = Number(args[0]) || 0;
+  if (state.face === "b") updateMenu();
+}
+function clearmod() {
+  let n = 0;
+  for (const name of cellsOf(state.target)) {
+    const obj = findNamed(name);
+    if (obj) {
+      obj.message("float", 0);
+      n++;
+    }
+  }
+  post(`aliasing_pages: clear target ${state.target}, ${n} cells
+`);
 }
 function surface(_name, r, g, b, _a) {
   const c = panelColor(Number(r), Number(g), Number(b));
