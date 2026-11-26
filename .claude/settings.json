@@ -27,7 +27,9 @@
       "Skill(research)",
       "Skill(live-test)",
       "Skill(reaktor-port)",
-      "Skill(m4l-release)"
+      "Skill(m4l-release)",
+      "Skill(fresh-review)",
+      "Skill(live-harness)"
     ],
     "ask": [
       "Bash(git push*)",

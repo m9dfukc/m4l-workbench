@@ -93,8 +93,9 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
   convention moved to the path rule `.claude/rules/device-readme.md`); `v8-js.md` rewritten to the
   build as it is (esbuild via `tools/js-build.mjs`, painters ES5); `max-patch.md` now loads with the
   shell generators and test-patch makers (its old glob matched nothing); `handoff` saves to
-  `docs/handoffs/`; `m4l-release` covers several faces, the zip asset and `--prerelease`. Open:
-  the proposed `.claude/settings.json` changes (user).
+  `docs/handoffs/`; `m4l-release` covers several faces, the zip asset and `--prerelease`. `.claude/settings.json`:
+  the user added the missing `Skill(fresh-review)` / `Skill(live-harness)` allow entries; still only
+  proposed: `afplay` from `ask` to `deny`, `git commit` from `allow` to `ask`.
 - 2026-11-26: **Device README convention** (user, grilling round "Alle ja" except the images):
   `devices/aliasing/README.md` rebuilt for users (images light/dark of both faces at the top, what it
   does, quick start, install, faces, parameter reference, beta status, credits, developer part);
