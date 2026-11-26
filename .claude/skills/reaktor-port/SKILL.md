@@ -114,5 +114,7 @@ by a sample null alone. Log each comparison via `live-test`.
 ### 7. Deviations and credit
 
 Every intentional or measured difference goes to `deviations.md` with its evidence marker.
-The device README credits the original author and links the original; the terms for
-publishing a port are checked before any release (`m4l-release`).
+The device README credits the original author and links the original, in its "Origin and credits"
+section below the user part (structure: `CLAUDE.md` "Device README" — the README opens with what the
+device does, not with "inspired by …"); the terms for publishing a port are checked before any
+release (`m4l-release`).

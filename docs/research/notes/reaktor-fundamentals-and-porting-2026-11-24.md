@@ -60,7 +60,7 @@ No public release notes for 6.5.1 or 6.5.2 turned up, and the bundled `Readme.tx
   - **Demo**: full functions, but sound stops after 30 min and saving is disabled.
   - Porting needs **Full** mode to open structures.
 - **Factory Library:** NI instruments and effects plus **Blocks**, "a new modular synthesizer framework" of rack-style modules (*Getting Started* §1.3). Since 6.4, User Blocks can go into Racks (`.nksr`) (`Readme.txt` 6.4.0). **[sourced]**
-- **User Library:** "thousands of REAKTOR Ensembles" shared by users on NI's site (*Getting Started* §1). User Library ensembles are open: their structure can be inspected in Full mode (Wikipedia). **[sourced]** Licensing of user uploads is a separate question: crediting or asking the author (Dietrich Pank, per the file's info text) is **[open]**.
+- **User Library:** "thousands of REAKTOR Ensembles" shared by users on NI's site (*Getting Started* §1). User Library ensembles are open: their structure can be inspected in Full mode (Wikipedia). **[sourced]** Licensing of user uploads is a separate question: crediting or asking the author (D. Pank, per the file's info text) is **[open]** (update 2026-11-26: credit only, see `devices/aliasing/docs/port-decisions.md` Q21).
 - **File types:**
   - `.ens` Ensemble: all instruments, snapshots, and the global **Sample Rate, Control Rate, BPM**.
   - `.ism` Instrument.
@@ -259,7 +259,7 @@ Files inspected with `xxd`/`strings`; nothing was modified:
 
 **Readable content (both files):**
 
-- Title "aliasing Synth" and author "Dietrich Pank".
+- Title "aliasing Synth" and author "D. Pank".
 - Info text: "Audiotable is read and written at the same time but in different speeds…".
 - Macro help texts: "SaturatorFilter — Split filter with Saturator between the two 2-pole filter units", "Notch", "EQ filter", "KeyTrack 0/1/2", "polyphone LFO", "read Quality — on: precise reading / off: bidirection possible", "stereo spread 0/1/2", "Switch2x2", "Button (2-mode) … by mAtze".
 - About 40 snapshot names ("quak", "seti filtered", "machine room", …, "flashs (re-activate to sync)").
@@ -414,7 +414,7 @@ Max-side mapping (gen~ codebox/`history`/`data`/`peek`/`poke`, `param` vs signal
 6. Filter module types: FM vs non-FM, 2-pole/notch/EQ variants.
 7. Locations of the "Z" (automatic feedback delay) markers.
 8. Whether two identical renders null (determinism).
-9. Permission or credit terms for porting a User Library ensemble by Dietrich Pank.
+9. Permission or credit terms for porting a User Library ensemble by D. Pank.
 
 ---
 

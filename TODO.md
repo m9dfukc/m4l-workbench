@@ -27,6 +27,13 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
       1-Way/2-Way [measured: testlog `t4-auto-2`].
 - [x] **aliasing:** `outputmode` Mouse Up on the toggle-mode `live.text` boxes (user, D38; v0.3b,
       `check_shell.py` rule).
+- [ ] **aliasing 1.0 README images (user, at the release):** Live screenshots of the kept face(s) in the
+      light and dark theme replace the preview renders in `devices/aliasing/docs/img/` (recipe: `CLAUDE.md`
+      "Device README" §1; `m4l-release` asks for them).
+- [ ] **aliasing `parameter_info` for users (Claude, shell generator + both `.amxd`):** drop the decision IDs
+      that Live shows in its Info View ("(D3)", "(D6)", "(D21)", "(D35)", "(D37)", "(D48)", "(D49)"), write
+      ASCII leftovers out ("+-" → "±", "x" → "×", "0..1"), add texts for Table and Sample Drop; then
+      `tools/check.sh aliasing` regenerates the README tables.
 - [ ] **aliasing review (user + Claude):** the v0.2 decisions A1–A33 (`docs/v0.2-build.md` §1) that
       v0.3 did not replace, and the mock-up's own decisions (`docs/mockup-v0.3/layout.md` §4–§5).
 - [ ] aliasing v0.4: own presets (JSON + menu) incl. the v0.2 init sound (D1), `live.banks` for Push,
@@ -59,7 +66,6 @@ Superseded by `devices/aliasing/docs/captures.md` (needed: C4, C6) and `renders.
 R1a, R1d, R7a–e); the parser covers ranges, defaults, snapshots and wiring. Still open here:
 
 - [ ] Optional: save the full dogsonacid thread from a browser (blocked for automated fetches).
-- [ ] Before a public release: tell/ask Dietrich Pank (nice to have, port-decisions Q21).
 
 ## Open checks in Max/Live
 
@@ -82,6 +88,17 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 
 ## Done
 
+- 2026-11-26: **Device README convention** (user, grilling round "Alle ja" except the images):
+  `devices/aliasing/README.md` rebuilt for users (images light/dark of both faces at the top, what it
+  does, quick start, install, faces, parameter reference, beta status, credits, developer part);
+  `tools/readme_params.py` generates the parameter tables from the shells and is step 6 of
+  `tools/check.sh`; README images are canvas preview renders until 1.0
+  (`devices/aliasing/test/preview/readme_images.py`); convention in `CLAUDE.md` "Device README",
+  `m4l-release` §1 and `reaktor-port` §7; own device images may be committed (`docs/img/`).
+  Same day (user): the original's author is named only as "D. Pank" in the repository, and there is no
+  author contact before releases: aliasing is an original design inspired by *aliasing Synth*. The
+  shells' `description` still has the full name until the parameter_info session rewrites them; the
+  0.3.0-beta.1 release text and its frozen devices also still have it.
 - 2026-11-26: **aliasing 0.3.0-beta.1** published as a GitHub pre-release (tag `aliasing-v0.3.0-beta.1`):
   both faces frozen ("Aliasing A", "Aliasing B"; t7 freezes, files in `dist/`, one zip asset because
   GitHub turns spaces in asset names into dots). Release test rel-0.3.0-beta.1: (d) Live's bundled Max

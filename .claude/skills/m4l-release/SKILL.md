@@ -22,6 +22,10 @@ kept locally under `dist/`.
   painters included; Freeze embeds nothing else (`.claude/rules/max-patch.md`, aliasing t7).
 - **Compatibility:** the release notes state the Max version tested. If the device needs Max
   9.2 features, say so; otherwise the user checks once with Live's bundled Max.
+- **Device README** (`CLAUDE.md` "Device README"): the images show this version in light and dark
+  (from 1.0 on Live screenshots, not preview renders — ask the user for them); description, quick
+  start and faces match the release; the parameter blocks are current (`tools/check.sh` step 6); the
+  install section names this release's tag and asset; tested Max/Live versions as in the notes.
 - **Licence and attribution** for ports: the device README credits the original's author and
   links the original; the terms of the original (e.g. Reaktor User Library) allow publishing a
   port — if unclear, **stop and ask the user** before anything public.

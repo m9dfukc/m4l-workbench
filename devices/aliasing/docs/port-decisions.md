@@ -11,7 +11,7 @@ Claude filled in under a decided branch — open to review, not separately decid
 | Q1 | **"Inspired by", not an emulation.** Same mechanism (two pointers at different speeds, the read phase written into a table at the write position, the table read back), our own DSP choices otherwise. No float32 or control-rate emulation, no attempt to null against Reaktor. Reaktor renders are listening references, not targets. |
 | Q2 | **Drone like the original:** 5 fixed, always-running voices that differ by spread, LFO rate and pan; no MIDI pitch. **activate** is an automatable parameter **and** an incoming MIDI note gates it (note-on → 1, last note-off → 0). Pitch tracking/envelopes are later extensions. |
 | Q3 | **No author data in the device:** own presets, own initial table. The original's snapshots and stored table stay local (`tools/local/out/`) and are used at most as private listening points. |
-| Q21 | Name **Aliasing** (`Aliasing.amxd`). Credit in README and device info: "inspired by *aliasing Synth* by Dietrich Pank (Reaktor User Library #5241, 2008)". Asking the author before a public release is nice to have, not a blocker. |
+| Q21 | Name **Aliasing** (`Aliasing.amxd`). Credit in README and device info: "inspired by *aliasing Synth* by D. Pank (Reaktor User Library #5241, 2008)". Update (user, 2026-11-26): the author is named "D. Pank" only, and there is no author contact before releases: Aliasing is an original design inspired by the ensemble. |
 
 ## 1. DSP
 

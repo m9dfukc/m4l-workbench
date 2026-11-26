@@ -8,6 +8,8 @@
 #   3. TypeScript layer, if the device has one (js/src/ + a "build:<name>" script)
 #   4. every .amxd/.maxpat of the device must parse with maxdiff; prints a short summary
 #   5. device checks: every devices/<name>/scripts/check_*.py (python3, exit 0 = pass)
+#   6. README parameter reference: tools/readme_params.py fills (or, with --no-write, checks) the
+#      parameter blocks of devices/<name>/README.md from the .amxd shells
 set -euo pipefail
 
 usage() {
@@ -15,7 +17,7 @@ usage() {
 Usage: tools/check.sh [--no-write] DEVICE
 
 DEVICE      folder name under devices/ (e.g. aliasing)
---no-write  check only, do not regenerate .gendsp files
+--no-write  check only, do not regenerate .gendsp files or the README parameter blocks
 Max versions checked: $GENCHECK_VERSIONS (default "9.1.5 9.2.0").
 Exit status is non-zero if any step fails.
 EOF
@@ -123,6 +125,14 @@ else
   for c in "${CHECKS[@]}"; do
     python3 -B "$c" || FAIL=1
   done
+fi
+
+# --- 6: README parameter reference ------------------------------------------------
+step "README parameters"
+if [ "$WRITE" -eq 1 ]; then
+  python3 -B "$ROOT/tools/readme_params.py" --write "$DIR" || FAIL=1
+else
+  python3 -B "$ROOT/tools/readme_params.py" "$DIR" || FAIL=1
 fi
 
 echo

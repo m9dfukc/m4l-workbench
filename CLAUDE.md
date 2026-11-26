@@ -6,9 +6,10 @@ are **ports of Native Instruments Reaktor ensembles**; others are original desig
 1. **Workbench:** a reproducible, text-first way to build M4L devices: DSP as GenExpr text,
    logic as TypeScript → v8 JavaScript, the `.amxd` as a thin, diffable shell. Offline checks
    before anything is loaded in Max or Live.
-2. **First device: `aliasing`**, a port of the Reaktor User Library ensemble **Aliasing Synth**
-   (`devices/aliasing/`). An audio table is written and read at different ("careless") speeds;
-   the resulting errors are the sound. 5 voices; HP+FM, LP+FM and a notch behind it.
+2. **First device: `aliasing`** (`devices/aliasing/`), begun as a port and since v0.3 an **original
+   design inspired by** the Reaktor User Library ensemble **aliasing Synth** by D. Pank (user,
+   2026-11-26: name the author only as "D. Pank"; no author contact before releases). An audio table
+   is written and read at different ("careless") speeds; the resulting errors are the sound. 5 voices.
 3. Further devices later, each in its own `devices/<name>/` folder.
 
 ## Environment (checked 2026-11-24)
@@ -105,6 +106,29 @@ Three layers; the rules in `.claude/rules/` load with the matching files.
   (in-place writes). Before writing a `.amxd`/`.maxpat`, ask whether it is open in Max with
   unsaved changes. Writing `.gendsp`/`.js` while the device is open is intended (hot reload).
 
+### Device README (user, 2026-11-26)
+
+Every device has a user-facing `devices/<name>/README.md` in this order (`devices/aliasing/README.md`
+is the example):
+
+1. **Title and images at the very top:** the device in Live's light and dark theme, a table with the
+   columns Light | Dark and one row per face, files `docs/img/<name>-<face>-<light|dark>.png` (PNG,
+   ≤ ~300 KB each). Before 1.0 they may be preview renders, marked as such under the table; from 1.0 on
+   Live screenshots: freshly loaded, default page, about 5 s of sound with the track muted, cropped to the
+   device with its title bar.
+2. **What it does**, for musicians (the sound and the controls, not "inspired by …"), and a short
+   quick start that starts with ear safety (limiter, monitor down).
+3. **Install and requirements:** release link and asset, Live/Max versions tested.
+4. **Faces**, if the device has more than one.
+5. **Parameters:** every automatable parameter, grouped as in the device (each heading says where the
+   group sits), in `<!-- params: Long Name, … -->` blocks; a mod matrix in `<!-- params-matrix -->`, the
+   rest in `<!-- params-hidden -->`. `tools/readme_params.py` fills the blocks from the `.amxd` (step 6 of
+   `tools/check.sh`), so the descriptions are the `parameter_info` texts: write those for users (Live
+   shows them in its Info View), no decision IDs. Prose around the blocks explains what the table can't.
+6. **Status** of the version: tested, untested, missing.
+7. **Origin and credits** (ports: original author, link, licence note) and the licence.
+8. **For developers:** how it is built, links into `docs/`, folder layout.
+
 ## Evidence markers (all docs)
 
 - **[sourced]**: an external source exists (docs, repo, forum), linked.
@@ -141,12 +165,13 @@ Only upgrade a marker with a reference to the test/source.
 | `TODO.md` | Open points, open checks in Max/Live, done log — **start here** |
 | `README.md` | Overview for outsiders |
 | `CLAUDE.md` | This file |
-| `devices/<name>/` | One device: `<Name>.amxd` + generated runtime files (flat), `gen/`, `js/src/`, `docs/`, `reference/` |
+| `devices/<name>/` | One device: `<Name>.amxd` + generated runtime files (flat), `README.md` (user-facing, see "Device README"), `gen/`, `js/src/`, `docs/` (`img/` = README images), `reference/` |
 | `devices/aliasing/` | First device; `reference/reaktor/` = local-only Reaktor originals + screenshots |
 | `docs/research/notes/` | Research reports with all URLs. **Search here before researching anew** |
 | `docs/handoffs/` | Session handoffs — local only, gitignored; newest is current, never delete |
 | `docs/reviews/` | Reports of the `fresh-review` skill — local only, gitignored |
-| `tools/check.sh <device>` | Offline check chain: gencheck (Max 9.1.5 + 9.2.0, strict) → regenerate `.gendsp` → TS build → maxdiff parse of every patch. Must pass before every `live-test` handover and commit |
+| `tools/check.sh <device>` | Offline check chain: gencheck (Max 9.1.5 + 9.2.0, strict) → regenerate `.gendsp` → TS build → maxdiff parse of every patch → device `scripts/check_*.py` → README parameter blocks (`tools/readme_params.py`). Must pass before every `live-test` handover and commit |
+| `tools/readme_params.py <device dir>` | Fills (`--write`) or checks the parameter blocks of a device README from its `.amxd` shells: completeness, shells that disagree, drift |
 | `tools/setup-git.sh` | Sets the maxdiff textconv drivers in `.git/config` (run once per clone) |
 | `tools/max-workspace.sh` | park / restore / check standalone Max's Crash Recovery workspace around unattended runs (otherwise Max reopens the user's last patches) |
 | `tools/live/` | **Optional** Live automation (spike, 2026-11-25; off by default): `harness.mjs` = status / install / on / off / run (doctor, relaunch, quit, roundtrip); `check-instrument.mjs` = load an instrument from Places, console from both logs, parameters against the `.amxd`, silent take + health (output `build/<device>/live/`); `README.md` = install + spike checks L1–L6; `local.json` = the switch (gitignored) |
@@ -170,7 +195,9 @@ Only upgrade a marker with a reference to the test/source.
   the user's explicit approval naming the action**; an "ok" to something else does not count.
   `gh` always with explicit `--repo m9dfukc/…`.
 - Before any commit: `git status --short` shows no WAVs, frozen devices, `.ens` files,
-  screenshots or anything private beyond the username.
+  third-party screenshots (Reaktor material stays in `devices/*/reference/reaktor/`) or anything
+  private beyond the username. Images of our own devices are committed only as README images in
+  `devices/<name>/docs/img/` (user, 2026-11-26).
 - Tool CLIs: English help texts, arguments instead of hard-coded paths.
 - **Shell stays at the repo root** (avoids permission prompts). max-gen-helper's guard hook
   (`guard_user_files.py`, PreToolUse) asks the user whenever a command that writes files names a

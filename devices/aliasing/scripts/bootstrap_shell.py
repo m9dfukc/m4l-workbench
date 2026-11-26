@@ -1046,8 +1046,8 @@ def build(template: dict, face: str = "hybrid") -> dict:
     new["title"] = FACE_TITLE[face]
     new["description"] = (f"Aliasing {VERSION} ({'hybrid face' if face == 'hybrid' else 'face B'}): a 5-voice drone "
                           "where a table is written and read at different speeds, with tempo sync, LFOs, an envelope "
-                          "follower, a mod matrix, a tone section and a color limiter. Inspired by 'aliasing Synth' "
-                          "by Dietrich Pank (Reaktor User Library #5241, 2008).")
+                          "follower, a mod matrix, a tone section and a color limiter. An original design inspired by "
+                          "'aliasing Synth' by D. Pank (Reaktor User Library #5241, 2008).")
     new["default_fontname"] = FONT
     new["default_fontsize"] = FS
     new["dependency_cache"] = []

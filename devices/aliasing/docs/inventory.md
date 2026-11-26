@@ -1,6 +1,7 @@
 # aliasing — inventory of the original
 
-Port of Reaktor User Library #5241 "aliasing Synth" (Dietrich Pank, 2008). This file records
+Analysis of Reaktor User Library #5241 "aliasing Synth" (D. Pank, 2008), the ensemble that inspired
+the device (an original design since v0.3, user 2026-11-26). This file records
 what the original **is**: settings, module types, structure, panel controls, tables. What it
 *does* is in `signal-flow.md`; what we decide to do about it is in `port-decisions.md`.
 

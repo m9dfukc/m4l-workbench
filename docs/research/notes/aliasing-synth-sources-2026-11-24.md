@@ -8,7 +8,7 @@ not been tested. **[open]** = the user must check it in Reaktor.
 
 ## Summary
 
-- "aliasing Synth" is by **Dietrich Pank**. It was created 2008-09-18 as UL version 1.0, made with
+- "aliasing Synth" is by **D. Pank**. It was created 2008-09-18 as UL version 1.0, made with
   "Reaktor 5 or lower", with 38 snapshots and 5 voices **[sourced]**. The file is named "Aliasing Synth 515". The
   UL does not explain the "515" **[open]**.
 - The UL terms let the uploader keep the copyright. They give downloaders no explicit licence **[sourced]**.
@@ -52,8 +52,8 @@ not been tested. **[open]** = the user must check it in Reaktor.
 
 ## 1. Provenance
 
-- **Title / author:** "aliasing Synth", tagline "error is nice", author **dietrich pank** **[sourced: UL
-  archive]**. The original `.ens` contains the instrument info "Instrument anbd sounds: Dietrich Pank" and the
+- **Title / author:** "aliasing Synth", tagline "error is nice", author **d. pank** **[sourced: UL
+  archive]**. The original `.ens` contains the instrument info "Instrument anbd sounds: D. Pank" and the
   UL description as the instrument's info text **[observed: strings of the original]**.
 - **Dates / version:** created 2008-09-18, version 1.0, "Updated 13 years ago" as of the August 2022 archive
   (so roughly 2009) **[sourced]**. The file timestamp of the original download is 2008-09-18 **[observed]**.
@@ -88,11 +88,12 @@ not been tested. **[open]** = the user must check it in Reaktor.
   Consequences **[inference]**:
   - Do not redistribute the `.ens`, the snapshot values or the stored table data.
   - A functional re-implementation (ideas and an algorithm description are not copyrightable as such)
-    with clear credit ("after Aliasing Synth by Dietrich Pank, Reaktor UL #5241") is the defensible route.
+    with clear credit ("after Aliasing Synth by D. Pank, Reaktor UL #5241") is the defensible route.
   - Asking the author for permission or a licence is advisable before a public release, especially if
     preset values are reproduced.
 
-  The author contact is **[open]** (UL profile "dietrich pank").
+  The author contact is **[open]** (UL profile "d. pank"). Update (user, 2026-11-26): no contact before
+  releases; Aliasing is an original design inspired by the ensemble, credited as "D. Pank".
 
 ## 2. Community knowledge
 
