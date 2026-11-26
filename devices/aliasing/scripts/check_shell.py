@@ -257,6 +257,19 @@ def check(amxd: Path) -> int:
     if "buffer~ ---adrop @samps 1 1" not in texts or not any(t.startswith("buffers ") and t.split()[-1] == "---adrop" for t in texts):
         errors.append("sample drop: no mono 'buffer~ ---adrop @samps 1 1' named in the display's buffers message")
 
+    # freeze (t7): every runtime file (gen~ @gen, v8 / v8ui scripts, jspainter painters) is listed in the device
+    # project, since Freeze embeds what the project lists and missed the attribute-only painters
+    from bootstrap_shell import runtime_files  # noqa: E402
+    need = runtime_files(pat["patcher"]["boxes"])
+    code = (((pat["patcher"].get("project") or {}).get("contents") or {}).get("code") or {})
+    for f in need:
+        kind = "gendsp" if f.endswith(".gendsp") else "javascript"
+        if (code.get(f) or {}).get("kind") != kind:
+            errors.append(f"project: runtime file {f} not listed as {kind} in project.contents.code (Freeze would miss it)")
+    core = {"aliasing.gendsp", "aliasing_display.js", "aliasing_pages.js"}
+    if not core <= set(need) or not any(f.startswith("aliasing_paint_") for f in need):
+        errors.append(f"project: runtime files incomplete ({need})")
+
     # files
     for b in boxes.values():
         if b["maxclass"].startswith("live.") and b["maxclass"] != "live.drop" and b.get("parameter_enable") and \

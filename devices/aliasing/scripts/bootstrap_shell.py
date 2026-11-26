@@ -1051,7 +1051,41 @@ def build(template: dict, face: str = "hybrid") -> dict:
     new["default_fontname"] = FONT
     new["default_fontsize"] = FS
     new["dependency_cache"] = []
+    new["project"] = with_runtime_files(new.get("project") or {}, p.boxes)
     return {"patcher": new}
+
+
+def runtime_files(boxes: list[dict]) -> list[str]:
+    """Every file the shell loads from its folder at run time: gen~ @gen <name>.gendsp, the v8 / v8ui scripts
+    and the jspainter painters (referenced only by an attribute, no box of their own)."""
+    files: set[str] = set()
+    for b in boxes:
+        x = b["box"]
+        t = str(x.get("text", ""))
+        if t.startswith("gen~ ") and "@gen " in t:
+            files.add(t.split("@gen ", 1)[1].split()[0] + ".gendsp")
+        if t.startswith("v8 "):
+            files.add(t.split()[1])
+        if x.get("maxclass") == "v8ui" and x.get("filename"):
+            files.add(x["filename"])
+        if x.get("jspainterfile"):
+            files.add(x["jspainterfile"])
+    return sorted(files)
+
+
+def with_runtime_files(project: dict, boxes: list[dict]) -> dict:
+    """The device project lists the runtime files, so that Freeze embeds them: "freezing includes all files in
+    the Project window" [sourced: Max user guide, projects]. Without the entry, Freeze missed the painters (t7,
+    2026-11-25: "jsscriptnobox: can't find file aliasing_paint_dial.js" while freezing). Format as Max saves it,
+    e.g. Ableton's Vector Map.amxd: contents.code = {"x.gendsp": {"kind": "gendsp", "local": 1}, "y.js":
+    {"kind": "javascript", "local": 1}}."""
+    proj = dict(project)
+    contents = dict(proj.get("contents") or {})
+    contents.setdefault("patchers", {})
+    contents["code"] = {f: {"kind": "gendsp" if f.endswith(".gendsp") else "javascript", "local": 1}
+                        for f in runtime_files(boxes)}
+    proj["contents"] = contents
+    return proj
 
 
 def read_amxd(path: Path) -> tuple[bytes, dict]:

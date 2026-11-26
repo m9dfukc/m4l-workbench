@@ -77,7 +77,7 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 | 8 | Live parameter resolution for very small speed changes (automation, MIDI map) — need coarse + fine controls? | "finest moves in speed" |
 | 9 | v8: are handlers attached via `globalThis` called? (only when the TS layer comes) — not needed: js-build keeps top-level `function` handlers | TS build choice |
 | 12 | jspainter engine and painted `live.*` in Live (Max 9.2.1 and bundled 9.1.5): paint, theme repaint, dots, map modes — standalone 9.2.1 runs jspainter on the **legacy (ES5) engine** [measured: smoke 2026-11-25] | aliasing v0.2 face |
-| 10 | Does freezing include `require`d `.genexpr` files; does the frozen device run in a fresh set on stock Live 9.1.5? | release gate |
+| 10 | Does freezing include `require`d `.genexpr` files; does the frozen device run in a fresh set on stock Live 9.1.5? — partly: t7 (2026-11-25) Freeze reported `jsscriptnobox: can't find file aliasing_paint_dial.js` with an empty device project → the shells now list their runtime files in `project.contents.code`; second attempt: Freeze embeds all 10 / 9 files byte-identical, both frozen copies load and work in Live 12.4.16 / Max 9.2.1 from the Desktop [measured: testlog t7]; open: a load with the repo out of reach and on stock Live 9.1.5 | release gate |
 | 11 | Does a py2max-generated `.amxd` load in Live? (only if a generated shell is ever wanted) | generated shells |
 
 ## Done

@@ -18,6 +18,8 @@ kept locally under `dist/`.
   unit style, modulation mode per the Ableton M4L Production Guidelines (copy in `reference/`).
   No leftover debug objects, `print`, or `autowatch = 1`. List findings for the user.
 - **Safety stage** in the DSP: kept or removed deliberately (`.claude/rules/gen.md`).
+- **Freeze list:** the device project (`patcher.project.contents.code`) names every runtime file,
+  painters included; Freeze embeds nothing else (`.claude/rules/max-patch.md`, aliasing t7).
 - **Compatibility:** the release notes state the Max version tested. If the device needs Max
   9.2 features, say so; otherwise the user checks once with Live's bundled Max.
 - **Licence and attribution** for ports: the device README credits the original's author and

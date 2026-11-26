@@ -66,6 +66,11 @@ belongs in GenExpr or TypeScript, not in patch cords.
   inside the 169 px device height. Final layout and the Parameter Inspector check are done by
   the user in the Max editor.
 - Set **Defined Latency** in the patcher inspector if the DSP adds latency (FFT, lookahead).
+- **Freeze embeds only what the device project lists.** List every runtime file (`.gendsp`, the
+  `v8`/`v8ui` scripts and every `jspainterfile`) in `patcher.project.contents.code` as
+  `{"kind": "gendsp" | "javascript", "local": 1}`. With an empty project, Freeze missed the
+  painters (referenced by attribute only) and the frozen device ran without its scripts and DSP
+  [measured: aliasing t7, 2026-11-25]. `devices/aliasing/scripts/check_shell.py` enforces it.
 
 ## Tests are real
 

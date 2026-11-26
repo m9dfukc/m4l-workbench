@@ -188,10 +188,14 @@ Only upgrade a marker with a reference to the test/source.
   first look (State drop-down, menu dots + Clear in (b)). Dial probe PASS (a `showname 1` dial is 48 px
   whatever the saved rect); offline chain, host test, smoke test (standalone Max 9.2.1) and the Live
   harness (both devices) pass. **Next: test t5 in Live** (§6b there): look and feel of both faces, the
-  user picks one. Sample drop D50–D54 added to both faces (2026-11-25, uncommitted): smoke tests +
-  harness pass (testlog t6-auto); **t6** (real drags in Live) handed over. Earlier: 9c23f87 (Write Shape fix, face review), 9b1d5d7 v0.3, …
+  user picks one. Sample drop D50–D54 added to both faces (e60ed09): smoke tests + harness pass
+  (testlog t6-auto); **t6** (real drags in Live) handed over. Freeze test **t7** (2026-11-25): the shells
+  now list their runtime files in the device project, so Freeze embeds all of them; frozen copies of both
+  faces work in Live 12.4.16 / Max 9.2.1 (open: repo out of reach, stock Live 9.1.5). Earlier: 9c23f87
+  (Write Shape fix, face review), 9b1d5d7 v0.3, …
 - Standalone Max **restores its last session's patches at start** (Crash Recovery workspace):
-  every unattended run parks that file first (`tools/max-workspace.sh`, user, 2026-11-25).
+  every unattended run parks that file first and drops this repo's `build/` test patches from it
+  afterwards (`tools/max-workspace.sh park|restore|clean`, user, 2026-11-25).
 - Standalone Max is **9.2.1** (Live uses it); jspainter scripts run on Max's legacy JS engine:
   painters must be ES5 (`tools/js-build.mjs` builds `<device>_paint_*.ts` with target es5).
 - Unattended standalone-Max runs: `tools/gen-export.sh`, `devices/aliasing/test/smoke/run_smoke.sh
