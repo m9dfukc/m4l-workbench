@@ -13,6 +13,10 @@ table display and it becomes the table of all five voices — **FIT** (header pi
 file (up to 10 min) into the 1024 cells, **1:1** takes its first 1024 samples. The drop switches Write
 State to Freeze so the sample stays; switch to Write and the write head eats it.
 
+**Requirements:** Live 12 with Max for Live and **Max 9** (the device uses `v8`; Live bundles Max 9 since
+12.2). Tested: Live 12.4.16 with its bundled Max 9.1.5 and with Max 9.2.1 (testlog 2026-11-26, t7); Max
+9.0.x (Live 12.2, 12.3) untested. Max 9.2 is only needed to develop the device here.
+
 ## The original
 
 An audio table is written and read at the same time but at different speeds; the "careless"

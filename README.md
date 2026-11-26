@@ -29,8 +29,16 @@ tools/live/            optional Live automation (install, on/off, in-Live checks
 
 ## Requirements
 
-Max 9.2+, Ableton Live 12 Suite (Max for Live), Node.js + pnpm, Python via
-[uv](https://docs.astral.sh/uv/). Details: `docs/research/notes/m4l-toolchain-dependencies-2026-11-24.md`.
+**Using a released device** (the frozen `.amxd` from
+[Releases](https://github.com/m9dfukc/m4l-workbench/releases)): Ableton Live 12 with Max for Live (Suite,
+or Standard with the Max for Live add-on). The devices need **Max 9**, which Live bundles since 12.2;
+no separate Max install is needed. Tested Max versions are listed in each release (aliasing
+0.3.0-beta.1: Live 12.4.16 with its bundled Max 9.1.5, and Max 9.2.1).
+
+**Developing in this workbench:** a standalone **Max 9.2+** with a full licence (gen~ code export for
+the offline tests), Node.js + pnpm, Python via [uv](https://docs.astral.sh/uv/). The GenExpr is
+checked against Max 9.1.5 and 9.2.0 rules so that released devices run on Live's bundled Max.
+Details: `docs/research/notes/m4l-toolchain-dependencies-2026-11-24.md`.
 
 Optional, off by default: **Live automation** — Claude loads a device in Live, reads the Max
 console, checks its parameters and records it silently, through
