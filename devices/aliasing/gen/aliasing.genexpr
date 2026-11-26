@@ -284,10 +284,13 @@ barwrap = isplay * (in4 < prevbar - 0.5);
 bc = tstart ? 0 : barcount + barwrap;
 nres = (resync < 0.5) ? 0 : ((resync < 1.5) ? 1 : ((resync < 2.5) ? 2 : ((resync < 3.5) ? 4 : 8)));
 rsbar = barwrap * (nres > 0) * ((bc % max(nres, 1)) < 0.5);
-// Restart of synced pointers only: transport start and the Resync bars (R2)
+// Transport restarts (R2): the transport start and the Resync bars. Resync Off: synced pointers only
+// (at the start), a Hz pointer ignores the transport. Resync 1..8 bars: every pointer, Hz or Sync
+// (user, 2026-11-26; before, Hz pointers never followed Resync).
 rssync = max(tstart, rsbar);
-wrs = max(rsall, rssync * (wmode > 0.5));
-rrs = max(rsall, rssync * (rmode > 0.5));
+rsany = nres > 0;
+wrs = max(rsall, rssync * max(wmode > 0.5, rsany));
+rrs = max(rsall, rssync * max(rmode > 0.5, rsany));
 lbar = max(tstart, barwrap);                        // LFO retrigger "Bar"
 wbase = wactive > 0.5;                              // Write or Clean (D5)
 wclean = wactive > 1.5;                             // Clean: write position = read signal

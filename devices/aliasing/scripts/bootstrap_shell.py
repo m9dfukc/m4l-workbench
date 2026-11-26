@@ -535,8 +535,9 @@ def specs(face: str) -> dict[str, Ctl]:
                      "Drone: the voices always run (Live's device switch turns them off). MIDI: sound while a note is "
                      "held; every note-on restarts the pointers."), "gatemode")
     tab("resync", enum("Resync", "Resync", ["Off", "1", "2", "4", "8"], 0,
-                       "Re-locks synced pointers every 1, 2, 4 or 8 bars while Live's transport runs (counted from "
-                       "the start)."), "resync")
+                       "Restarts both pointers every 1, 2, 4 or 8 bars while Live's transport runs (counted from "
+                       "its start), in Hz and in Sync mode. Off: only synced pointers restart, once at the "
+                       "start."), "resync")
     add("syncnow", "live.text", enum("Sync", "Sync", ["Off", "On"], 0, "Restarts both pointers now."),
         extra={"mode": 0, "text": "Sync now", "texton": "Sync now"})
     pill("aa", onoff("Ramp AA", "Ramp AA", 0, "Anti-aliased ramps (PolyBLEP) for both pointers, like the "

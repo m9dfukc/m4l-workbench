@@ -78,6 +78,10 @@ $R "$OUT/tempo_rate.wav" --seconds 2 --transport 120 --set wmode=1 --set wnote=1
 # 7c Sync Rate /16 on the write pointer, Transpose +12 st on a Hz read pointer: 8 Hz, read note 72
 $R "$OUT/tempo_slow.wav" --seconds 2 --transport 120 --set wmode=1 --set wnote=13 --set wmult=64 --set wden=4 \
   --set wfine=0 --set rspread=0 --set syncrate=0 --set transpose=12 --heads "$OUT/tempo_slow.heads.f32"
+# 7d Resync with Hz pointers (frozen table, 120 BPM = 2 s bars): Resync 1 restarts them every bar, so
+#    consecutive bars are the same signal; with Resync Off they ignore the transport and the bars differ
+$R "$OUT/resync_hz.wav" --seconds 6 --transport 120 --set wactive=0 --set resync=1
+$R "$OUT/resync_off.wav" --seconds 6 --transport 120 --set wactive=0
 # 8 band: open vs narrow Pass vs narrow Reject at 1 kHz (spectral energy around the centre)
 BAND=(--set rpitch=12 --set rspread=0 --set bcenter=1000 --set bspread=0 --set bres=0)
 $R "$OUT/band_open.wav" --seconds 3 "${BAND[@]}"

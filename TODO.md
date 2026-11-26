@@ -55,6 +55,11 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
       **Open (user): re-test t8c** — controls and meters show their own texts again, labels and section
       titles theirs, the title lines the description, which title the zones show (`annotation_name` or
       the scripting name), the table display; `testlog/aliasing/t8-handover.md` §6.
+- [ ] **aliasing t9 (user, listening): Resync with Hz pointers.** Since 2026-11-26 Resync 1 / 2 / 4 / 8
+      restarts every pointer, Hz or Sync (before: synced ones only; `docs/v0.2-build.md` A4). Measured
+      offline and in Live (testlog 2026-11-26, t9-auto): consecutive bars are the same signal with
+      Resync 1, Off is unchanged. Open: how the restart sounds (click?), whether it is useful on a
+      drone, and the round on Live's bundled Max 9.1.5.
 - [ ] **aliasing review (user + Claude):** the v0.2 decisions A1–A33 (`docs/v0.2-build.md` §1) that
       v0.3 did not replace, and the mock-up's own decisions (`docs/mockup-v0.3/layout.md` §4–§5).
 - [ ] aliasing v0.4: own presets (JSON + menu) incl. the v0.2 init sound (D1), `live.banks` for Push,

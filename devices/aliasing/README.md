@@ -227,7 +227,7 @@ limiter; the face shows its level as a bar.
 | Parameter | Range | Default | What it does |
 |---|---|---|---|
 | Gate | Drone · MIDI | Drone | Drone: the voices always run (Live's device switch turns them off). MIDI: sound while a note is held; every note-on restarts the pointers. |
-| Resync | Off · 1 · 2 · 4 · 8 | Off | Re-locks synced pointers every 1, 2, 4 or 8 bars while Live's transport runs (counted from the start). |
+| Resync | Off · 1 · 2 · 4 · 8 | Off | Restarts both pointers every 1, 2, 4 or 8 bars while Live's transport runs (counted from its start), in Hz and in Sync mode. Off: only synced pointers restart, once at the start. |
 | Sync | Off · On | Off | Restarts both pointers now. |
 | Ramp AA | Off · On | Off | Anti-aliased ramps (PolyBLEP) for both pointers, like the original's oscillators; off = naive. |
 | Transpose | −48 st … +48 st | 0 st | Transposes both pointers in Hz mode; greyed while both are synced. |

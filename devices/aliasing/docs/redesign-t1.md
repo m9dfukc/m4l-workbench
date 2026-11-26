@@ -27,7 +27,9 @@ settled with the user in a grilling round on 2026-11-24. Research behind them:
 - **Fine in Sync mode = detune** of ±1 semitone against the grid, so write and read drift apart
   slowly instead of locking (alternative "phase offset" rejected: it keeps a static pattern).
 - **Phase lock:** restart on transport start, plus a **Resync** parameter Off / 1 / 2 / 4 / 8 bars
-  that re-locks the detuned pointers.
+  that re-locks the detuned pointers. Since 2026-11-26 (user) a Resync setting other than Off
+  restarts Hz pointers as well, so a free-running drone can be tied to the bar; with Off, Hz
+  pointers ignore the transport (`v0.2-build.md` A4).
 - Mechanism [hypothesis, research note Part B]: the transport reaches gen~ as a signal
   (`plugphasor~` or `phasor~ … @lock 1`) through an inlet; tempo is derived from the ramp, with
   `plugsync~` as fallback while the transport is stopped so the drone keeps running. Open checks

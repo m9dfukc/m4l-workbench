@@ -5,6 +5,11 @@ never released; their decisions are in `docs/`.
 
 ## Unreleased
 
+- **Resync restarts Hz pointers too.** With Resync at 1, 2, 4 or 8 bars both pointers restart at the
+  transport start and on every Nth bar, in Hz and in Sync mode; until now only pointers in Sync mode
+  did, so the switch did nothing on a free-running patch. Resync Off is unchanged (Hz pointers ignore
+  the transport, synced ones restart once at its start). A Set saved with Resync on and a Hz pointer
+  sounds different now. Checked offline; not yet listened to.
 - **Info texts on the face** (Live's Info View, Max's clue window): every control shows its text under
   its long name as the title. The texts of 0.3.0-beta.1 had reached only `parameter_info` (and the
   README); the faces still showed older wordings, and four objects showed nothing.

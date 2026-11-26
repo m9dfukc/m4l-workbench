@@ -56,7 +56,7 @@ def main(argv: list[str]) -> int:
         return float(spec[(f >= lo) & (f < hi)].sum() / max(spec.sum(), 1e-30))
 
     names = ("off", "drone", "alias", "gate", "stress", "stress44", "sync", "frozen", "clean",
-             "wgate_open", "wgate_shut", "tempo", "tempo_rate", "tempo_slow", "band_open", "band_pass", "band_reject", "aa", "naive",
+             "wgate_open", "wgate_shut", "tempo", "tempo_rate", "tempo_slow", "resync_hz", "resync_off", "band_open", "band_pass", "band_reject", "aa", "naive",
              "lim_off", "lim_idle", "lim_color", "drv_zero", "drv_off", "lim_ceil", "env_ref", "env_duck",
              "res_on")
     for name in names:
@@ -132,6 +132,15 @@ def main(argv: list[str]) -> int:
     h = heads("tempo_slow")
     check(abs(float(h[4, 0]) - 8.0) < 0.02, f"sync rate: /16 gives a synced write of 8 Hz ({h[4, 0]:.3f})")
     check(abs(float(h[5, 2]) - 523.25) < 0.1, f"sync rate: Transpose +12 st still moves the Hz read pointer ({h[5, 2]:.2f})")
+
+    # Resync (2026-11-26): bars 2 and 3 of a 120 BPM render (2 s each) with Hz pointers on a frozen table
+    def bar_diff(name: str) -> float:
+        x, sr_ = wav(name)
+        return float(np.abs(seg(x, sr_, 2, 4) - seg(x, sr_, 4, 6)).max())
+    dmax = bar_diff("resync_hz")
+    check(dmax < 1e-6, f"resync: 1 bar restarts Hz pointers, consecutive bars are equal (max diff {dmax:.2e})")
+    dmax = bar_diff("resync_off")
+    check(dmax > 1e-3, f"resync: Off leaves Hz pointers alone, consecutive bars differ (max diff {dmax:.2e})")
 
     xo, sr = wav("band_open")
     xp, _ = wav("band_pass")
