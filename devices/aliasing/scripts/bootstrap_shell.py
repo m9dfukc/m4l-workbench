@@ -49,6 +49,10 @@ FACES = ("hybrid", "b")
 FACE_WIDTH = {"hybrid": 918.0, "b": 800.0}  # hybrid: 968 - 50 since the compact pointer rows (D47)
 FACE_FILE = {"hybrid": "Aliasing.amxd", "b": "Aliasing B.amxd"}
 FACE_TITLE = {"hybrid": "Aliasing", "b": "Aliasing B"}
+# Info View texts of the two non-control parameters (the dict Blob and the live.drop)
+TABLE_INFO = "The table's five voice rows as they were written, drawn or dropped; saved with the Live Set."
+SAMPLE_DROP_INFO = ("Drop an audio file onto the table display: it becomes the table of all five voices (FIT or "
+                    "1:1, see Drop Fit).")
 WIDTH = FACE_WIDTH["hybrid"]  # the hybrid's width (older importers)
 DIAL_H = 48.0  # live.dial with showname 1, shownumber 1 [measured: dial probe, build/aliasing/dialprobe]
 LINE_H = 15.0  # single-line controls (Ableton's measure, research note summary 1)
@@ -254,19 +258,19 @@ def specs(face: str) -> dict[str, Ctl]:
     # ---- pointer rows ----
     for p, name, acc in (("w", "Write", WRITE), ("r", "Read", READ)):
         tab(f"{p}.mode", enum(f"{name} Mode", f"{name[0]} Mode", ["Hz", "Sync"], 0,
-            f"{name} pointer rate: Hz = free pitch, Sync = note value x N / D x Sync Rate at Live's tempo."),
+            f"{name} pointer rate: Hz = free pitch, Sync = note value × N ÷ D × Sync Rate at Live's tempo."),
             f"{p}mode", pages=f"{p}mode")
         add(f"{p}.mult", "live.numbox", int_param(
             f"{name} Mult", "Mult", 1, 128, 1, unitstyle=U_CUSTOM, units="×%d", modmode=MOD_ABSOLUTE,
-            info=f"Sync mode: the note value's rate times N (D3), so synced {name.lower()} rates reach the audio "
-                 "range."), f"{p}mult")
+            info=f"Sync mode: multiplies the note value's rate by N, so synced {name.lower()} rates reach the "
+                 "audio range."), f"{p}mult")
         add(f"{p}.div", "live.numbox", int_param(
             f"{name} Div", "Div", 1, 32, 1, unitstyle=U_CUSTOM, units="÷%d", modmode=MOD_ABSOLUTE,
-            info="Sync mode: divides the rate by D (D3): odd cycle lengths such as 5/16 that drift against the "
+            info="Sync mode: divides the rate by D, for odd cycle lengths such as 5/16 that drift against the "
                  "bar."), f"{p}den")
         dial(f"{p}.pitch", int_param(
             f"{name} Pitch", "Pitch", -64, 130, 0, unitstyle=U_ST, modmode=MOD_ABSOLUTE,
-            info=f"{name} pointer pitch in semitones around note 60 (-64..130). Above about half the sample rate "
+            info=f"{name} pointer pitch in semitones around note 60 (−64 … +130). Above about half the sample rate "
                  "the pattern depends on the sample rate (44.1 and 48 kHz differ)."), f"{p}pitch", accent=acc)
         dial(f"{p}.note", enum(
             f"{name} Rate", "Rate", NOTES, 13, f"Sync mode: {name.lower()} pointer note value (bars are 4/4)."),
@@ -278,7 +282,7 @@ def specs(face: str) -> dict[str, Ctl]:
             f"{p}fine", accent=acc)
     dial("w.sym", valueof(
         "Write Sym", "Sym", T_FLOAT, mmin=-1.0, mmax=1.0, initial=0.0, modmode=MOD_BIPOLAR, steps=201,
-        info="The write shape's parameter (D6): Curve (Ramp), Skew (Tri), Duty (Pulsar), Width (Spike), "
+        info="The write shape's parameter: Curve (Ramp), Skew (Tri), Duty (Pulsar), Width (Spike), "
              "Smooth (Noise)."), "wsym", accent=WRITE)
     tab("w.shape", enum(
         "Write Shape", "W Shape", W_SHAPES, 1,
@@ -293,7 +297,7 @@ def specs(face: str) -> dict[str, Ctl]:
         units="%0.2f st", modmode=MOD_BIPOLAR, steps=601, info="Read pitch spread across the 5 voices."),
         "rspread", accent=READ)
     tab("r.shape", enum(
-        "Read Shape", "R Shape", ["Ramp", "Tri"], 0, "Read pointer: ramp, or triangle up and down (D35)."),
+        "Read Shape", "R Shape", ["Ramp", "Tri"], 0, "Read pointer: ramp, or triangle up and down."),
         "rshape")
     pill("r.smooth", onoff("Smooth", "Smooth", 0, "Read interpolation: off reads whole cells (raw), on is linear."),
          "smoothread", "Smooth")
@@ -335,7 +339,7 @@ def specs(face: str) -> dict[str, Ctl]:
             f"l{k}phase")
         dial(f"lfo{k}.spread", valueof(
             f"LFO {k} Spread", "Spread", T_FLOAT, mmin=0.0, mmax=100.0, initial=50.0, unitstyle=U_PCT,
-            modmode=MOD_BIPOLAR, info=f"LFO {k} rate spread across the 5 voices (100 % = +-half an octave)."),
+            modmode=MOD_BIPOLAR, info=f"LFO {k} rate spread across the 5 voices (100 % = ± half an octave)."),
             f"l{k}spread")
         tab(f"lfo{k}.retrig", enum(
             f"LFO {k} Retrig", f"L{k} Retrig", ["Off", "Note", "Bar"], retrig_init,
@@ -350,7 +354,7 @@ def specs(face: str) -> dict[str, Ctl]:
         modmode=MOD_BIPOLAR, info="Envelope follower release."), "enrel")
     dial("env.gain", valueof(
         "Env Gain", "Gain", T_FLOAT, mmin=-24.0, mmax=24.0, initial=12.0, unitstyle=U_DB, modmode=MOD_BIPOLAR,
-        info="Envelope follower gain: the source is the follower level x this, clipped to 0..1."), "engain")
+        info="Envelope follower gain: the source is the follower level × this, clipped to 0 … 1."), "engain")
 
     # ---- mod matrix (D25, D26, D36) ----
     for s, sname, sshort, _ in SRCS:
@@ -364,9 +368,9 @@ def specs(face: str) -> dict[str, Ctl]:
         add("mod_target", "live.menu", valueof(
             "Mod Target", "Mod Target", T_ENUM, enum=[t[1] for t in TGTS], invisible=STORED_ONLY,
             info="The target whose eight modulation depths the strip shows; a dot marks the modulated "
-                 "targets (D48)."), pages="target")
+                 "targets."), pages="target")
         clear_vo = enum("Mod Clear", "Clear", ["Off", "On"], 0,
-                        "Sets the eight modulation depths of the shown target to 0 (D49).")
+                        "Sets the eight modulation depths of the shown target to 0.")
         clear_vo["parameter_invisible"] = 2  # hidden: a momentary action, neither automated nor stored
         add("mod_clear", "live.text", clear_vo, extra={"mode": 0, "text": "Clear", "texton": "Clear"})
 
@@ -385,9 +389,9 @@ def specs(face: str) -> dict[str, Ctl]:
              "Band width in octaves; 10 = open (practically bypass)."),
             ("res", "Band Res", "Res", 0.0, 100.0, 0.0, U_PCT, None, None, "bres", "Resonance at the band edges."),
             ("fm", "Band FM", "FM", 0.0, 100.0, 0.0, U_PCT, None, None, "bfm",
-             "Audio-rate FM of the band centre from the unfiltered core signal (100 % = +-4 octaves)."),
+             "Audio-rate FM of the band centre from the unfiltered core signal (100 % = ±4 octaves)."),
             ("spread", "Band Spread", "Spread", 0.0, 100.0, 25.0, U_PCT, None, None, "bspread",
-             "Band centres across the 5 voices (100 % = +-2 octaves).")]
+             "Band centres across the 5 voices (100 % = ±2 octaves).")]
     for key, long, short, lo, hi, init, us, units, expo, gen, info in band:
         dial(f"band.{key}", valueof(long, short, T_FLOAT, mmin=lo, mmax=hi, initial=init, unitstyle=us, units=units,
                                     exponent=expo, modmode=MOD_BIPOLAR, info=info), gen, accent=WRITE,
@@ -402,7 +406,7 @@ def specs(face: str) -> dict[str, Ctl]:
     res = [("freq", "Res Freq", "Freq", 20.0, 5000.0, 140.0, U_HZ, 3.0, "rsfreq",
             "Resonator frequency (inactive while Track follows the read pointer)."),
            ("fb", "Res Feedback", "Fdbk", -95.0, 95.0, 50.0, U_PCT, None, "rsfb",
-            "Resonator feedback: + = peaks (metallic), - = notches (hollow)."),
+            "Resonator feedback: positive values give peaks (metallic), negative values notches (hollow)."),
            ("mix", "Res Mix", "Mix", 0.0, 100.0, 50.0, U_PCT, None, "rsmix", "Resonator mix.")]
     for key, long, short, lo, hi, init, us, expo, gen, info in res:
         dial(f"res.{key}", valueof(long, short, T_FLOAT, mmin=lo, mmax=hi, initial=init, unitstyle=us, exponent=expo,
@@ -421,17 +425,18 @@ def specs(face: str) -> dict[str, Ctl]:
                      "original's oscillators; off = naive."), "aaramp", "Ramp AA")
     # short name "Transp" so the hybrid's "Tune" label starts left of it (user, 2026-11-25, D46)
     dial("transpose", int_param("Transpose", "Transp", -48, 48, 0, unitstyle=U_ST, modmode=MOD_ABSOLUTE,
-                                info="Transposes both pointers in Hz mode (D21); greyed while both are synced."),
+                                info="Transposes both pointers in Hz mode; greyed while both are synced."),
          "transpose")
     dial("syncrate", enum("Sync Rate", "Rate", ["÷16", "÷8", "÷4", "÷2", "×1", "×2", "×4", "×8", "×16"], 4,
-                          "Multiplies every synced pointer rate by a power of two (D37): synced pointers stay on the "
+                          "Multiplies every synced pointer rate by a power of two, so synced pointers stay on the "
                           "grid; greyed while no pointer is synced."), "syncrate")
     power("lim.on", "Limiter On", 1, "Limiter", "limon", pages="limon")
     lim = [("gain", "Limiter Gain", "Gain", 0.0, 24.0, 0.0, U_DB, None, "limgain", "Gain into the limiter."),
            ("sat", "Saturation", "Sat", 0.0, 100.0, 0.0, U_PCT, None, "limsat",
             "Saturation before the limiter (0 = clean)."),
            ("color", "Color", "Color", -100.0, 100.0, 0.0, U_PCT, None, "limcolor",
-            "Tilts the saturation: - drives the lows harder (warm), + the highs (edgy)."),
+            "Tilts the saturation: negative values drive the lows harder (warm), positive values the highs "
+            "(edgy)."),
            ("rel", "Limiter Release", "Release", 1.0, 1000.0, 100.0, U_MS, 3.0, "limrel", "Limiter release."),
            ("ceil", "Ceiling", "Ceiling", -12.0, 0.0, -0.3, U_DB, None, "limceil",
             "The output never goes above this (zero latency).")]
@@ -442,7 +447,7 @@ def specs(face: str) -> dict[str, Ctl]:
                           modmode=MOD_BIPOLAR, info="Stereo spread of the 5 voices: 0 mono, 100 even, 200 wide."),
          "width", scale=0.01)
     dial("output", valueof("Output", "Output", T_FLOAT, mmin=-36.0, mmax=0.0, initial=-6.0, unitstyle=U_DB,
-                           modmode=MOD_BIPOLAR, info="Output level (the 5-voice sum is compensated by -14 dB)."),
+                           modmode=MOD_BIPOLAR, info="Output level (the 5-voice sum is compensated by −14 dB)."),
          "output")
     return c
 
@@ -819,7 +824,8 @@ def build(template: dict, face: str = "hybrid") -> dict:
                        "bordercolor": {"expression": ""}, "focusbordercolor": {"expression": ""},
                        "textcolor": {"expression": ""},
                        "valueof": {"parameter_longname": "Sample Drop", "parameter_shortname": "Drop",
-                                   "parameter_type": 4, "parameter_invisible": HIDDEN, "parameter_modmode": 0}}})
+                                   "parameter_type": 4, "parameter_invisible": HIDDEN, "parameter_modmode": 0,
+                                   "parameter_info": SAMPLE_DROP_INFO}}})
     disp = p.add({"maxclass": "v8ui", "filename": "aliasing_display.js", "embed": 0, "numinlets": 1,
                   "numoutlets": 2, "outlettype": ["", ""], "parameter_enable": 0,
                   "patching_rect": list(dr), "presentation": 1, "presentation_rect": list(dr), "varname": "display",
@@ -908,7 +914,8 @@ def build(template: dict, face: str = "hybrid") -> dict:
                                                "parameter_mappable": 0},
                    "saved_attribute_attributes": {"valueof": {
                        "parameter_longname": "Table", "parameter_shortname": "Table", "parameter_type": T_BLOB,
-                       "parameter_invisible": STORED_ONLY, "parameter_initial_enable": 0, "parameter_modmode": 0}}})
+                       "parameter_invisible": STORED_ONLY, "parameter_initial_enable": 0, "parameter_modmode": 0,
+                       "parameter_info": TABLE_INFO}}})
     p.wire(disp, 1, tdict, 0)
     p.wire(tdict, 0, disp, 0)
 

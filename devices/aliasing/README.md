@@ -99,11 +99,11 @@ tables.
 <!-- params: Write Mode, Write Pitch, Write Rate, Write Mult, Write Div, Write Fine, Write Sym, Write Shape, Write State -->
 | Parameter | Range | Default | What it does |
 |---|---|---|---|
-| Write Mode | Hz · Sync | Hz | Write pointer rate: Hz = free pitch, Sync = note value x N / D x Sync Rate at Live's tempo. |
-| Write Pitch | −64 st … +130 st | 0 st | Write pointer pitch in semitones around note 60 (-64..130). Above about half the sample rate the pattern depends on the sample rate (44.1 and 48 kHz differ). |
+| Write Mode | Hz · Sync | Hz | Write pointer rate: Hz = free pitch, Sync = note value × N ÷ D × Sync Rate at Live's tempo. |
+| Write Pitch | −64 st … +130 st | 0 st | Write pointer pitch in semitones around note 60 (−64 … +130). Above about half the sample rate the pattern depends on the sample rate (44.1 and 48 kHz differ). |
 | Write Rate | 8 bars, 4 bars, … 1/64 (19 values) | 1/16 | Sync mode: write pointer note value (bars are 4/4). |
-| Write Mult | ×1 … ×128 | ×1 | Sync mode: the note value's rate times N, so synced write rates reach the audio range. |
-| Write Div | ÷1 … ÷32 | ÷1 | Sync mode: divides the rate by D: odd cycle lengths such as 5/16 that drift against the bar. |
+| Write Mult | ×1 … ×128 | ×1 | Sync mode: multiplies the note value's rate by N, so synced write rates reach the audio range. |
+| Write Div | ÷1 … ÷32 | ÷1 | Sync mode: divides the rate by D, for odd cycle lengths such as 5/16 that drift against the bar. |
 | Write Fine | −1.000 st … +1.000 st | 0.000 st | Fine pitch in semitones; in Sync mode a detune against the tempo grid (Resync re-locks it). |
 | Write Sym | −1 … +1 | 0 | The write shape's parameter: Curve (Ramp), Skew (Tri), Duty (Pulsar), Width (Spike), Smooth (Noise). |
 | Write Shape | Ramp · Tri · Pulsar · Spike · Noise | Tri | Path of the write head (the read phase is written along it): Ramp, Tri, Pulsar and Spike (bursts, then no writing), Noise (random cells). |
@@ -120,11 +120,11 @@ to 1/64, with dotted (D) and triplet (T) values: 8, 4, 2, 1 bars, 1/2, 1/2D, 1/2
 <!-- params: Read Mode, Read Pitch, Read Rate, Read Mult, Read Div, Read Fine, Read Spread, Read Shape, Smooth -->
 | Parameter | Range | Default | What it does |
 |---|---|---|---|
-| Read Mode | Hz · Sync | Hz | Read pointer rate: Hz = free pitch, Sync = note value x N / D x Sync Rate at Live's tempo. |
-| Read Pitch | −64 st … +130 st | 0 st | Read pointer pitch in semitones around note 60 (-64..130). Above about half the sample rate the pattern depends on the sample rate (44.1 and 48 kHz differ). |
+| Read Mode | Hz · Sync | Hz | Read pointer rate: Hz = free pitch, Sync = note value × N ÷ D × Sync Rate at Live's tempo. |
+| Read Pitch | −64 st … +130 st | 0 st | Read pointer pitch in semitones around note 60 (−64 … +130). Above about half the sample rate the pattern depends on the sample rate (44.1 and 48 kHz differ). |
 | Read Rate | 8 bars, 4 bars, … 1/64 (19 values) | 1/16 | Sync mode: read pointer note value (bars are 4/4). |
-| Read Mult | ×1 … ×128 | ×1 | Sync mode: the note value's rate times N, so synced read rates reach the audio range. |
-| Read Div | ÷1 … ÷32 | ÷1 | Sync mode: divides the rate by D: odd cycle lengths such as 5/16 that drift against the bar. |
+| Read Mult | ×1 … ×128 | ×1 | Sync mode: multiplies the note value's rate by N, so synced read rates reach the audio range. |
+| Read Div | ÷1 … ÷32 | ÷1 | Sync mode: divides the rate by D, for odd cycle lengths such as 5/16 that drift against the bar. |
 | Read Fine | −1.000 st … +1.000 st | 0.000 st | Fine pitch in semitones; in Sync mode a detune against the tempo grid (Resync re-locks it). |
 | Read Spread | 0.00 st … 6.00 st | 2.00 st | Read pitch spread across the 5 voices. |
 | Read Shape | Ramp · Tri | Ramp | Read pointer: ramp, or triangle up and down. |
@@ -152,14 +152,14 @@ display zooms to Size; a voice whose span is modulated shows it as a moving edge
 | LFO 1 Rate | 0.01 Hz … 20 Hz | 0.15 Hz | LFO 1 rate in Hz (each voice runs slightly faster or slower: Spread). |
 | LFO 1 Sync Rate | 8 bars, 4 bars, … 1/64 (19 values) | 1/4 | LFO 1 note value at Live's tempo. |
 | LFO 1 Phase | 0° … 360° | 0° | LFO 1 start phase (used on retrigger). |
-| LFO 1 Spread | 0 % … 100 % | 50 % | LFO 1 rate spread across the 5 voices (100 % = +-half an octave). |
+| LFO 1 Spread | 0 % … 100 % | 50 % | LFO 1 rate spread across the 5 voices (100 % = ± half an octave). |
 | LFO 1 Retrig | Off · Note · Bar | Off | LFO 1 restart: never, on every MIDI note-on, or on every bar while Live's transport runs. |
 | LFO 2 Mode | Hz · Sync | Sync | LFO 2 rate: Hz or a note value. |
 | LFO 2 Shape | Sine · Tri · Saw · Square · S&H · Random | Random | LFO 2 waveform. |
 | LFO 2 Rate | 0.01 Hz … 20 Hz | 0.07 Hz | LFO 2 rate in Hz (each voice runs slightly faster or slower: Spread). |
 | LFO 2 Sync Rate | 8 bars, 4 bars, … 1/64 (19 values) | 1 bar | LFO 2 note value at Live's tempo. |
 | LFO 2 Phase | 0° … 360° | 90° | LFO 2 start phase (used on retrigger). |
-| LFO 2 Spread | 0 % … 100 % | 50 % | LFO 2 rate spread across the 5 voices (100 % = +-half an octave). |
+| LFO 2 Spread | 0 % … 100 % | 50 % | LFO 2 rate spread across the 5 voices (100 % = ± half an octave). |
 | LFO 2 Retrig | Off · Note · Bar | Bar | LFO 2 restart: never, on every MIDI note-on, or on every bar while Live's transport runs. |
 <!-- /params -->
 
@@ -173,7 +173,7 @@ through the mod matrix.
 |---|---|---|---|
 | Env Attack | 0.1 ms … 100 ms | 5 ms | Envelope follower attack (the follower reads the output before the limiter). |
 | Env Release | 10 ms … 2000 ms | 150 ms | Envelope follower release. |
-| Env Gain | −24 dB … +24 dB | +12 dB | Envelope follower gain: the source is the follower level x this, clipped to 0..1. |
+| Env Gain | −24 dB … +24 dB | +12 dB | Envelope follower gain: the source is the follower level × this, clipped to 0 … 1. |
 <!-- /params -->
 
 The follower listens to the stereo sum after the tone section, Output and the DC blocker, before the
@@ -192,8 +192,8 @@ limiter; the face shows its level as a bar.
 | Band Center | 20 Hz … 20000 Hz | 632 Hz | Band centre frequency (Spread fans it across the voices). |
 | Band Width | 0.2 oct … 10.0 oct | 10.0 oct | Band width in octaves; 10 = open (practically bypass). |
 | Band Res | 0 % … 100 % | 0 % | Resonance at the band edges. |
-| Band FM | 0 % … 100 % | 0 % | Audio-rate FM of the band centre from the unfiltered core signal (100 % = +-4 octaves). |
-| Band Spread | 0 % … 100 % | 25 % | Band centres across the 5 voices (100 % = +-2 octaves). |
+| Band FM | 0 % … 100 % | 0 % | Audio-rate FM of the band centre from the unfiltered core signal (100 % = ±4 octaves). |
+| Band Spread | 0 % … 100 % | 25 % | Band centres across the 5 voices (100 % = ±2 octaves). |
 <!-- /params -->
 
 ### Resonator (A: Tone page · B: Res page)
@@ -204,7 +204,7 @@ limiter; the face shows its level as a bar.
 | Res On | Off · On | Off | Switches the resonator section on or off (off = exact bypass). |
 | Res Track | Off · On | On | Resonator follows each voice's read pointer frequency. |
 | Res Freq | 20 Hz … 5000 Hz | 140 Hz | Resonator frequency (inactive while Track follows the read pointer). |
-| Res Feedback | −95 % … +95 % | +50 % | Resonator feedback: + = peaks (metallic), - = notches (hollow). |
+| Res Feedback | −95 % … +95 % | +50 % | Resonator feedback: positive values give peaks (metallic), negative values notches (hollow). |
 | Res Mix | 0 % … 100 % | 50 % | Resonator mix. |
 <!-- /params -->
 
@@ -216,7 +216,7 @@ limiter; the face shows its level as a bar.
 | Limiter On | Off · On | On | Switches the limiter section on or off (off = exact bypass). |
 | Limiter Gain | 0 dB … 24 dB | 0 dB | Gain into the limiter. |
 | Saturation | 0 % … 100 % | 0 % | Saturation before the limiter (0 = clean). |
-| Color | −100 % … +100 % | 0 % | Tilts the saturation: - drives the lows harder (warm), + the highs (edgy). |
+| Color | −100 % … +100 % | 0 % | Tilts the saturation: negative values drive the lows harder (warm), positive values the highs (edgy). |
 | Limiter Release | 1 ms … 1000 ms | 100 ms | Limiter release. |
 | Ceiling | −12 dB … 0 dB | −0.3 dB | The output never goes above this (zero latency). |
 <!-- /params -->
@@ -231,7 +231,7 @@ limiter; the face shows its level as a bar.
 | Sync | Off · On | Off | Restarts both pointers now. |
 | Ramp AA | Off · On | Off | Anti-aliased ramps (PolyBLEP) for both pointers, like the original's oscillators; off = naive. |
 | Transpose | −48 st … +48 st | 0 st | Transposes both pointers in Hz mode; greyed while both are synced. |
-| Sync Rate | ÷16 · ÷8 · ÷4 · ÷2 · ×1 · ×2 · ×4 · ×8 · ×16 | ×1 | Multiplies every synced pointer rate by a power of two: synced pointers stay on the grid; greyed while no pointer is synced. |
+| Sync Rate | ÷16 · ÷8 · ÷4 · ÷2 · ×1 · ×2 · ×4 · ×8 · ×16 | ×1 | Multiplies every synced pointer rate by a power of two, so synced pointers stay on the grid; greyed while no pointer is synced. |
 <!-- /params -->
 
 ### Output (A: Global page · B: dial row)
@@ -240,7 +240,7 @@ limiter; the face shows its level as a bar.
 | Parameter | Range | Default | What it does |
 |---|---|---|---|
 | Width | 0 % … 200 % | 100 % | Stereo spread of the 5 voices: 0 mono, 100 even, 200 wide. |
-| Output | −36 dB … 0 dB | −6 dB | Output level (the 5-voice sum is compensated by -14 dB). |
+| Output | −36 dB … 0 dB | −6 dB | Output level (the 5-voice sum is compensated by −14 dB). |
 <!-- /params -->
 
 ### Mod matrix (A: Mod page · B: modulation strip)
@@ -284,10 +284,10 @@ invisible drop zone behind the display.
 <!-- params-hidden: Aliasing.amxd = A, Aliasing B.amxd = B -->
 | Parameter | Values | Kind | What it does |
 |---|---|---|---|
-| Sample Drop | file path | not stored | – |
+| Sample Drop | file path | not stored | Drop an audio file onto the table display: it becomes the table of all five voices (FIT or 1:1, see Drop Fit). |
 | Display Mode | Line · 2D | stored with the Set | Table display: Line or 2D (the icons in the display). |
 | Drop Fit | Fit · 1:1 | stored with the Set | Sample drop: Fit = the whole file resampled to the table row, 1:1 = its first 1024 samples (the FIT / 1:1 pills in the display). |
-| Table | data | stored with the Set | – |
+| Table | data | stored with the Set | The table's five voice rows as they were written, drawn or dropped; saved with the Live Set. |
 | Page | A: LFO · Env · Mod · Tone · Global; B: LFO 1 · LFO 2 · Env · Band · Res · Limit · Global | stored with the Set | Shows one page of controls. |
 | Mod Target (only B) | Write Pitch · Write Sym · Write Gate · Read Pitch · Read Spread · Size · Band Center · Res Freq · Output | stored with the Set | The target whose eight modulation depths the strip shows; a dot marks the modulated targets. |
 | Mod Clear (only B) | Off · On | not stored | Sets the eight modulation depths of the shown target to 0. |
