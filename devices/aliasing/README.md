@@ -2,10 +2,11 @@
 
 Max for Live instrument **inspired by** the Reaktor User Library ensemble **aliasing Synth** by
 **Dietrich Pank** (2008-09-18, UL version 1.0, Reaktor 5): the same mechanism, our own DSP,
-GUI and presets — not an emulation. Status: **v0.3b built** as two faces for an A/B in Live:
-`Aliasing.amxd` (hybrid, 918 px) and `Aliasing B.amxd` (option (b), 800 px), same DSP and parameters
+GUI and presets — not an emulation. Status: **0.3.0-beta.1** (2026-11-26, GitHub pre-release
+"Aliasing 0.3.0-beta.1", `CHANGELOG.md`) as two faces for an A/B in Live: `Aliasing.amxd` (released as
+"Aliasing A", hybrid, 918 px) and `Aliasing B.amxd` (option (b), 800 px), same DSP and parameters
 (`docs/v0.3-design.md` D33–D49; earlier decisions `docs/port-decisions.md`, `docs/redesign-t1.md`,
-`docs/v0.2-build.md`). One face stays after the Live test.
+`docs/v0.2-build.md`). One face stays for 1.0.
 
 **Sample drop** (both faces, D50–D54): drop an audio file from Live's browser or the Finder onto the
 table display and it becomes the table of all five voices — **FIT** (header pill) resamples the whole

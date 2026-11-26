@@ -191,8 +191,11 @@ Only upgrade a marker with a reference to the test/source.
   user picks one. Sample drop D50–D54 added to both faces (e60ed09): smoke tests + harness pass
   (testlog t6-auto); **t6** (real drags in Live) handed over. Freeze test **t7** (2026-11-25): the shells
   now list their runtime files in the device project, so Freeze embeds all of them; frozen copies of both
-  faces work in Live 12.4.16 / Max 9.2.1 (open: repo out of reach, stock Live 9.1.5). Earlier: 9c23f87
-  (Write Shape fix, face review), 9b1d5d7 v0.3, …
+  faces work in Live 12.4.16 / Max 9.2.1 and with Live's bundled Max 9.1.5 (testlog 2026-11-26).
+  **Released 2026-11-26: `aliasing` 0.3.0-beta.1** (GitHub pre-release, tag `aliasing-v0.3.0-beta.1`,
+  both faces as "Aliasing A" / "Aliasing B", `devices/aliasing/CHANGELOG.md`); open after it: t5 (the
+  user picks the face for 1.0), repo-out-of-reach load, Set save/reopen with a dropped table. Earlier:
+  9c23f87 (Write Shape fix, face review), 9b1d5d7 v0.3, …
 - Standalone Max **restores its last session's patches at start** (Crash Recovery workspace):
   every unattended run parks that file first and drops this repo's `build/` test patches from it
   afterwards (`tools/max-workspace.sh park|restore|clean`, user, 2026-11-25).

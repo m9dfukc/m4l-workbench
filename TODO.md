@@ -76,12 +76,18 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 | 7 | Do `Data`/`History` survive a sample-rate change or device reload in Live 12? | voice state |
 | 8 | Live parameter resolution for very small speed changes (automation, MIDI map) — need coarse + fine controls? | "finest moves in speed" |
 | 9 | v8: are handlers attached via `globalThis` called? (only when the TS layer comes) — not needed: js-build keeps top-level `function` handlers | TS build choice |
-| 12 | jspainter engine and painted `live.*` in Live (Max 9.2.1 and bundled 9.1.5): paint, theme repaint, dots, map modes — standalone 9.2.1 runs jspainter on the **legacy (ES5) engine** [measured: smoke 2026-11-25] | aliasing v0.2 face |
-| 10 | Does freezing include `require`d `.genexpr` files; does the frozen device run in a fresh set on stock Live 9.1.5? — partly: t7 (2026-11-25) Freeze reported `jsscriptnobox: can't find file aliasing_paint_dial.js` with an empty device project → the shells now list their runtime files in `project.contents.code`; second attempt: Freeze embeds all 10 / 9 files byte-identical, both frozen copies load and work in Live 12.4.16 / Max 9.2.1 from the Desktop [measured: testlog t7]; open: a load with the repo out of reach and on stock Live 9.1.5 | release gate |
+| 12 | jspainter engine and painted `live.*` in Live (Max 9.2.1 and bundled 9.1.5): paint, theme repaint, dots, map modes — standalone 9.2.1 runs jspainter on the **legacy (ES5) engine** [measured: smoke 2026-11-25]; bundled 9.1.5: both faces load and work, clean console, sample drop in face A [measured: testlog 2026-11-26, rel-0.3.0-beta.1 (d)]; open: theme repaint, map modes | aliasing v0.2 face |
+| 10 | Does freezing include `require`d `.genexpr` files; does the frozen device run in a fresh set on stock Live 9.1.5? — partly: t7 (2026-11-25) Freeze reported `jsscriptnobox: can't find file aliasing_paint_dial.js` with an empty device project → the shells now list their runtime files in `project.contents.code`; second attempt: Freeze embeds all 10 / 9 files byte-identical, both frozen copies load and work in Live 12.4.16 / Max 9.2.1 from the Desktop [measured: testlog t7]; stock Live's Max 9.1.5: both faces work, clean console (which copy, frozen or not: not reported) [measured: testlog 2026-11-26, rel-0.3.0-beta.1 (d)]; open: a load with the repo out of reach | release gate |
 | 11 | Does a py2max-generated `.amxd` load in Live? (only if a generated shell is ever wanted) | generated shells |
 
 ## Done
 
+- 2026-11-26: **aliasing 0.3.0-beta.1** published as a GitHub pre-release (tag `aliasing-v0.3.0-beta.1`):
+  both faces frozen ("Aliasing A", "Aliasing B"; t7 freezes, files in `dist/`, one zip asset because
+  GitHub turns spaces in asset names into dots). Release test rel-0.3.0-beta.1: (d) Live's bundled Max
+  9.1.5 PASS (testlog 2026-11-26); (a) repo out of reach, (b) Set save/reopen with a dropped table,
+  (c) MP3 drop in face B **skipped by the user's decision** ("Ohne Resttest") — still open, see t5/t6.
+  Debug "ready"/"dropped" posts kept for the beta (remove for 1.0, A33).
 - 2026-11-25: Max MCP and Ableton MCPs re-evaluated (`docs/research/notes/live-automation-mcp-2026-11-25.md`):
   no Max MCP; for Live the test harness eladefrati/ableton-live-test-harness (pinned `ad756c1e`,
   source read). Built as an **optional** Live automation: `CLAUDE.md` exception "Live test harness"

@@ -15,7 +15,7 @@ Each device keeps its sound and logic in text files that diff and review well:
 
 | Device | Status | Origin |
 |---|---|---|
-| [`aliasing`](devices/aliasing/) | port in preparation | Reaktor User Library ensemble *Aliasing Synth* |
+| [`aliasing`](devices/aliasing/) | **0.3.0-beta.1** (two faces, A and B; [releases](https://github.com/m9dfukc/m4l-workbench/releases)) | inspired by the Reaktor User Library ensemble *Aliasing Synth* |
 
 ## Layout
 
