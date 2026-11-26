@@ -34,7 +34,6 @@ reference; use it when a gen~ goes silent or errors.
 - Functions do **not** see `Param`/`History`/`Data`/`in1` by name: pass them as arguments.
 - Never name your own function like a built-in (`scale`, `mix`, `wrap`, `clip`, `fold`, …):
   it is silently ignored and the built-in runs.
-- Nested `require` needs Max 9.2+; Max 9.2 rejects assignments to `phi` and other constants.
 - Floats with a decimal point in constants that must stay floats (`1.`, `0.5`).
 
 ## Semantics that matter for ports

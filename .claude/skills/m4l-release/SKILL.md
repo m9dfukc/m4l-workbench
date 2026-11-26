@@ -22,12 +22,12 @@ kept locally under `dist/`.
   painters included; Freeze embeds nothing else (`.claude/rules/max-patch.md`, aliasing t7).
 - **Compatibility:** the release notes state the Max version tested. If the device needs Max
   9.2 features, say so; otherwise the user checks once with Live's bundled Max.
-- **Device README** (`CLAUDE.md` "Device README"): the images show this version in light and dark
+- **Device README** (`.claude/rules/device-readme.md`): the images show this version in light and dark
   (from 1.0 on Live screenshots, not preview renders — ask the user for them); description, quick
   start and faces match the release; the parameter blocks are current (`tools/check.sh` step 6); the
   install section names this release's tag and asset; tested Max/Live versions as in the notes.
-- **Licence and attribution** for ports: the device README credits the original's author and
-  links the original; the terms of the original (e.g. Reaktor User Library) allow publishing a
+- **Licence and attribution** for ports: the device README credits the original's author (named
+  as `CLAUDE.md` says) and links the original; the terms of the original (e.g. Reaktor User Library) allow publishing a
   port — if unclear, **stop and ask the user** before anything public.
 - Version: SemVer per device, tag `<device>-v<MAJOR.MINOR.PATCH>` (monorepo); CHANGELOG entry
   in `devices/<name>/CHANGELOG.md`.
@@ -38,7 +38,8 @@ Hand over (like `live-test`):
 
 1. Open the unfrozen `.amxd` in Live, Max editor → **Freeze**, save as
    `dist/<Device Name> <version>.amxd` (`dist/` is gitignored), close without saving the
-   unfrozen one.
+   unfrozen one. A device with several faces: one frozen file per face, under the names the
+   README uses for them.
 2. In a **fresh Live set** (ideally with the workbench folder not on any search path, e.g.
    temporarily renamed), load the frozen device from `dist/`: console clean? parameters and
    presets restore after save/reload of the set? sound as in the last test?
@@ -53,4 +54,7 @@ Log the result as a `live-test` entry (label `rel-<version>`).
   --notes-file <notes> "dist/<Device Name> <version>.amxd"` — only after the user said to
   push/publish. Notes: what it is, controls, tested Max/Live versions, known deviations from
   the original, attribution.
-- Update `CLAUDE.md` "Status" and `TODO.md`.
+- Asset names: GitHub turns spaces in asset names into dots, so attach a device whose file name
+  has spaces, or several faces, as one zip `dist/<Device>-<version>.zip` (as for aliasing
+  0.3.0-beta.1). Add `--prerelease` for alpha/beta/rc versions.
+- Update `TODO.md` and the version and next step in `CLAUDE.md` "Status".

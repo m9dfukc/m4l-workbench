@@ -24,9 +24,9 @@ says so.
 - **Know what the test is for** and what the user should check. One question per test where
   possible ("does it compile with audio on", "does voice stealing click", "A/B snapshot 3 vs.
   Reaktor render"). If the current state cannot answer it, say so instead of handing it over.
-- **Run the offline checks** and fix failures first: `tools/check.sh <device>` (gencheck +
-  `.gendsp` regeneration, TS build, patch validation, maxdiff summary) and the device's offline
-  tests (reference model, null tests). Never hand over a state with failing checks.
+- **Run the offline checks** and fix failures first: `tools/check.sh <device>` (the whole
+  chain, steps in `CLAUDE.md` "Files") and the device's offline tests (host test, smoke test,
+  reference model). Never hand over a state with failing checks.
 - **Pick the label:** `t<N>` for a test of `devices/<name>/`, continuing the series in
   `testlog/<name>/` (`ls` it). The label names the state, not the result.
 - **Record the state** before handing over (the log needs it later): git short SHA, whether the
@@ -67,8 +67,7 @@ Tell the user, in the user's language, without making them open any file:
 
 Explain every id or abbreviation the handover uses (R-, A-ids, "P1/P2"), or leave it out. For
 a long handover, or one that is also saved in a document, run `fresh-review` with the reader
-lens on it before handing it over: the first run, on the t3 handover, found 16 gaps of the
-kinds listed above.
+lens on it before handing it over.
 
 Then stop and wait for the report.
 
@@ -105,9 +104,9 @@ conditions that matter for the conclusion.
 
 ## 4. Afterwards
 
-- Carry durable results out of the local log: `TODO.md` (done/open items, open checks),
-  `CLAUDE.md` "Status", the device's `docs/` (port status, measured CPU, known deviations from
-  the original).
+- Carry durable results out of the local log: `TODO.md` (done/open items, open checks), the
+  device's `docs/` (port status, measured CPU, known deviations from the original), and
+  `CLAUDE.md` "Status" only when the version or the next step changes (it stays a few lines).
 - Upgrade evidence markers only as far as the observation reaches, with a reference to the log
   entry (`testlog/<name>/<date>.md, <label>`).
 - If the handover is also written in a document (e.g. a build doc's test section), add a status

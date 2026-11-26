@@ -28,8 +28,8 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 - [x] **aliasing:** `outputmode` Mouse Up on the toggle-mode `live.text` boxes (user, D38; v0.3b,
       `check_shell.py` rule).
 - [ ] **aliasing 1.0 README images (user, at the release):** Live screenshots of the kept face(s) in the
-      light and dark theme replace the preview renders in `devices/aliasing/docs/img/` (recipe: `CLAUDE.md`
-      "Device README" §1; `m4l-release` asks for them).
+      light and dark theme replace the preview renders in `devices/aliasing/docs/img/` (recipe:
+      `.claude/rules/device-readme.md` §1; `m4l-release` asks for them).
 - [ ] **aliasing `parameter_info` for users (Claude, shell generator + both `.amxd`):** drop the decision IDs
       that Live shows in its Info View ("(D3)", "(D6)", "(D21)", "(D35)", "(D37)", "(D48)", "(D49)"), write
       ASCII leftovers out ("+-" → "±", "x" → "×", "0..1"), add texts for Table and Sample Drop; then
@@ -88,6 +88,13 @@ Answer these with the first `live-test` sessions; each needs a log reference whe
 
 ## Done
 
+- 2026-11-26: **Claude configuration reviewed** (user: "Ja, alles"): `CLAUDE.md` cut from 257 to 180
+  lines (Status reduced to version + next step, history and the skill list removed, Device README
+  convention moved to the path rule `.claude/rules/device-readme.md`); `v8-js.md` rewritten to the
+  build as it is (esbuild via `tools/js-build.mjs`, painters ES5); `max-patch.md` now loads with the
+  shell generators and test-patch makers (its old glob matched nothing); `handoff` saves to
+  `docs/handoffs/`; `m4l-release` covers several faces, the zip asset and `--prerelease`. Open:
+  the proposed `.claude/settings.json` changes (user).
 - 2026-11-26: **Device README convention** (user, grilling round "Alle ja" except the images):
   `devices/aliasing/README.md` rebuilt for users (images light/dark of both faces at the top, what it
   does, quick start, install, faces, parameter reference, beta status, credits, developer part);

@@ -3,7 +3,8 @@ paths:
   - "**/*.amxd"
   - "**/*.maxpat"
   - "**/*.maxhelp"
-  - "tools/**/build_*.py"
+  - "devices/**/scripts/*_shell.py"
+  - "devices/**/test/**/make_*.py"
 ---
 
 # Max patches and M4L devices (.amxd / .maxpat)
@@ -15,9 +16,10 @@ belongs in GenExpr or TypeScript, not in patch cords.
 
 - Ask whether the file is open in Max with unsaved changes: Max reloads changed files and
   **discards unsaved editor work without asking**.
-- Prefer a generator (py2max / m4l-builder roundtrip) over hand-editing JSON. After the first
-  bootstrap the **unfrozen `.amxd` is the source of truth**, not the generator script —
-  rerunning a bootstrap script would overwrite the user's layout work.
+- Prefer a generator over hand-editing JSON: the device's `scripts/bootstrap_shell.py` for a
+  shell, py2max (`test/**/make_*.py`) for test patches. Once the user has edited a shell in Max
+  the **unfrozen `.amxd` is the source of truth**, not the generator script — rerunning the
+  bootstrap (`--force`) would overwrite the user's layout work.
 - Review every change as a `maxdiff` diff (`git diff` uses it via `.gitattributes`).
 
 ## Never guess objects, ports or attributes

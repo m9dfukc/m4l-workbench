@@ -5,8 +5,8 @@ The bar a reviewed document in this repository is held to. Your lens says which 
 ## Rules and trust
 
 - `CLAUDE.md` (roles, evidence markers, architecture, safety rules, Max compatibility) and the
-  path rules in `.claude/rules/` (`gen.md`, `max-patch.md`, `v8-js.md`) are the project's
-  rules. Check the document against them.
+  path rules in `.claude/rules/` (`gen.md`, `max-patch.md`, `v8-js.md`, `device-readme.md`) are
+  the project's rules. Check the document against them.
 - The status lines in `CLAUDE.md` and `TODO.md`, and every document under `devices/*/docs/`,
   were written by the same author as the target. What they say is a claim, not evidence.
   Evidence is code, script output, a test log, the user's recorded words, or a linked

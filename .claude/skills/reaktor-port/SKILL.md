@@ -24,8 +24,8 @@ not re-research what is there.
   `docs/research/notes/reaktor-file-parsers-2026-11-24.md` has the framing and the plan. Parser
   output is `[observed: parser]` and is cross-checked against screenshots/Properties pages before
   it drives a decision; numeric type IDs are mapped via test instruments with one known module
-  each. The format is undocumented and NI has enforced its EULA against a *public* parser (2024):
-  the parser code therefore lives **only in `tools/local/`** (gitignored; user, 2026-11-24).
+  each. The parser code lives **only in `tools/local/`**, never committed or published (reason:
+  `CLAUDE.md` "Decisions").
 - The user operates Reaktor and Live (screenshots, Properties, renders); Claude plans exactly
   what to capture and documents it. Third-party files stay in `devices/<name>/reference/reaktor/`
   (local only, never edited).
@@ -75,7 +75,7 @@ pitch inputs are in semitones, levels in dB).
   pointers or pitches that shape the sound.
 - **Precision:** float32 emulation where accumulation or storage errors are audible (phase/
   position accumulators, stored table values, feedback states): `Buffer` bound to `buffer~`
-  (32-bit storage) or an explicit rounding helper — both [untested] until compared with renders.
+  (32-bit storage) or an explicit rounding helper — both [hypothesis] until compared with renders.
 - **Tables:** write index `floor()`, clip values to Min/Max, explicit read interpolation and
   wrap/clip, explicit same-sample write/read order (statement order in GenExpr).
 - **Layers:** voice DSP in one GenExpr file per voice in `poly~ <voice> N @steal 1` (the
@@ -115,6 +115,6 @@ by a sample null alone. Log each comparison via `live-test`.
 
 Every intentional or measured difference goes to `deviations.md` with its evidence marker.
 The device README credits the original author and links the original, in its "Origin and credits"
-section below the user part (structure: `CLAUDE.md` "Device README" — the README opens with what the
-device does, not with "inspired by …"); the terms for publishing a port are checked before any
+section below the user part (structure: `.claude/rules/device-readme.md` — the README opens with what
+the device does, not with "inspired by …"); the terms for publishing a port are checked before any
 release (`m4l-release`).
