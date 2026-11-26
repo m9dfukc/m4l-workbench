@@ -30,10 +30,31 @@ Start here. Open items first, then the done log. Evidence markers as in `CLAUDE.
 - [ ] **aliasing 1.0 README images (user, at the release):** Live screenshots of the kept face(s) in the
       light and dark theme replace the preview renders in `devices/aliasing/docs/img/` (recipe:
       `.claude/rules/device-readme.md` §1; `m4l-release` asks for them).
-- [ ] **aliasing `parameter_info` for users (Claude, shell generator + both `.amxd`):** drop the decision IDs
-      that Live shows in its Info View ("(D3)", "(D6)", "(D21)", "(D35)", "(D37)", "(D48)", "(D49)"), write
-      ASCII leftovers out ("+-" → "±", "x" → "×", "0..1"), add texts for Table and Sample Drop; then
-      `tools/check.sh aliasing` regenerates the README tables.
+- [x] **aliasing `parameter_info` for users (Claude, shell generator + both `.amxd`):** decision IDs
+      dropped, ASCII leftovers written out, texts for Table and Sample Drop (212f352). That commit reached
+      `parameter_info` only; Max's clue window and Live's Info View read the box attribute `annotation`,
+      which kept the old wording. Fixed 2026-11-26: all four text fields in step, a `check_shell.py` rule.
+- [ ] **aliasing t8 (user, in Max or Live): do the info texts show?** Handover 2026-11-26
+      `testlog/aliasing/t8-handover.md`. Every control, label, meter, the table display and the background
+      panels (the device's description) carry a title and a text since 2026-11-26 [code]. Open: whether
+      Max's clue window and Live's Info View show the texts of **panels** (background layer) and
+      **`live.comment`** labels on hover, and whether Live cuts the ~470-character description
+      [hypothesis]. If panels show nothing: move the description to the section titles. First report
+      (testlog 2026-11-26): the user still sees Live's default "The Aliasing Instrument" — on the title bar
+      (no `.amxd` field sets that, `docs/research/notes/live-info-view-device-text-2026-11-26.md`) or on a
+      panel: not reported yet. Loading is fine (t8-auto PASS, both faces). Second report: parameters
+      show title + text; a `live.comment` label and the background panel (`panel_w`) show the default.
+      Probe `devices/aliasing/test/probe-info/InfoProbe.amxd` (user, same day): only the invisible
+      `ubutton`, the `live.dial` and the `live.meter~` showed their texts; panels (either layer) and
+      comments never do. **Rebuilt:** label texts on a `ubutton` over each label (`<label>_tip`), the
+      description on one behind each panel (`tipzone_<panel>`); both shells regenerated, `check.sh` OK.
+      t8b (user): the description then showed everywhere, also over dials and meters — Max lists boxes
+      front to back, the panel-wide zones were in front of the controls. **Now (user's decision):** the
+      description only on the title lines of the Global page, a zone in front of each label, no
+      panel-wide zones; harness PASS for both faces (t8c-auto).
+      **Open (user): re-test t8c** — controls and meters show their own texts again, labels and section
+      titles theirs, the title lines the description, which title the zones show (`annotation_name` or
+      the scripting name), the table display; `testlog/aliasing/t8-handover.md` §6.
 - [ ] **aliasing review (user + Claude):** the v0.2 decisions A1–A33 (`docs/v0.2-build.md` §1) that
       v0.3 did not replace, and the mock-up's own decisions (`docs/mockup-v0.3/layout.md` §4–§5).
 - [ ] aliasing v0.4: own presets (JSON + menu) incl. the v0.2 init sound (D1), `live.banks` for Push,

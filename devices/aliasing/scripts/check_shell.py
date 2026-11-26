@@ -129,6 +129,62 @@ def check(amxd: Path) -> int:
                 errors.append(f"live.text {vo.get('parameter_longname')}: Live would show val1/val2 (set automation/automationon)")
             elif vo.get("parameter_enum") and vo["parameter_enum"] != labels:
                 errors.append(f"live.text {vo.get('parameter_longname')}: automation labels {labels} differ from parameter_enum {vo['parameter_enum']}")
+    # info texts: Max's clue window and Live's Info View show the box attributes annotation /
+    # annotation_name, the README is filled from parameter_info - a parameter needs all four, in step
+    # (2026-11-26: a text edit had reached parameter_info only, the faces still showed the old texts).
+    # Live never shows the text of a panel or a (live.)comment (t8 and test/probe-info, 2026-11-26): a
+    # label's text sits on an invisible ubutton in front of it ("<label>_tip"); the device's description is
+    # the text of the title lines' zones (out_info1, out_info2). Meters and the display carry their own.
+    # Max lists boxes front to back (first = frontmost; measured on Max-saved devices and in t8b, where
+    # zones listed first won the hover over every control): a label's zone is the box right before it, and
+    # a zone never covers more than its label.
+    box_order = [b["box"] for b in pat["patcher"]["boxes"]]
+    described = pat["patcher"].get("description") or ""
+    if not described.strip():
+        errors.append("device description: the patcher description is empty")
+    for k, b in enumerate(box_order):
+        who = str(b.get("varname") or b["maxclass"])
+        cls = b["maxclass"]
+        vo = (b.get("saved_attribute_attributes") or {}).get("valueof")
+        text, title = str(b.get("annotation") or ""), str(b.get("annotation_name") or "")
+        nxt = box_order[k + 1] if k + 1 < len(box_order) else {}
+        prv = box_order[k - 1] if k else {}
+        if re.search(r"\(D\d+\)", text):
+            errors.append(f"info text of {who}: decision ID in a user-facing text")
+        if vo is not None:
+            if text != vo.get("parameter_info", "") or title != vo.get("parameter_annotation_name", ""):
+                errors.append(f"info text of {who}: annotation / annotation_name differ from parameter_info / "
+                              "parameter_annotation_name")
+            if not text.strip() or not title.strip():
+                errors.append(f"info text of {who}: no annotation or no annotation_name")
+            continue
+        if not b.get("presentation"):
+            continue
+        if cls in ("panel", "live.comment", "comment"):
+            if text or title:
+                errors.append(f"info text of {who}: a {cls} never shows one in Live (use a ubutton zone)")
+            if cls == "panel" or b.get("ignoreclick"):  # panels, markers, overlays on a dial
+                continue
+            zone = who + "_tip"
+            if not (prv.get("maxclass") == "ubutton" and prv.get("varname") == zone
+                    and prv.get("presentation_rect") == b["presentation_rect"]):
+                errors.append(f"info text of {who}: no hover zone {zone} at its rect right before it (= in front)")
+            elif who.startswith("out_info") and prv.get("annotation") != described:
+                errors.append(f"hover zone {zone}: its text is not the patcher description")
+            continue
+        if cls == "live.line":
+            continue
+        if not text.strip() or not title.strip():
+            errors.append(f"info text of {who}: no annotation or no annotation_name")
+        if cls == "ubutton":
+            if b.get("hilite", 1) != 0:
+                errors.append(f"hover zone {who}: hilite must be 0 (it would flash on a click)")
+            label = nxt if nxt.get("maxclass") == "live.comment" and who == str(nxt.get("varname")) + "_tip" else None
+            if label is None or label.get("presentation_rect") != b["presentation_rect"]:
+                errors.append(f"hover zone {who}: not the zone of the label right behind it (a zone covers its "
+                              "label only; a larger one takes the hover and the clicks of the controls)")
+            elif bool(b.get("hidden")) != bool(label.get("hidden")):
+                errors.append(f"hover zone {who}: hidden differs from its label")
     # live.tab lays out (and hit-tests) num_lines rows only with multiline on; with multiline 0 it is
     # one row whatever the painter draws (m4l-boxref live.tab; t4, Write Shape grid felt like a slider)
     for b in boxes.values():
@@ -198,11 +254,18 @@ def check(amxd: Path) -> int:
         return a["maxclass"] == "live.drop" and c["maxclass"] == "v8ui" and bool(a.get("ignoreclick")) and \
             a["presentation_rect"] == c["presentation_rect"] and order.index(a["id"]) == order.index(c["id"]) - 1
 
+    def is_tip_of(a: dict, c: dict) -> bool:
+        """a = the hover zone of label c: a ubutton at its rect, right before it in the box order (in front)."""
+        return a["maxclass"] == "ubutton" and c["maxclass"] == "live.comment" and \
+            a.get("varname") == str(c.get("varname")) + "_tip" and a["presentation_rect"] == c["presentation_rect"] and \
+            order.index(a["id"]) == order.index(c["id"]) - 1
+
     def allowed(a: dict, c: dict) -> bool:
         kinds = {a["maxclass"], c["maxclass"]}
-        if kinds == {"live.line", "live.comment"}:
+        if kinds in ({"live.line", "live.comment"}, {"live.line", "ubutton"}):
             return True
-        return is_overlay_on(a, c) or is_overlay_on(c, a) or is_drop_zone(a, c) or is_drop_zone(c, a)
+        return is_overlay_on(a, c) or is_overlay_on(c, a) or is_drop_zone(a, c) or is_drop_zone(c, a) or \
+            is_tip_of(a, c) or is_tip_of(c, a)
     for b in boxes.values():
         if b["maxclass"] == "live.comment" and b.get("ignoreclick") and b.get("presentation"):
             if not any(is_overlay_on(b, c) for c in boxes.values() if c["maxclass"] == "live.dial"):

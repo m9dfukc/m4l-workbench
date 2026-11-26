@@ -39,6 +39,11 @@ belongs in GenExpr or TypeScript, not in patch cords.
   (`1000.`); JSON drops `.0`, so keep floats as floats on purpose.
 - Attribute values have types: `align 1`, not `align center` (silently ignored).
 - Codebox source goes into `"code"`, not `"text"` (else the default template loads).
+- **Box order is z-order, front to back:** the first box of a patcher's `boxes` array is the
+  frontmost of its layer; the background layer (`background: 1`) lies behind everything whatever
+  the order. An overlay goes right *before* the box it covers, and nothing large may be listed
+  before the controls: it takes their hover and their clicks [measured: 593 of 598 controls on a
+  foreground panel come before it in 68 Max-saved devices; aliasing t8b, 2026-11-26].
 
 ## Max for Live specifics
 
@@ -61,6 +66,13 @@ belongs in GenExpr or TypeScript, not in patch cords.
   version is out. Parameters set from inside the patch must be **Hidden** (else they flood
   Live's undo history). Only parameter-mode objects are saved with the Set (`pattr` only with
   Parameter Mode on).
+- **Info texts** (Live's Info View, Max's clue window) are the box attributes `annotation` (text)
+  and `annotation_name` (title); a parameter mirrors them in `valueof` as `parameter_info` /
+  `parameter_annotation_name`: write all four in step, `parameter_info` alone shows nothing.
+  Live shows them for `live.*` parameters, `live.meter~` and `ubutton`, never for a `panel` or a
+  `comment`/`live.comment`: a label gets an invisible `ubutton` (`hilite 0`) of its own size in
+  front of it. The device's title bar text cannot be set from the `.amxd` [measured: aliasing t8,
+  `docs/research/notes/live-info-view-device-text-2026-11-26.md`].
 - Device-local names for `send`/`receive`/`buffer~`/`dict`/`coll`/`value` start with `---`
   (replaced per device instance). This works in object boxes only, **not** inside JS strings —
   pass such names to v8 by message.

@@ -3,6 +3,23 @@
 SemVer per device; tags `aliasing-v<version>` (monorepo). Earlier internal builds (v0.1–v0.3b) were
 never released; their decisions are in `docs/`.
 
+## Unreleased
+
+- **Info texts on the face** (Live's Info View, Max's clue window): every control shows its text under
+  its long name as the title. The texts of 0.3.0-beta.1 had reached only `parameter_info` (and the
+  README); the faces still showed older wordings, and four objects showed nothing.
+- **Device description:** what the instrument does and which controls it has, as the info text of the
+  title lines "Aliasing v0.3b / after D. Pank" on the Global page, and in the patcher's description; one
+  text per face. (The device's title bar and empty areas keep Live's own "The Aliasing Instrument": a
+  device cannot set that text.)
+- Labels show the text of their control; section titles (Write, Read, LFO 1/2, Env Follower, Mod, Tune,
+  Output), the mod matrix headers (what a source sends, what ±100 % does to a target), the meters and
+  the table display (drawing, sample drop, Line / 2D, tone curve) have texts of their own.
+- Live never shows the info text of a panel or a comment (measured, `test/probe-info/`), so each label's
+  text sits on an invisible hover zone (`ubutton`) in front of it. 34 new boxes in A, 18 in B; no
+  parameter, cord or rect changed.
+- Checked in Live: the controls' texts. Not yet checked: the label zones, the meters and the display.
+
 ## 0.3.0-beta.1 — 2026-11-26
 
 First public beta (GitHub pre-release, tag `aliasing-v0.3.0-beta.1`). Tested in Live 12.4.16 on macOS

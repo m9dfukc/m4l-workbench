@@ -23,7 +23,14 @@ The unfrozen .amxd files are the source of truth once the user edits them in Max
 therefore refuses to overwrite an existing file unless --force is given, and --force discards every
 edit made in Max since. (v0.1 -> v0.3b were regenerated with --force: the shells had no Max edits.)
 
+Info texts (Live's Info View, Max's clue window) live in this file too: every parameter, meter and the
+display get a title and a text; labels get theirs through an invisible ubutton zone in front of each,
+since Live never shows the text of a panel or a comment. The device's description is the text of the two
+title lines on the Global page. --sync-texts writes only the texts into an existing shell and leaves everything else
+as Max saved it (it adds no boxes).
+
 Usage: python3 devices/aliasing/scripts/bootstrap_shell.py [--face hybrid|b] [--template PATH] [--out PATH] [--force]
+       python3 devices/aliasing/scripts/bootstrap_shell.py --face b --sync-texts    (info texts only, in place)
        python3 devices/aliasing/scripts/bootstrap_shell.py --face b --list-params   (parameter table, Markdown)
        python3 devices/aliasing/scripts/bootstrap_shell.py --face b --list-layout   (layout table, Markdown)
 """
@@ -49,10 +56,90 @@ FACES = ("hybrid", "b")
 FACE_WIDTH = {"hybrid": 918.0, "b": 800.0}  # hybrid: 968 - 50 since the compact pointer rows (D47)
 FACE_FILE = {"hybrid": "Aliasing.amxd", "b": "Aliasing B.amxd"}
 FACE_TITLE = {"hybrid": "Aliasing", "b": "Aliasing B"}
+FACE_NAME = {"hybrid": "Aliasing A", "b": "Aliasing B"}  # the device's name in the info texts
+# ---- info texts -------------------------------------------------------------------------------------
+# Max's clue window and Live's Info View show a box's `annotation` under the title `annotation_name`;
+# Max mirrors both into a parameter's valueof as parameter_info / parameter_annotation_name [sourced:
+# m4l-ref/live.dial.maxref.xml, max-ref/jbox.maxref.xml; measured: Max-saved boxes in Max's and Live's
+# resources carry the box attributes, 78 of them all four, 2026-11-26]. annotate() writes all four, so
+# every text below is user-facing: no decision IDs. tools/readme_params.py copies parameter_info into
+# the README. Live shows the texts of live.* parameters, live.meter~ and ubutton, but never those of a
+# panel or a (live.)comment, in either layer: there it falls back to its own "The <name> Instrument"
+# [measured: aliasing t8 and test/probe-info, 2026-11-26]. So a label's text sits on an invisible ubutton
+# in front of it (tip_zone()). The device's description is the text of the two title lines on the Global
+# page ("Aliasing v0.3b", "after D. Pank") and of nothing else (user, 2026-11-26: no zones behind the
+# sections; the first try, panel-wide zones, took the hover of every control).
+# Box order: Max lists the boxes of a layer FRONT TO BACK - the first box is the frontmost [measured:
+# in 68 Max-saved devices 593 of 598 controls lying on a foreground panel come before it, 2026-11-26;
+# t8b: zones listed first won the hover over every control]. So a label's zone comes right before its
+# label. (Panels are in the background layer, which lies behind everything whatever the order.)
 # Info View texts of the two non-control parameters (the dict Blob and the live.drop)
 TABLE_INFO = "The table's five voice rows as they were written, drawn or dropped; saved with the Live Set."
 SAMPLE_DROP_INFO = ("Drop an audio file onto the table display: it becomes the table of all five voices (FIT or "
                     "1:1, see Drop Fit).")
+DISPLAY_INFO = ("The five voices' table rows with their write and read heads, as lines or as a 2D image (icons top "
+                "right). Drag in a lane to draw that row (Shift: all five, Alt: a straight line); a double-click "
+                "resets it to a ramp. Drop an audio file to make it the table (FIT or 1:1). On the tone pages it "
+                "shows the tone curve: drag the band and the resonator.")
+DEVICE_INFO_HEAD = ("A 5-voice drone instrument. A write pointer records into a small table while a read pointer "
+                    "plays it back, each at its own speed; the mismatch is the sound. Write and Read set pitch or "
+                    "tempo-synced rate and shape. ")
+DEVICE_INFO_FACE = {
+    "hybrid": "The pages hold two LFOs and an envelope follower, a mod matrix, a tone section (drive, band, "
+              "resonator) and the global settings with a limiter. ",
+    "b": "The side pages hold two LFOs, an envelope follower, band and drive, a resonator, a limiter and the "
+         "global settings; the Mod strip shows the eight modulation depths of one target. "}
+DEVICE_INFO_TAIL = ("Draw into the table display or drop a sample onto it. Inspired by 'aliasing Synth' by "
+                    "D. Pank.")
+# sections: (info title, text), shown by the section titles and group labels
+SECTION_INFO = {
+    "write": ("Write", "The write pointer stores the read pointer's position in the table as it moves. Its rate "
+                       "(pitch or tempo sync), shape and state decide which cells are overwritten, and when."),
+    "read": ("Read", "The read pointer plays the table back. Its rate (pitch or tempo sync), the spread across "
+                     "the 5 voices, its shape and Smooth set what is heard."),
+    "lfo1": ("LFO 1", "LFO 1, one copy per voice (Spread sets how far their rates differ). It only acts through "
+                      "the mod matrix."),
+    "lfo2": ("LFO 2", "LFO 2, one copy per voice (Spread sets how far their rates differ). It only acts through "
+                      "the mod matrix."),
+    "env": ("Env Follower", "Envelope follower on the device's own output: after the tone section and Output, "
+                            "before the limiter. It only acts through the mod matrix; the bar shows its level."),
+    "mod": ("Mod", "Modulation strip: the eight depths of the target picked in the menu, one per source. A dot "
+                   "in the menu marks every modulated target; Clear sets the shown depths to 0."),
+    "tune": ("Tune", "Transpose moves both pointers in Hz mode; Rate multiplies every synced pointer rate by a "
+                     "power of two."),
+    "output": ("Output", "Stereo width of the 5 voices and the output level."),
+}
+# mod matrix headers (README "Mod matrix"): what a source sends, what a depth of ±100 % does to a target
+SRC_INFO = {
+    "l1": "Mod source: LFO 1, −1 … +1, one LFO per voice.",
+    "l2": "Mod source: LFO 2, −1 … +1, one LFO per voice.",
+    "en": "Mod source: the envelope follower's level, 0 … 1. A feedback loop: it hears the device's own output.",
+    "ve": "Mod source: the last note-on's velocity, 0 … 1.",
+    "mw": "Mod source: the mod wheel (MIDI CC 1), 0 … 1.",
+    "vo": "Mod source: the voice's own table output, at audio rate.",
+    "nb": "Mod source: the next voice's table output (1 → 2 → … → 5 → 1), at audio rate.",
+    "ro": "Mod source: the voice's read pointer as a waveform, at audio rate: pitch-locked FM and phase "
+          "distortion.",
+}
+TGT_INFO = {
+    "wp": "Mod target: ±100 % moves Write Pitch by ±24 semitones (cubic: ±50 % = ±3 st).",
+    "sy": "Mod target: ±100 % moves Write Sym by ±1 on its −1 … +1 scale.",
+    "wa": "Mod target: the write gate. A voice writes while Write State (Write or Clean) plus the modulation is "
+          "above the threshold: a positive depth opens writing in Freeze, a negative one pauses it in Write.",
+    "rp": "Mod target: ±100 % moves Read Pitch by ±24 semitones (cubic: ±50 % = ±3 st).",
+    "sp": "Mod target: ±100 % moves Read Spread by ±6 semitones.",
+    "sz": "Mod target: ±100 % multiplies or divides Size by 8.",
+    "bc": "Mod target: ±100 % moves Band Center by ±4 octaves.",
+    "rf": "Mod target: ±100 % moves Res Freq by ±3 octaves.",
+    "ou": "Mod target: ±100 % moves Output by ±24 dB (at most +12 dB above the Output setting).",
+}
+# live.meter~ by gen~ outlet: (info title, text)
+METER_INFO = {
+    0: ("Output Meter", "Output level of the left channel, after the limiter."),
+    1: ("Output Meter", "Output level of the right channel, after the limiter."),
+    2: ("Env Level", "The envelope follower's level after Env Gain, 0 … 1: what the Env source sends into the "
+                     "mod matrix."),
+}
 WIDTH = FACE_WIDTH["hybrid"]  # the hybrid's width (older importers)
 DIAL_H = 48.0  # live.dial with showname 1, shownumber 1 [measured: dial probe, build/aliasing/dialprobe]
 LINE_H = 15.0  # single-line controls (Ableton's measure, research note summary 1)
@@ -139,9 +226,38 @@ def valueof(longname: str, shortname: str, ptype: int, *, mmin: float | None = N
         v["parameter_steps"] = steps
     if info:
         v["parameter_info"] = info
+        v["parameter_annotation_name"] = longname  # the info title; annotate() copies both to the box
     if invisible is not None:
         v["parameter_invisible"] = invisible
     return v
+
+
+def device_info(face: str) -> str:
+    """What the instrument does and which controls it has: the patcher's description and the info text of
+    the two title lines on the Global page."""
+    return DEVICE_INFO_HEAD + DEVICE_INFO_FACE[face] + DEVICE_INFO_TAIL
+
+
+def annotate(box: dict, name: str = "", text: str = "") -> dict:
+    """Give a box its info title and text. A parameter box takes them from its valueof (parameter_info, and
+    the long name as the title) unless given here, and gets all four fields."""
+    vo = (box.get("saved_attribute_attributes") or {}).get("valueof")
+    if vo is not None:
+        text = text or vo.get("parameter_info", "")
+        name = name or vo.get("parameter_annotation_name") or vo["parameter_longname"]
+        vo["parameter_info"], vo["parameter_annotation_name"] = text, name
+    assert name and text, f"no info text for {box.get('varname', box.get('maxclass'))}"
+    box["annotation"], box["annotation_name"] = text, name
+    return box
+
+
+def tip_zone(var: str, rect: list[float], patching_rect: list[float], name: str, text: str) -> dict:
+    """An invisible ubutton that carries an info text where the object in view cannot (panels, comments).
+    Box as Max saves it (m4l-boxref ubutton); hilite 0 = no flash on a click (Ableton's Gated Delay)."""
+    return annotate({"maxclass": "ubutton", "varname": var, "handoff": "", "hilite": 0, "numinlets": 1,
+                     "numoutlets": 4, "outlettype": ["bang", "bang", "", "int"], "parameter_enable": 0,
+                     "patching_rect": patching_rect, "presentation": 1, "presentation_rect": list(rect)},
+                    name, text)
 
 
 def int_param(long: str, short: str, lo: int, hi: int, init: int, **kw) -> dict:
@@ -228,6 +344,8 @@ class Label:
     bold: bool = False
     just: int = 0                 # 0 left, 1 centre, 2 right
     overlay: bool = False         # name-row overlay on a dial (ignoreclick, drawn after it, h.2)
+    tip: str = ""                 # info text (tip_text): "ctl:<key>", "sec:<name>", "src:<s>", "tgt:<t>",
+    #                               "meter:<outlet>" or "device"; none for an overlay (the dial shows its own)
 
 
 def r(x: float, y: float, w: float, h: float) -> list[float]:
@@ -467,8 +585,28 @@ class Layout:
     display: list[float]                          # v8ui rect
 
 
-def comment_at(text: str, x: float, base: float, w: float, var: str, *, bold: bool = False, just: int = 0,
-               size: float = FS, h: float = 15.0) -> Label:
+def tip_text(tip: str, face: str, by_key: dict[str, Ctl]) -> tuple[str, str]:
+    """(info title, info text) of a label: the text of the control it names ("ctl:<key>"), of its section,
+    of a mod source or target, of a meter, or the device's description."""
+    kind, _, key = tip.partition(":")
+    if kind == "ctl":
+        vo = by_key[key].vo
+        return vo["parameter_longname"], vo["parameter_info"]
+    if kind == "sec":
+        return SECTION_INFO[key]
+    if kind == "src":
+        return "Mod Source: " + next(s[1] for s in SRCS if s[0] == key), SRC_INFO[key]
+    if kind == "tgt":
+        return "Mod Target: " + next(t[1] for t in TGTS if t[0] == key), TGT_INFO[key]
+    if kind == "meter":
+        return METER_INFO[int(key)]
+    if kind == "device":
+        return FACE_NAME[face], device_info(face)
+    raise ValueError(f"label without an info text (tip {tip!r})")
+
+
+def comment_at(text: str, x: float, base: float, w: float, var: str, *, tip: str, bold: bool = False,
+               just: int = 0, size: float = FS, h: float = 15.0) -> Label:
     """A live.comment whose text starts at x (left), is centred in w (centre) or ends at x (right), with its
     baseline at base: the text sits 4 px in from the box edge and its baseline 11 px below the box top
     [measured: face review §0 for 8-9 pt; hypothesis for 9.5 pt]."""
@@ -478,11 +616,12 @@ def comment_at(text: str, x: float, base: float, w: float, var: str, *, bold: bo
         bx = x
     else:
         bx = x - 4
-    return Label(text, r(bx, base - 11, w, h), var, size, bold, just)
+    return Label(text, r(bx, base - 11, w, h), var, size, bold, just, tip=tip)
 
 
 def overlay(text: str, dial: list[float], var: str) -> Label:
-    """Name row of a dial written by a comment (h.2): baseline at the painter's name baseline (dial y + 10)."""
+    """Name row of a dial written by a comment (h.2): baseline at the painter's name baseline (dial y + 10).
+    Clicks and the hover pass through it (ignoreclick), so the dial's info text shows."""
     return Label(text, r(dial[0], dial[1] - 1, dial[2], 15), var, FS, False, 1, overlay=True)
 
 
@@ -513,7 +652,7 @@ def layout_hybrid() -> Layout:
     C: list[Ctl] = []
     L: list[Label] = []
     for p, title, y0 in (("w", "Write", 4.0), ("r", "Read", 86.0)):
-        L.append(comment_at(title, 12, y0 + 13, 52, f"{p}_title", bold=True))
+        L.append(comment_at(title, 12, y0 + 13, 52, f"{p}_title", bold=True, tip=f"sec:{title.lower()}"))
         place(sp, C, f"{p}.mode", f"{p}_mode", r(10, y0 + 18, 50, LINE_H))
         place(sp, C, f"{p}.mult", f"{p}_sync_mult", r(10, y0 + 36, 24, LINE_H))
         place(sp, C, f"{p}.div", f"{p}_sync_div", r(36, y0 + 36, 24, LINE_H))
@@ -522,7 +661,7 @@ def layout_hybrid() -> Layout:
         d1 = place(sp, C, f"{p}.fine", f"{p}_fine", r(106, y0 + 4, 42, DIAL_H))
         L.append(overlay("Fine", d1, f"{p}_free_lblfine"))
         L.append(overlay("Detune", d1, f"{p}_sync_lbldetune"))
-        L.append(comment_at("Shape", 12, y0 + 69, 52, f"{p}_shapelbl"))
+        L.append(comment_at("Shape", 12, y0 + 69, 52, f"{p}_shapelbl", tip=f"ctl:{p}.shape"))
         if p == "w":
             d2 = place(sp, C, "w.sym", "w_sym", r(148, y0 + 4, 42, DIAL_H))
             for g in SYM_GROUPS:
@@ -530,7 +669,7 @@ def layout_hybrid() -> Layout:
             # D47: a drop-down next to the dials, its name in their name row (user, 2026-11-25: the 3-row
             # switch read as a hamburger menu)
             sp["w.active"].cls = "live.menu"
-            L.append(comment_at("State", 198, y0 + 14, 56, "w_statelbl"))
+            L.append(comment_at("State", 198, y0 + 14, 56, "w_statelbl", tip="ctl:w.active"))
             place(sp, C, "w.active", "w_active", r(194, y0 + 20, 56, LINE_H))
             place(sp, C, "w.shape", "w_shape", r(64, y0 + 58, 24 * len(W_SHAPES), LINE_H))
         else:
@@ -543,29 +682,30 @@ def layout_hybrid() -> Layout:
     # LFO · Env (dx = 0, 106)
     for k in (1, 2):
         dx = (k - 1) * 106.0
-        L.append(comment_at(f"LFO {k}", 648 + dx, 41, 44, f"lfo_l{k}title", bold=True))
+        L.append(comment_at(f"LFO {k}", 648 + dx, 41, 44, f"lfo_l{k}title", bold=True, tip=f"sec:lfo{k}"))
         place(sp, C, f"lfo{k}.mode", f"lfo_l{k}mode", r(698 + dx, 30, 50, LINE_H))
         place(sp, C, f"lfo{k}.shape", f"lfo_l{k}shape", r(646 + dx, 50, 102, LINE_H))
         place(sp, C, f"lfo{k}.rate", f"lfo_hz{k}_rate", r(646 + dx, 70, 34, DIAL_H))
         place(sp, C, f"lfo{k}.note", f"lfo_sy{k}_note", r(646 + dx, 70, 34, DIAL_H))
         place(sp, C, f"lfo{k}.phase", f"lfo_l{k}phase", r(680 + dx, 70, 34, DIAL_H))
         place(sp, C, f"lfo{k}.spread", f"lfo_l{k}spread", r(714 + dx, 70, 34, DIAL_H))
-        L.append(comment_at("Retrig", 648 + dx, 139, 34, f"lfo_l{k}retriglbl"))
+        L.append(comment_at("Retrig", 648 + dx, 139, 34, f"lfo_l{k}retriglbl", tip=f"ctl:lfo{k}.retrig"))
         place(sp, C, f"lfo{k}.retrig", f"lfo_l{k}retrig", r(678 + dx, 128, 70, LINE_H))
-    L.append(comment_at("Env Follower", 862, 41, 98, "lfo_envtitle", bold=True))
+    L.append(comment_at("Env Follower", 862, 41, 98, "lfo_envtitle", bold=True, tip="sec:env"))
     for i, key in enumerate(("env.att", "env.rel", "env.gain")):
         place(sp, C, key, f"lfo_env_{key[4:]}", r(858 + 34 * i, 70, 34, DIAL_H))
-    L.append(comment_at("post Tone · pre Limiter", 862, 139, 98, "lfo_envnote"))
+    L.append(comment_at("post Tone · pre Limiter", 862, 139, 98, "lfo_envnote", tip="sec:env"))
 
     # Mod: destinations as rows (face review §7 option A, D36)
     xs = [710, 740, 770, 804, 834, 868, 898, 928]
     for (s, _, _, slabel), x in zip(SRCS, xs):
-        L.append(Label("MW" if s == "mw" else slabel, r(x - 1, 28, 30, 13), f"mod_cl_{s}", FS, False, 1))
+        L.append(Label("MW" if s == "mw" else slabel, r(x - 1, 28, 30, 13), f"mod_cl_{s}", FS, False, 1,
+                       tip=f"src:{s}"))
     markers = []
     for row, (t, tlong, _) in enumerate(TGTS):
         y = 44.0 + 13.0 * row
         markers.append((r(646, y + 2, 2, 8), f"mod_mark_{t}"))
-        L.append(Label(tlong, r(648, y - 1, 60, 13), f"mod_rl_{t}", FS))
+        L.append(Label(tlong, r(648, y - 1, 60, 13), f"mod_rl_{t}", FS, tip=f"tgt:{t}"))
         for (s, _, _, _), x in zip(SRCS, xs):
             place(sp, C, f"mx.{s}.{t}", f"mod_{s}_{t}", r(x, y, 28, 12))
 
@@ -584,21 +724,21 @@ def layout_hybrid() -> Layout:
 
     # Global: the version lines on top, Gate / Resync / buttons aligned to the bottom of the dial rows
     # (y 161) (user, 2026-11-25, D46)
-    L.append(comment_at(f"Aliasing {VERSION}", 648, 38, 104, "out_info1", h=13))
-    L.append(comment_at("after D. Pank", 648, 51, 104, "out_info2", h=13))
-    L.append(comment_at("Gate", 648, 86, 100, "out_lgate"))
+    L.append(comment_at(f"Aliasing {VERSION}", 648, 38, 104, "out_info1", h=13, tip="device"))
+    L.append(comment_at("after D. Pank", 648, 51, 104, "out_info2", h=13, tip="device"))
+    L.append(comment_at("Gate", 648, 86, 100, "out_lgate", tip="ctl:gate"))
     place(sp, C, "gate", "out_gate", r(646, 90, 100, LINE_H))
-    L.append(comment_at("Resync (bars)", 648, 119, 100, "out_lresync"))
+    L.append(comment_at("Resync (bars)", 648, 119, 100, "out_lresync", tip="ctl:resync"))
     place(sp, C, "resync", "out_resync", r(646, 123, 100, LINE_H))
     place(sp, C, "syncnow", "out_syncnow", r(646, 146, 48, LINE_H))
     place(sp, C, "aa", "out_aa", r(698, 146, 48, LINE_H))
     place(sp, C, "lim.on", "out_lim_on", r(754, 27, 52, LINE_H))
     for i, key in enumerate(("gain", "sat", "color", "rel", "ceil")):
         place(sp, C, f"lim.{key}", f"out_lim_{key}", r(754 + 36 * i, 44, 36, DIAL_H))
-    L.append(comment_at("Tune", 756, 107, 46, "out_ltune"))
+    L.append(comment_at("Tune", 756, 107, 46, "out_ltune", tip="sec:tune"))
     place(sp, C, "transpose", "out_transpose", r(752, 113, 46, DIAL_H))
     place(sp, C, "syncrate", "out_syncrate", r(800, 113, 36, DIAL_H))
-    L.append(comment_at("Output", 864, 107, 70, "out_lout"))
+    L.append(comment_at("Output", 864, 107, 70, "out_lout", tip="sec:output"))
     place(sp, C, "width", "out_width", r(862, 113, 36, DIAL_H))
     place(sp, C, "output", "out_output", r(898, 113, 36, DIAL_H))
     for c in C:
@@ -627,7 +767,7 @@ def layout_b() -> Layout:
     L: list[Label] = []
     # band 3: the constant dial row
     for p, title, x0, dx in (("w", "Write", 4.0, 0.0), ("r", "Read", 334.0, 330.0)):
-        L.append(comment_at(title, x0 + 6, 130, 50, f"{p}_title", bold=True))
+        L.append(comment_at(title, x0 + 6, 130, 50, f"{p}_title", bold=True, tip=f"sec:{title.lower()}"))
         place(sp, C, f"{p}.mode", f"{p}_mode", r(8 + dx, 135, 56, LINE_H))
         place(sp, C, f"{p}.mult", f"{p}_sync_mult", r(8 + dx, 152, 27, LINE_H))
         place(sp, C, f"{p}.div", f"{p}_sync_div", r(37 + dx, 152, 27, LINE_H))
@@ -653,11 +793,11 @@ def layout_b() -> Layout:
 
     # band 2: the modulation strip (D36); the menu marks modulated targets with a dot (D48) and a Clear
     # button resets the shown target's eight depths (D49), so the sources step by 80 px instead of 83
-    L.append(comment_at("Mod", 10, 109, 28, "strip_title"))
+    L.append(comment_at("Mod", 10, 109, 28, "strip_title", tip="sec:mod"))
     place(sp, C, "mod_target", "mod_target", r(34, 98, 80, LINE_H))
     place(sp, C, "mod_clear", "strip_clear", r(117, 98, 30, LINE_H))
     for i, (s, _, _, slabel) in enumerate(SRCS):
-        L.append(comment_at(slabel, 182 + 80 * i, 109, 36, f"strip_lbl_{s}", just=2))
+        L.append(comment_at(slabel, 182 + 80 * i, 109, 36, f"strip_lbl_{s}", just=2, tip=f"src:{s}"))
         for t, _, _ in TGTS:
             place(sp, C, f"mx.{s}.{t}", f"mod_{s}_{t}", r(188 + 80 * i, 98, 39, LINE_H))
 
@@ -668,14 +808,14 @@ def layout_b() -> Layout:
         a = f"lfo{k}"
         place(sp, C, f"lfo{k}.mode", f"{a}_l{k}mode", r(x0, ly, 48, LINE_H))
         place(sp, C, f"lfo{k}.shape", f"{a}_l{k}shape", r(566, ly, 108, LINE_H))
-        L.append(comment_at("Retrig", 708, ly + 11, 38, f"{a}_retriglbl", just=2))
+        L.append(comment_at("Retrig", 708, ly + 11, 38, f"{a}_retriglbl", just=2, tip=f"ctl:lfo{k}.retrig"))
         place(sp, C, f"lfo{k}.retrig", f"{a}_l{k}retrig", r(712, ly, 78, LINE_H))
         place(sp, C, f"lfo{k}.rate", f"{a}_hz{k}_rate", r(x0, dy, 48, DIAL_H))
         place(sp, C, f"lfo{k}.note", f"{a}_sy{k}_note", r(x0, dy, 48, DIAL_H))
         place(sp, C, f"lfo{k}.phase", f"{a}_l{k}phase", r(x0 + 48, dy, 48, DIAL_H))
         place(sp, C, f"lfo{k}.spread", f"{a}_l{k}spread", r(x0 + 96, dy, 48, DIAL_H))
-    L.append(comment_at("Level", 516, ly + 11, 34, "env_lbllevel"))
-    L.append(comment_at("post Tone · pre Limiter", 790, ly + 11, 122, "env_note", just=2))
+    L.append(comment_at("Level", 516, ly + 11, 34, "env_lbllevel", tip="meter:2"))
+    L.append(comment_at("post Tone · pre Limiter", 790, ly + 11, 122, "env_note", just=2, tip="sec:env"))
     for i, key in enumerate(("env.att", "env.rel", "env.gain")):
         place(sp, C, key, f"env_env_{key[4:]}", r(x0 + 48 * i, dy, 48, DIAL_H))
     place(sp, C, "band.on", "band_band_on", r(x0, ly, 44, LINE_H))
@@ -693,14 +833,14 @@ def layout_b() -> Layout:
     for i, key in enumerate(("gain", "sat", "color", "rel", "ceil")):
         place(sp, C, f"lim.{key}", f"lim_lim_{key}", r(x0 + 48 * i, dy, 48, DIAL_H))
     place(sp, C, "gate", "out_gate", r(x0, ly, 84, LINE_H))
-    L.append(comment_at("Resync (bars)", 676, ly + 11, 80, "out_lresync", just=2))
+    L.append(comment_at("Resync (bars)", 676, ly + 11, 80, "out_lresync", just=2, tip="ctl:resync"))
     place(sp, C, "resync", "out_resync", r(680, ly, 110, LINE_H))
     place(sp, C, "transpose", "out_transpose", r(x0, dy, 48, DIAL_H))
     place(sp, C, "syncrate", "out_syncrate", r(x0 + 48, dy, 48, DIAL_H))
     place(sp, C, "syncnow", "out_syncnow", r(626, dy + 6, 64, LINE_H))
     place(sp, C, "aa", "out_aa", r(626, dy + 26, 64, LINE_H))
-    L.append(comment_at(f"Aliasing {VERSION}", 790, dy + 17, 100, "out_info1", just=2))
-    L.append(comment_at("after D. Pank", 790, dy + 37, 100, "out_info2", just=2))
+    L.append(comment_at(f"Aliasing {VERSION}", 790, dy + 17, 100, "out_info1", just=2, tip="device"))
+    L.append(comment_at("after D. Pank", 790, dy + 37, 100, "out_info2", just=2, tip="device"))
     return Layout(
         "b", FACE_WIDTH["b"], C, L, lines=[],
         panels=[(r(4, 4, 500, 89), "panel_disp"), (r(508, 4, 288, 89), "panel_page"), (r(4, 95, 792, 21), "panel_mod"),
@@ -741,7 +881,7 @@ def build(template: dict, face: str = "hybrid") -> dict:
     def prect(rect: list[float]) -> list[float]:
         return [rect[0], rect[1] + 1200.0, rect[2], rect[3]]
 
-    # ---- panels and row markers first (back of the z-order) -------------------------------------------
+    # ---- panels and row markers (background layer: behind everything whatever the box order) ----------
     for rect, var in lay.panels:
         p.add({"maxclass": "panel", "varname": var, "numinlets": 1, "numoutlets": 0, "background": 1,
                "mode": 0, "border": 0, "rounded": 4, "bgcolor": PANEL_FALLBACK, "bgfillcolor": PANEL_FALLBACK,
@@ -816,20 +956,23 @@ def build(template: dict, face: str = "hybrid") -> dict:
     # passing through (ignoreclick) - Ableton's pattern in Granulator III, Emit and Vector Grain. Hidden
     # parameter: a Set never re-imports a file at load, the table itself is stored (dict "Table")
     clear = [0.3, 0.3, 0.3, 0.0]
-    sdrop = p.add({"maxclass": "live.drop", "varname": "sample_drop", "numinlets": 1, "numoutlets": 2,
-                   "outlettype": ["", ""], "parameter_enable": 1, "ignoreclick": 1, "decodemode": 1, "legend": "",
-                   "bordercolor": clear, "focusbordercolor": clear, "textcolor": clear,
-                   "patching_rect": [1440.0, 600.0, 120.0, 40.0], "presentation": 1, "presentation_rect": list(dr),
-                   "saved_attribute_attributes": {
-                       "bordercolor": {"expression": ""}, "focusbordercolor": {"expression": ""},
-                       "textcolor": {"expression": ""},
-                       "valueof": {"parameter_longname": "Sample Drop", "parameter_shortname": "Drop",
-                                   "parameter_type": 4, "parameter_invisible": HIDDEN, "parameter_modmode": 0,
-                                   "parameter_info": SAMPLE_DROP_INFO}}})
-    disp = p.add({"maxclass": "v8ui", "filename": "aliasing_display.js", "embed": 0, "numinlets": 1,
-                  "numoutlets": 2, "outlettype": ["", ""], "parameter_enable": 0,
-                  "patching_rect": list(dr), "presentation": 1, "presentation_rect": list(dr), "varname": "display",
-                  "textfile": {"filename": "aliasing_display.js", "flags": 0, "embed": 0, "autowatch": 1}})
+    sdrop = p.add(annotate({
+        "maxclass": "live.drop", "varname": "sample_drop", "numinlets": 1, "numoutlets": 2,
+        "outlettype": ["", ""], "parameter_enable": 1, "ignoreclick": 1, "decodemode": 1, "legend": "",
+        "bordercolor": clear, "focusbordercolor": clear, "textcolor": clear,
+        "patching_rect": [1440.0, 600.0, 120.0, 40.0], "presentation": 1, "presentation_rect": list(dr),
+        "saved_attribute_attributes": {
+            "bordercolor": {"expression": ""}, "focusbordercolor": {"expression": ""},
+            "textcolor": {"expression": ""},
+            "valueof": {"parameter_longname": "Sample Drop", "parameter_shortname": "Drop",
+                        "parameter_type": 4, "parameter_invisible": HIDDEN, "parameter_modmode": 0,
+                        "parameter_info": SAMPLE_DROP_INFO}}}))
+    disp = p.add(annotate({
+        "maxclass": "v8ui", "filename": "aliasing_display.js", "embed": 0, "numinlets": 1,
+        "numoutlets": 2, "outlettype": ["", ""], "parameter_enable": 0,
+        "patching_rect": list(dr), "presentation": 1, "presentation_rect": list(dr), "varname": "display",
+        "textfile": {"filename": "aliasing_display.js", "flags": 0, "embed": 0, "autowatch": 1}},
+        "Table Display", DISPLAY_INFO))
     pages = p.obj(f"v8 aliasing_pages.js {face}", 840.0, 560.0, 1, [], w=160.0,
                   saved_object_attributes={"embed": 0, "parameter_enable": 0},
                   textfile={"filename": "aliasing_pages.js", "flags": 0, "embed": 0, "autowatch": 1})
@@ -861,12 +1004,13 @@ def build(template: dict, face: str = "hybrid") -> dict:
     route = p.obj("route " + " ".join(route_names), 960.0, 600.0, len(route_names) + 1,
                   [""] * (len(route_names) + 1), w=640.0)
     p.wire(disp, 0, route, 0)
-    dmode = p.add({"maxclass": "live.tab", "numinlets": 1, "numoutlets": 3, "outlettype": ["", "", "float"],
-                   "parameter_enable": 1, "patching_rect": [960.0, 640.0, 60.0, 15.0], "varname": "display_mode",
-                   "num_lines_patching": 1, "num_lines_presentation": 1, "multiline": 0, "fontname": FONT,
-                   "fontsize": FS, "saved_attribute_attributes": {"valueof": valueof(
-                       "Display Mode", "Disp Mode", T_ENUM, enum=["Line", "2D"], invisible=STORED_ONLY,
-                       info="Table display: Line or 2D (the icons in the display).")}})
+    dmode = p.add(annotate({
+        "maxclass": "live.tab", "numinlets": 1, "numoutlets": 3, "outlettype": ["", "", "float"],
+        "parameter_enable": 1, "patching_rect": [960.0, 640.0, 60.0, 15.0], "varname": "display_mode",
+        "num_lines_patching": 1, "num_lines_presentation": 1, "multiline": 0, "fontname": FONT,
+        "fontsize": FS, "saved_attribute_attributes": {"valueof": valueof(
+            "Display Mode", "Disp Mode", T_ENUM, enum=["Line", "2D"], invisible=STORED_ONLY,
+            info="Table display: Line or 2D (the icons in the display).")}}))
     p.wire(route, 0, dmode, 0)
     mpre = p.obj("prepend mode", 960.0, 670.0, 1, [""])
     p.wire(dmode, 0, mpre, 0)
@@ -874,13 +1018,14 @@ def build(template: dict, face: str = "hybrid") -> dict:
 
     # sample drop (D50-D54, v0.3-design 4c): live.drop -> display -> sfinfo~ (length, rate, channels) ->
     # display -> buffer~ ---adrop (size, read) -> "dropready" -> display (fits, Freeze, writes, stores)
-    dfit = p.add({"maxclass": "live.tab", "numinlets": 1, "numoutlets": 3, "outlettype": ["", "", "float"],
-                  "parameter_enable": 1, "patching_rect": [1440.0, 520.0, 60.0, 15.0], "varname": "drop_fit",
-                  "num_lines_patching": 1, "num_lines_presentation": 1, "multiline": 0, "fontname": FONT,
-                  "fontsize": FS, "saved_attribute_attributes": {"valueof": valueof(
-                      "Drop Fit", "Drop Fit", T_ENUM, enum=["Fit", "1:1"], invisible=STORED_ONLY,
-                      info="Sample drop: Fit = the whole file resampled to the table row, 1:1 = its first 1024 "
-                           "samples (the FIT / 1:1 pills in the display).")}})
+    dfit = p.add(annotate({
+        "maxclass": "live.tab", "numinlets": 1, "numoutlets": 3, "outlettype": ["", "", "float"],
+        "parameter_enable": 1, "patching_rect": [1440.0, 520.0, 60.0, 15.0], "varname": "drop_fit",
+        "num_lines_patching": 1, "num_lines_presentation": 1, "multiline": 0, "fontname": FONT,
+        "fontsize": FS, "saved_attribute_attributes": {"valueof": valueof(
+            "Drop Fit", "Drop Fit", T_ENUM, enum=["Fit", "1:1"], invisible=STORED_ONLY,
+            info="Sample drop: Fit = the whole file resampled to the table row, 1:1 = its first 1024 "
+                 "samples (the FIT / 1:1 pills in the display).")}}))
     p.wire(route, route_names.index("fit"), dfit, 0)
     fpre = p.obj("prepend fit", 1440.0, 550.0, 1, [""])
     p.wire(dfit, 0, fpre, 0)
@@ -907,15 +1052,15 @@ def build(template: dict, face: str = "hybrid") -> dict:
     p.wire(dready, 0, disp, 0)
 
     # dict Blob parameter: the drawn table, saved with the Set (R10; probe variant B, Ableton's pattern)
-    tdict = p.add({"maxclass": "newobj", "text": "dict ---atable", "numinlets": 2, "numoutlets": 5,
-                   "outlettype": ["dictionary", "", "", "", ""], "patching_rect": [1100.0, 520.0, 110.0, 22.0],
-                   "varname": "atable",
-                   "saved_object_attributes": {"embed": 0, "legacy": 1, "parameter_enable": 1,
-                                               "parameter_mappable": 0},
-                   "saved_attribute_attributes": {"valueof": {
-                       "parameter_longname": "Table", "parameter_shortname": "Table", "parameter_type": T_BLOB,
-                       "parameter_invisible": STORED_ONLY, "parameter_initial_enable": 0, "parameter_modmode": 0,
-                       "parameter_info": TABLE_INFO}}})
+    tdict = p.add(annotate({
+        "maxclass": "newobj", "text": "dict ---atable", "numinlets": 2, "numoutlets": 5,
+        "outlettype": ["dictionary", "", "", "", ""], "patching_rect": [1100.0, 520.0, 110.0, 22.0],
+        "varname": "atable",
+        "saved_object_attributes": {"embed": 0, "legacy": 1, "parameter_enable": 1, "parameter_mappable": 0},
+        "saved_attribute_attributes": {"valueof": {
+            "parameter_longname": "Table", "parameter_shortname": "Table", "parameter_type": T_BLOB,
+            "parameter_invisible": STORED_ONLY, "parameter_initial_enable": 0, "parameter_modmode": 0,
+            "parameter_info": TABLE_INFO}}}))
     p.wire(disp, 1, tdict, 0)
     p.wire(tdict, 0, disp, 0)
 
@@ -933,6 +1078,8 @@ def build(template: dict, face: str = "hybrid") -> dict:
         col["n"] += 1
         return 40.0 + (k % 9) * 150.0, 1450.0 + (k // 9) * 30.0
 
+    ctl_of = {c.key: c for c in lay.controls}
+
     def add_label(lb: Label) -> None:
         box = {"maxclass": "live.comment", "text": lb.text, "numinlets": 1, "numoutlets": 0,
                "patching_rect": prect(lb.rect), "presentation": 1, "presentation_rect": list(lb.rect),
@@ -940,6 +1087,11 @@ def build(template: dict, face: str = "hybrid") -> dict:
                "varname": lb.var}
         if lb.overlay:
             box["ignoreclick"] = 1
+            p.add(hide_rule(box))
+            return
+        # the label's info text: a hover zone at its rect, in front of it (= right before it in the box
+        # order); "<label>_tip" follows the label's page / mode rule (visible_in reads the first two parts)
+        p.add(hide_rule(tip_zone(lb.var + "_tip", lb.rect, prect(lb.rect), *tip_text(lb.tip, face, ctl_of))))
         p.add(hide_rule(box))
 
     for ctl_ in lay.controls:
@@ -962,15 +1114,13 @@ def build(template: dict, face: str = "hybrid") -> dict:
         if ctl_.vo is not None:
             box["parameter_enable"] = 1
             saa["valueof"] = ctl_.vo
-            if ctl_.vo.get("parameter_info"):
-                box["annotation"] = ctl_.vo["parameter_info"]
             # live.text: Live shows its two values with the box attributes automation /
             # automationon ("val1"/"val2" when absent, whatever parameter_enum says) [sourced:
             # live.text.maxref.xml "Automation Off/On Label"; measured: testlog t4-auto, 2026-11-25]
             if ctl_.cls == "live.text" and len(ctl_.vo.get("parameter_enum", [])) == 2:
                 box["automation"], box["automationon"] = ctl_.vo["parameter_enum"]
         box["saved_attribute_attributes"] = saa
-        oid = p.add(hide_rule(box))
+        oid = p.add(hide_rule(annotate(box) if ctl_.vo is not None else box))
         by_var[ctl_.var] = oid
         by_key[ctl_.key] = oid
         for lb in overlays.pop(f"{rect[0]}:{rect[1]}", []) if ctl_.cls == "live.dial" else []:
@@ -1033,7 +1183,7 @@ def build(template: dict, face: str = "hybrid") -> dict:
                "presentation_rect": rect, "varname": var}
         if rect[2] > rect[3]:
             box.update({"orientation": 1, "display_range": [-36.0, 0.0]})
-        m = p.add(hide_rule(box))
+        m = p.add(hide_rule(annotate(box, *METER_INFO[outlet])))
         p.wire(gen, outlet, m, 0)
 
     # ---- labels and dividers ---------------------------------------------------------------------------
@@ -1051,10 +1201,7 @@ def build(template: dict, face: str = "hybrid") -> dict:
     new["devicewidth"] = lay.width
     new["rect"] = [60.0, 80.0, 1440.0, 900.0]
     new["title"] = FACE_TITLE[face]
-    new["description"] = (f"Aliasing {VERSION} ({'hybrid face' if face == 'hybrid' else 'face B'}): a 5-voice drone "
-                          "where a table is written and read at different speeds, with tempo sync, LFOs, an envelope "
-                          "follower, a mod matrix, a tone section and a color limiter. An original design inspired by "
-                          "'aliasing Synth' by D. Pank (Reaktor User Library #5241, 2008).")
+    new["description"] = device_info(face)
     new["default_fontname"] = FONT
     new["default_fontsize"] = FS
     new["dependency_cache"] = []
@@ -1105,6 +1252,48 @@ def read_amxd(path: Path) -> tuple[bytes, dict]:
 def write_amxd(path: Path, head: bytes, patch: dict) -> None:
     body = json.dumps(patch, indent="\t", ensure_ascii=False).encode("utf-8") + b"\n\x00"
     path.write_bytes(head + b"ptch" + struct.pack("<I", len(body)) + body)
+
+
+TEXT_BOX_KEYS = ("annotation", "annotation_name")
+TEXT_VO_KEYS = ("parameter_info", "parameter_annotation_name")
+
+
+def sync_texts(shell: dict, built: dict) -> list[str]:
+    """Copy the info texts, and nothing else, from a fresh build into an existing shell: the four text
+    fields of every box (matched by scripting name) and the patcher's description. The shell stays the
+    source of truth for everything else. Returns one line per change or mismatch."""
+    notes: list[str] = []
+    src = {b["box"]["varname"]: b["box"] for b in built["patcher"]["boxes"] if b["box"].get("varname")}
+    seen: set[str] = set()
+    changed = 0
+    for bx in shell["patcher"]["boxes"]:
+        box = bx["box"]
+        var = box.get("varname")
+        if var not in src:
+            if box.get("presentation") and box.get("maxclass") not in ("live.line",):
+                notes.append(f"not in the generator, texts left as they are: {var or box.get('maxclass')}")
+            continue
+        seen.add(var)
+        pairs = [(box, src[var], TEXT_BOX_KEYS)]
+        vo = (box.get("saved_attribute_attributes") or {}).get("valueof")
+        svo = (src[var].get("saved_attribute_attributes") or {}).get("valueof")
+        if vo is not None and svo is not None:
+            pairs.append((vo, svo, TEXT_VO_KEYS))
+        before = json.dumps([[d.get(k) for k in keys] for d, _, keys in pairs])
+        for dst, s, keys in pairs:
+            for k in keys:
+                if k in s:
+                    dst[k] = s[k]
+                else:
+                    dst.pop(k, None)
+        changed += before != json.dumps([[d.get(k) for k in keys] for d, _, keys in pairs])
+    for var in sorted(v for v in set(src) - seen if src[v].get("annotation")):
+        notes.append(f"in the generator but not in the shell: {var}")
+    if shell["patcher"].get("description") != built["patcher"]["description"]:
+        shell["patcher"]["description"] = built["patcher"]["description"]
+        notes.append("patcher description updated")
+    notes.append(f"{changed} boxes with new info texts")
+    return notes
 
 
 def param_table(face: str) -> str:
@@ -1185,6 +1374,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--template", type=Path, default=TEMPLATE, help="Live's Max Instrument.amxd")
     ap.add_argument("--out", type=Path, default=None, help="output .amxd (default: the face's file in the device folder)")
     ap.add_argument("--force", action="store_true", help="overwrite an existing output (discards Max edits)")
+    ap.add_argument("--sync-texts", action="store_true",
+                    help="update only the info texts (annotation, title, description) of the existing output")
     ap.add_argument("--list-params", action="store_true", help="print the parameter table (Markdown) and exit")
     ap.add_argument("--list-layout", action="store_true", help="print the layout table (Markdown) and exit")
     args = ap.parse_args(argv)
@@ -1195,6 +1386,13 @@ def main(argv: list[str] | None = None) -> int:
         print(layout_table(args.face))
         return 0
     out = args.out or DEVICE / FACE_FILE[args.face]
+    if args.sync_texts:
+        _, template = read_amxd(args.template)
+        head, shell = read_amxd(out)
+        for note in sync_texts(shell, build(template, args.face)):
+            print(f"sync-texts: {out.name}: {note}")
+        write_amxd(out, head, shell)
+        return 0
     if out.exists() and not args.force:
         print(f"bootstrap_shell: {out} exists - it is the source of truth now; use --force to overwrite",
               file=sys.stderr)
